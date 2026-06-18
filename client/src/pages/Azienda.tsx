@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { FAL_IMAGES } from "@/lib/assets";
+import { FallinityModuleCard, FallinitySection } from "@/components/fallinity";
 
 const GREEN = "oklch(0.65 0.18 142)";
 const GOLD  = "oklch(0.72 0.15 75)";
@@ -102,10 +103,7 @@ export default function Azienda() {
       </div>
 
       {/* ── CARD PREMIUM MODULI OPERATIVI ──────────────────────────────────── */}
-      <div>
-        <h2 className="text-xs font-semibold tracking-wider uppercase mb-3" style={{ color: "oklch(0.5 0.01 145)" }}>
-          Aree Operative
-        </h2>
+      <FallinitySection eyebrow="Aree Operative">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Prima card grande */}
           <button onClick={() => setLocation(moduli[0].path)}
@@ -124,36 +122,30 @@ export default function Azienda() {
 
           {/* Card successive */}
           {moduli.slice(1).map((m) => (
-            <button key={m.key} onClick={() => setLocation(m.path)}
-              className="fal-card fal-card-hover fal-img-overlay relative overflow-hidden min-h-[95px] text-left flex flex-col justify-end p-5 group"
-              style={{ backgroundImage: `url(${m.img})`, backgroundSize: "cover", backgroundPosition: "center" }}>
-              <div className="relative z-10 flex items-end justify-between">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <m.icon size={15} style={{ color: m.color }} />
-                    <h3 className="text-sm font-bold" style={{ fontFamily: "var(--font-display)", color: "oklch(0.96 0.005 145)" }}>{m.label}</h3>
-                  </div>
-                  <p className="text-lg font-bold" style={{ color: m.color, fontFamily: "var(--font-display)" }}>{m.kpi}</p>
-                  <p className="text-[11px] mt-0.5" style={{ color: "oklch(0.75 0.01 145)" }}>{m.sub}</p>
-                </div>
-                <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" style={{ color: "oklch(0.8 0.01 145)" }} />
-              </div>
-            </button>
+            <FallinityModuleCard
+              key={m.key}
+              label={m.label}
+              value={m.kpi}
+              description={m.sub}
+              icon={m.icon}
+              color={m.color}
+              image={m.img}
+              onClick={() => setLocation(m.path)}
+            />
           ))}
         </div>
-      </div>
+      </FallinitySection>
 
       {/* ── ANAGRAFICA UNIFICATA ───────────────────────────────────────────── */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xs font-semibold tracking-wider uppercase" style={{ color: "oklch(0.5 0.01 145)" }}>
-            Anagrafica Unificata
-          </h2>
+      <FallinitySection
+        eyebrow="Anagrafica Unificata"
+        action={
           <Button size="sm" onClick={() => { setForm({ ...EMPTY_FORM, tipo: tab }); setOpen(true); }}
             className="gap-2" style={{ background: GREEN, color: "oklch(0.08 0.005 145)" }}>
             <Plus size={14} /> Nuovo contatto
           </Button>
-        </div>
+        }
+      >
 
         {/* Tab tipo contatto */}
         <div className="grid grid-cols-3 gap-3 mb-4">
@@ -248,7 +240,7 @@ export default function Azienda() {
             </Table>
           )}
         </div>
-      </div>
+      </FallinitySection>
 
       {/* ── SHEET FORM ─────────────────────────────────────────────────────── */}
       <Sheet open={open} onOpenChange={setOpen}>

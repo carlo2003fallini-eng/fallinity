@@ -1,0 +1,27 @@
+{
+  "name": "Fallinity — Enterprise Operating System",
+  "short_name": "Fallinity",
+  "description": "Il sistema operativo per la gestione integrata dell'azienda agricola: finanza, stalla, campi, magazzino, officina e reintegrazione.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0f0a",
+  "theme_color": "#0a0f0a",
+  "lang": "it",
+  "categories": ["business", "productivity", "finance"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

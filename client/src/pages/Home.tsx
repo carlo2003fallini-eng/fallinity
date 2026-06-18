@@ -35,6 +35,7 @@ import {
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { FAL_IMAGES } from "@/lib/assets";
+import { FallinityKpiCard, FallinityInsightCard, FallinitySection } from "@/components/fallinity";
 
 const GREEN = "oklch(0.65 0.18 142)";
 const GOLD = "oklch(0.72 0.15 75)";
@@ -196,16 +197,15 @@ export default function Home() {
           { label: "INTERVENTI",   value: kpi ? String(kpi.interventiAperti ?? 0) : "—", sub: "aperti", color: kpi && (kpi.interventiAperti ?? 0) > 0 ? GOLD : GREEN, icon: Wrench, path: "/officina" },
           { label: "SOTTO SCORTA", value: kpi ? String(kpi.prodottiSottoScorta ?? 0) : "—", sub: "prodotti", color: kpi && (kpi.prodottiSottoScorta ?? 0) > 0 ? GOLD : GREEN, icon: Package, path: "/magazzino" },
         ].map(k => (
-          <div key={k.label} className="fal-card fal-card-hover p-5 cursor-pointer" onClick={() => setLocation(k.path)}>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold tracking-wider" style={{ color: "oklch(0.45 0.01 145)" }}>{k.label}</span>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${k.color}1a` }}>
-                <k.icon size={15} style={{ color: k.color }} />
-              </div>
-            </div>
-            <div className="kpi-number" style={{ color: "oklch(0.95 0.005 145)" }}>{k.value}</div>
-            <p className="text-xs mt-1" style={{ color: "oklch(0.45 0.01 145)" }}>{k.sub}</p>
-          </div>
+          <FallinityKpiCard
+            key={k.label}
+            label={k.label}
+            value={k.value}
+            sub={k.sub}
+            icon={k.icon}
+            color={k.color}
+            onClick={() => setLocation(k.path)}
+          />
         ))}
       </div>
 
@@ -240,12 +240,11 @@ export default function Home() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
         {/* Andamento economico */}
-        <div className="lg:col-span-2 fal-card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-sm font-semibold" style={{ color: "oklch(0.85 0.01 145)", fontFamily: "var(--font-display)" }}>Andamento Economico</h3>
-              <p className="text-xs mt-0.5" style={{ color: "oklch(0.45 0.01 145)" }}>Ultimi 6 mesi</p>
-            </div>
+        <FallinityInsightCard
+          className="lg:col-span-2"
+          title="Andamento Economico"
+          subtitle="Ultimi 6 mesi"
+          legend={
             <div className="flex items-center gap-4 text-xs" style={{ color: "oklch(0.5 0.01 145)" }}>
               {[["Entrate", GREEN_HEX], ["Uscite", RED_HEX], ["Utile", BLUE_HEX]].map(([l, c]) => (
                 <span key={l} className="flex items-center gap-1.5">
@@ -253,7 +252,8 @@ export default function Home() {
                 </span>
               ))}
             </div>
-          </div>
+          }
+        >
           {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
               <AreaChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
@@ -280,13 +280,10 @@ export default function Home() {
               <p className="text-sm">Nessun dato — aggiungi transazioni in Finanza</p>
             </div>
           )}
-        </div>
+        </FallinityInsightCard>
 
         {/* Attività recenti */}
-        <div className="fal-card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold" style={{ color: "oklch(0.85 0.01 145)", fontFamily: "var(--font-display)" }}>Attività Recenti</h3>
-          </div>
+        <FallinityInsightCard title="Attività Recenti">
           <div className="space-y-3">
             {allRecent.length === 0 ? (
               <p className="text-xs text-center py-6" style={{ color: "oklch(0.4 0.01 145)" }}>Nessuna attività recente</p>
@@ -316,15 +313,11 @@ export default function Home() {
               </div>
             ))}
           </div>
-        </div>
+        </FallinityInsightCard>
       </div>
 
       {/* ── MODULI RAPIDI ──────────────────────────────────────────────────── */}
-      <div>
-        <div className="flex items-center gap-2 mb-3">
-          <Zap size={13} style={{ color: GREEN }} />
-          <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "oklch(0.45 0.01 145)" }}>Aree principali</span>
-        </div>
+      <FallinitySection eyebrow="Aree principali">
         <div className="grid grid-cols-5 sm:grid-cols-10 gap-3">
           {moduleCards.map(mod => (
             <button
@@ -339,7 +332,7 @@ export default function Home() {
             </button>
           ))}
         </div>
-      </div>
+      </FallinitySection>
 
     </div>
   );

@@ -5,8 +5,16 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <title>Fallinity — Enterprise Operating System</title>    
+      content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
+    <title>Fallinity — Enterprise Operating System</title>
+    <meta name="description" content="Fallinity FEOS — il sistema operativo per la gestione integrata dell'azienda agricola: finanza, stalla, campi, magazzino, officina e reintegrazione." />
+    <meta name="theme-color" content="#0a0f0a" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Fallinity" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..700;1,14..32,300..500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -15,6 +23,21 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("/sw.js").then(
+            function (reg) {
+              console.info("[Fallinity PWA] Service worker registrato:", reg.scope);
+            },
+            function (err) {
+              // Non bloccante: l'app funziona comunque online senza il SW.
+              console.warn("[Fallinity PWA] Registrazione service worker fallita:", err && err.message ? err.message : err);
+            }
+          );
+        });
+      }
+    </script>
     <script
       defer
       src="%VITE_ANALYTICS_ENDPOINT%/umami"

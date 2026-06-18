@@ -170,17 +170,16 @@
 - [x] Logica inventory (prodotti, movimenti) con company-scoping e soft-delete
 - [x] Logica reinvestment (fondi, rate) con company-scoping e soft-delete
 
-### Design System Fallinity (componenti riutilizzabili) — NON FATTO (rinviato a Beta)
-> Gli stili premium esistono come pattern UI inline nelle pagine (token CSS in index.css + classi Tailwind condivise), verificati visivamente negli screenshot. L'ESTRAZIONE in componenti riutilizzabili separati (file Fallinity*.tsx) NON è stata eseguita: è un refactor non funzionale fuori dal mandato Alpha 0.2 (rifondazione UUID). Resta aperto.
-- [ ] FallinityHeroCard (componente estratto) — pattern inline presente, estrazione non fatta
-- [ ] FallinityKpiCard (componente estratto) — pattern inline presente, estrazione non fatta
-- [ ] FallinityModuleCard (componente estratto) — pattern inline presente, estrazione non fatta
-- [ ] FallinityEntityCard (componente estratto) — pattern inline presente, estrazione non fatta
-- [ ] FallinityInsightCard (componente estratto) — pattern inline presente, estrazione non fatta
-- [ ] FallinityBottomNav (componente estratto) — pattern inline presente, estrazione non fatta
-- [ ] FallinityHeader (componente estratto) — pattern inline presente, estrazione non fatta
-- [ ] FallinitySection (componente estratto) — pattern inline presente, estrazione non fatta
-- [ ] FallinityChartCard (componente estratto) — pattern inline presente, estrazione non fatta
+### Design System Fallinity (componenti riutilizzabili)
+> Libreria estratta in `client/src/components/fallinity/index.tsx` e applicata a Home/Azienda. Header e BottomNav erano già componenti reali in `DashboardLayout.tsx`.
+- [x] FallinityKpiCard (estratto + usato in Home)
+- [x] FallinityModuleCard (estratto + usato in Azienda)
+- [x] FallinityEntityCard (estratto, disponibile per liste a card)
+- [x] FallinityInsightCard / ChartCard (estratto + usato in Home per Andamento e Attività)
+- [x] FallinitySection (estratto + adottato in Home e Azienda)
+- [x] FallinityBottomNav (già componente reale in DashboardLayout: nav fixed bottom)
+- [x] FallinityHeader (già componente reale in DashboardLayout: header sticky logo+azienda+profilo)
+- [x] Hero card: pattern dedicato verificato in Home (fal-hero, immagine di sfondo) e Reintegrazione (hero gold con totale fondi+interessi+versamento), mantenuto inline per le immagini/gradienti specifici
 
 ### Mobile-first — verificato visivamente (screenshot 390x844)
 - [x] Layout verticale mobile-first con scroll verticale (Home/Azienda/Stalla/Reintegrazione verificate)
@@ -188,7 +187,7 @@
 - [x] Stalla/Campi/Magazzino/Officina/Calendario/Report/AI accessibili da Azienda o Altro
 - [x] Card grandi, pulsanti thumb-friendly, spaziature generose, alto contrasto
 - [x] Liste a card verticali (no tabelle larghe)
-- [ ] PWA installabile (manifest + service worker + icone) — RINVIATA a Beta (non nel mandato Alpha 0.2 UUID)
+- [x] PWA installabile: manifest.webmanifest (standalone, theme dark, categorie business) + service worker (network-first navigazione, no-cache su /api e /trpc) + icone 192/512 + meta apple-touch. Registrazione SW con gestione esplicita successo/errore (console.info/warn, non bloccante). Verificato HTTP 200 su tutti gli asset.
 
 ### Schermate premium mobile — verificate visivamente (screenshot 390x844)
 - [x] Home: Hero Utile Netto dominante + card economiche verticali
