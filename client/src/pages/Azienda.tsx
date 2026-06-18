@@ -36,17 +36,17 @@ export default function Azienda() {
   const [open, setOpen]   = useState(false);
   const [form, setForm]   = useState({ ...EMPTY_FORM });
 
-  const { data: contatti = [], refetch } = trpc.azienda.contatti.list.useQuery({ tipo: tab });
+  const { data: contatti = [], refetch } = trpc.azienda.list.useQuery({ tipo: tab });
   const { data: kpi }       = trpc.dashboard.kpi.useQuery();
   const { data: stallaStats } = trpc.stalla.stats.useQuery();
   const { data: animali = [] } = trpc.stalla.list.useQuery();
   const { data: prodotti = [] } = trpc.magazzino.list.useQuery();
 
-  const createMutation = trpc.azienda.contatti.create.useMutation({
+  const createMutation = trpc.azienda.create.useMutation({
     onSuccess: () => { refetch(); setOpen(false); setForm({ ...EMPTY_FORM }); toast.success("Contatto aggiunto"); },
     onError: () => toast.error("Errore durante il salvataggio"),
   });
-  const deleteMutation = trpc.azienda.contatti.delete.useMutation({
+  const deleteMutation = trpc.azienda.delete.useMutation({
     onSuccess: () => { refetch(); toast.success("Contatto eliminato"); },
   });
 

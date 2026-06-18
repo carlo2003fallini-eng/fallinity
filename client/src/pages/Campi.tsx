@@ -33,15 +33,16 @@ const EMPTY_CAMPO = { nome: "", codice: "", ettari: "", comune: "", provincia: "
 const EMPTY_LAV   = { tipo: "", descrizione: "", data: new Date().toISOString().split("T")[0], operatore: "", costo: "", stato: "pianificata" as "pianificata"|"in_corso"|"completata", note: "" };
 
 export default function Campi() {
-  const [selected, setSelected]     = useState<number | null>(null);
+  const [selected, setSelected]     = useState<string | null>(null);
   const [openCampo, setOpenCampo]   = useState(false);
   const [openLav, setOpenLav]       = useState(false);
   const [formCampo, setFormCampo]   = useState({ ...EMPTY_CAMPO });
   const [formLav, setFormLav]       = useState({ ...EMPTY_LAV });
 
   const { data: campi = [], refetch: refetchCampi } = trpc.campi.list.useQuery();
-  const { data: lavorazioni = [], refetch: refetchLav } = trpc.campi.lavorazioni.list.useQuery(
-    selected ? { campoId: selected } : {}
+  const { data: lavorazioni = [], refetch: refetchLav } = trpc.campi.lavorazioni.useQuery(
+    { campoId: selected ?? "" },
+    { enabled: !!selected }
   );
 
   const createCampo = trpc.campi.create.useMutation({
@@ -51,7 +52,7 @@ export default function Campi() {
   const deleteCampo = trpc.campi.delete.useMutation({
     onSuccess: () => { refetchCampi(); setSelected(null); toast.success("Campo eliminato"); },
   });
-  const createLav = trpc.campi.lavorazioni.create.useMutation({
+  const createLav = trpc.campi.addLavorazione.useMutation({
     onSuccess: () => { refetchLav(); setOpenLav(false); setFormLav({ ...EMPTY_LAV }); toast.success("Lavorazione aggiunta"); },
     onError: () => toast.error("Errore durante il salvataggio"),
   });
@@ -304,7 +305,7 @@ export default function Campi() {
             </div>
           </div>
           <div className="px-6 py-4 border-t" style={{ borderColor: "oklch(0.18 0.008 145)" }}>
-            <Button onClick={() => { if (!formCampo.nome || !formCampo.ettari) { toast.error("Nome e ettari obbligatori"); return; } createCampo.mutate(formCampo); }}
+            <Button onClick={() => { if (!formCampo.nome || !formCampo.ettari) { toast.error("Nome e ettari obbligatori"); return; } createCampo.mutate({ ...formCampo, ettari: Number(formCampo.ettari) }); }}
               disabled={createCampo.isPending} className="w-full" style={{ background: GREEN, color: "oklch(0.08 0.005 145)" }}>
               {createCampo.isPending ? "Salvataggio..." : "Salva campo"}
             </Button>
@@ -359,7 +360,7 @@ export default function Campi() {
             </div>
           </div>
           <div className="px-6 py-4 border-t" style={{ borderColor: "oklch(0.18 0.008 145)" }}>
-            <Button onClick={() => { if (!formLav.tipo || !formLav.data || !selected) { toast.error("Tipo e data obbligatori"); return; } createLav.mutate({ ...formLav, campoId: selected }); }}
+            <Button onClick={() => { if (!formLav.tipo || !formLav.data || !selected) { toast.error("Tipo e data obbligatori"); return; } createLav.mutate({ campoId: selected, tipo: formLav.tipo, descrizione: formLav.descrizione, data: formLav.data, operatore: formLav.operatore, costo: formLav.costo ? Number(formLav.costo) : undefined }); }}
               disabled={createLav.isPending} className="w-full" style={{ background: GREEN, color: "oklch(0.08 0.005 145)" }}>
               {createLav.isPending ? "Salvataggio..." : "Salva lavorazione"}
             </Button>

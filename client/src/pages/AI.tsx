@@ -26,7 +26,7 @@ const XAI_PRINCIPLES = [
 ];
 
 export default function AI() {
-  const [selectedSession, setSelectedSession] = useState<number | null>(null);
+  const [selectedSession, setSelectedSession] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -177,8 +177,8 @@ export default function AI() {
         <div className="flex items-center gap-4 px-5 py-2.5 border-b overflow-x-auto" style={{ borderColor: "oklch(0.16 0.007 145)", background: "oklch(0.09 0.005 145)" }}>
           <span className="text-[10px] font-semibold uppercase tracking-wider shrink-0" style={{ color: "oklch(0.4 0.01 145)" }}>Contesto live</span>
           {[
-            { icon: TrendingUp, label: "Utile", value: `€${Number(kpi?.utileNetto ?? 0).toLocaleString("it-IT")}`, color: (kpi?.utileNetto ?? 0) >= 0 ? GREEN : "oklch(0.6 0.2 25)" },
-            { icon: Sprout, label: "Campi", value: String(kpi?.campiAttivi ?? 0), color: GREEN },
+            { icon: TrendingUp, label: "Utile", value: `€${Number(kpi?.utile ?? 0).toLocaleString("it-IT")}`, color: (kpi?.utile ?? 0) >= 0 ? GREEN : "oklch(0.6 0.2 25)" },
+            { icon: Sprout, label: "Campi", value: String(kpi?.campi ?? 0), color: GREEN },
             { icon: Tractor, label: "Mezzi", value: String(kpi?.macchine ?? 0), color: GOLD },
             { icon: Activity, label: "Sotto scorta", value: String(kpi?.prodottiSottoScorta ?? 0), color: (kpi?.prodottiSottoScorta ?? 0) > 0 ? GOLD : GREEN },
           ].map(c => (

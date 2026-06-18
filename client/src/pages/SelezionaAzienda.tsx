@@ -13,14 +13,14 @@ const BORDER = "oklch(0.18 0.008 145)";
 export default function SelezionaAzienda() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
-  const { data: aziendaData } = trpc.azienda.get.useQuery();
+  const { data: aziendaData } = trpc.company.current.useQuery();
 
   // Simula lista aziende (in produzione verrebbe da un endpoint multi-tenant)
   const aziende = aziendaData
     ? [
         {
           id: 1,
-          nome: aziendaData.nome || "Azienda Agricola",
+          nome: aziendaData.name || "Azienda Agricola",
           provincia: aziendaData.provincia || "—",
           settore: aziendaData.settore || "Agricoltura",
           ruolo: user?.role === "admin" ? "Amministratore" : "Operatore",

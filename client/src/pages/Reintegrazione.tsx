@@ -19,8 +19,8 @@ function fmt(n: number) {
 
 export default function Reintegrazione() {
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [rataSheet, setRataSheet] = useState<{ open: boolean; fondoId: number; nome: string; rata: number }>({ open: false, fondoId: 0, nome: "", rata: 0 });
-  const [addForm, setAddForm] = useState({ macchinaId: 1, nomeDisplay: "", valoreAcquisto: "", fondoAttuale: "0", tassoInteresse: "3", annoObiettivo: "" });
+  const [rataSheet, setRataSheet] = useState<{ open: boolean; fondoId: string; nome: string; rata: number }>({ open: false, fondoId: "", nome: "", rata: 0 });
+  const [addForm, setAddForm] = useState({ macchinaId: "", nomeDisplay: "", valoreAcquisto: "", fondoAttuale: "0", tassoInteresse: "3", annoObiettivo: "" });
   const [importoRata, setImportoRata] = useState("");
 
   const { data: fondi = [], refetch } = trpc.reintegrazione.list.useQuery();
@@ -28,7 +28,7 @@ export default function Reintegrazione() {
   const { data: macchineList = [] } = trpc.officina.macchine.list.useQuery();
 
   const addMutation = trpc.reintegrazione.add.useMutation({
-    onSuccess: () => { refetch(); setSheetOpen(false); toast.success("Fondo creato"); setAddForm({ macchinaId: 1, nomeDisplay: "", valoreAcquisto: "", fondoAttuale: "0", tassoInteresse: "3", annoObiettivo: "" }); },
+    onSuccess: () => { refetch(); setSheetOpen(false); toast.success("Fondo creato"); setAddForm({ macchinaId: "", nomeDisplay: "", valoreAcquisto: "", fondoAttuale: "0", tassoInteresse: "3", annoObiettivo: "" }); },
     onError: () => toast.error("Errore durante il salvataggio"),
   });
   const pagaMutation = trpc.reintegrazione.pagaRata.useMutation({
@@ -201,11 +201,11 @@ export default function Reintegrazione() {
                 style={{ background: SURFACE2, border: `1px solid ${BORDER}`, color: "oklch(0.88 0.006 145)" }}
                 value={addForm.macchinaId}
                 onChange={e => {
-                  const mac = macchineList.find((m: any) => m.id === Number(e.target.value));
-                  setAddForm(p => ({ ...p, macchinaId: Number(e.target.value), nomeDisplay: mac?.nome ?? "" }));
+                  const mac = macchineList.find((m: any) => m.id === e.target.value);
+                  setAddForm(p => ({ ...p, macchinaId: e.target.value, nomeDisplay: mac?.nome ?? "" }));
                 }}
               >
-                {macchineList.length === 0 && <option value={1}>Aggiungi prima una macchina in Officina</option>}
+                {macchineList.length === 0 && <option value="none">Aggiungi prima una macchina in Officina</option>}
                 {macchineList.map((m: any) => <option key={m.id} value={m.id}>{m.nome}</option>)}
               </select>
             </div>

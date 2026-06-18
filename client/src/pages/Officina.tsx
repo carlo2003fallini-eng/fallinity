@@ -32,7 +32,7 @@ const EMPTY_M = { nome: "", marca: "", modello: "", targa: "", anno: "", oreTota
 const EMPTY_I = { tipo: "manutenzione" as "manutenzione"|"riparazione"|"revisione", descrizione: "", data: new Date().toISOString().split("T")[0], priorita: "media" as "alta"|"media"|"bassa", stato: "pianificato" as "pianificato"|"in_corso"|"completato", costoManodopera: "", costoRicambi: "", operatore: "", note: "" };
 
 export default function Officina() {
-  const [selectedMacchina, setSelectedMacchina] = useState<number | null>(null);
+  const [selectedMacchina, setSelectedMacchina] = useState<string | null>(null);
   const [openMacchina, setOpenMacchina] = useState(false);
   const [openIntervento, setOpenIntervento] = useState(false);
   const [formM, setFormM] = useState({ ...EMPTY_M });
@@ -40,9 +40,9 @@ export default function Officina() {
 
   const { data: macchine = [], refetch: refetchM } = trpc.officina.macchine.list.useQuery();
   const { data: interventi = [], refetch: refetchI } = trpc.officina.interventi.list.useQuery(
-    selectedMacchina ? { macchinaId: selectedMacchina } : {}
+    selectedMacchina ? { macchinaId: selectedMacchina } : undefined
   );
-  const { data: tuttiInterventi = [] } = trpc.officina.interventi.list.useQuery({});
+  const { data: tuttiInterventi = [] } = trpc.officina.interventi.list.useQuery(undefined);
 
   const createM = trpc.officina.macchine.create.useMutation({
     onSuccess: () => { refetchM(); setOpenMacchina(false); setFormM({ ...EMPTY_M }); toast.success("Macchina aggiunta"); },
@@ -384,7 +384,7 @@ export default function Officina() {
             </div>
           </div>
           <div className="px-6 py-4 border-t" style={{ borderColor: "oklch(0.18 0.008 145)" }}>
-            <Button onClick={() => { if (!formM.nome) { toast.error("Nome obbligatorio"); return; } createM.mutate({ ...formM, anno: formM.anno ? Number(formM.anno) : undefined }); }}
+            <Button onClick={() => { if (!formM.nome) { toast.error("Nome obbligatorio"); return; } createM.mutate({ nome: formM.nome, marca: formM.marca, modello: formM.modello, targa: formM.targa, stato: formM.stato, note: formM.note, anno: formM.anno ? Number(formM.anno) : undefined, oreTotali: formM.oreTotali ? Number(formM.oreTotali) : undefined }); }}
               disabled={createM.isPending} className="w-full" style={{ background: GREEN, color: "oklch(0.08 0.005 145)" }}>
               {createM.isPending ? "Salvataggio..." : "Salva macchina"}
             </Button>
@@ -461,7 +461,7 @@ export default function Officina() {
             </div>
           </div>
           <div className="px-6 py-4 border-t" style={{ borderColor: "oklch(0.18 0.008 145)" }}>
-            <Button onClick={() => { if (!formI.data || !selectedMacchina) { toast.error("Data obbligatoria"); return; } createI.mutate({ ...formI, macchinaId: selectedMacchina }); }}
+            <Button onClick={() => { if (!formI.data || !selectedMacchina) { toast.error("Data obbligatoria"); return; } createI.mutate({ macchinaId: selectedMacchina, tipo: formI.tipo, descrizione: formI.descrizione, data: formI.data, priorita: formI.priorita, stato: formI.stato, operatore: formI.operatore, note: formI.note, costoManodopera: formI.costoManodopera ? Number(formI.costoManodopera) : undefined, costoRicambi: formI.costoRicambi ? Number(formI.costoRicambi) : undefined }); }}
               disabled={createI.isPending} className="w-full" style={{ background: GREEN, color: "oklch(0.08 0.005 145)" }}>
               {createI.isPending ? "Salvataggio..." : "Salva intervento"}
             </Button>

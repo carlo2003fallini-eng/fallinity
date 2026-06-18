@@ -146,3 +146,78 @@
 ### AI Copilot
 - [x] Trasformare AI da pagina separata a Copilot contestuale Fallinity
 - [x] Suggerimenti azioni basati sul contesto aziendale
+
+## Fase 13: Alpha 0.2 — Fondamenta + Mobile-First (revisione architetturale)
+
+### Database (progressivo, mantiene dati)
+- [ ] Tabella organizations (uuid, name, colonne standard)
+- [ ] Tabella companies (uuid, organizationId, name, colonne standard)
+- [ ] Tabella farms (uuid, companyId, name, colonne standard)
+- [ ] Tabella roles (8 ruoli: platform_owner, super_admin, organization_admin, company_admin, manager, operator, consultant, viewer)
+- [ ] Tabella permissions
+- [ ] Tabella moduleAccess
+- [ ] Tabella companyMemberships (userId, companyId, roleId)
+- [ ] Tabella auditLogs
+- [ ] Colonne standard Fallinity (uuid, companyId, createdAt/By, updatedAt/By, deletedAt/By, version) su entità operative
+- [ ] Soft delete: deletedAt/deletedBy al posto del delete fisico nelle mutation
+
+### Backend a domini
+- [ ] server/domains/finance/ (router, service, repository, validators)
+- [ ] server/domains/livestock/ (router, service, repository, validators)
+- [ ] server/domains/fleet/ (router, service, repository, validators)
+- [ ] server/domains/crop/ (router, service, repository, validators)
+- [ ] server/domains/inventory/ (router, service, repository, validators)
+- [ ] server/domains/reinvestment/ (router, service, repository, validators)
+
+### Design System Fallinity (componenti riutilizzabili)
+- [ ] FallinityHeroCard
+- [ ] FallinityKpiCard
+- [ ] FallinityModuleCard
+- [ ] FallinityEntityCard
+- [ ] FallinityInsightCard
+- [ ] FallinityBottomNav
+- [ ] FallinityHeader
+- [ ] FallinitySection
+- [ ] FallinityChartCard
+
+### Mobile-first
+- [ ] Shell app verticale mobile-first (contenitore max-width, layout 9:16, scroll verticale)
+- [ ] Bottom nav ufficiale: Home, Azienda, Finanza, Reintegrazione, Altro (sempre visibile)
+- [ ] Stalla/Campi/Magazzino/Officina/Calendario/Report/AI accessibili da Azienda o Altro
+- [ ] Card grandi, pulsanti thumb-friendly, spaziature generose, alto contrasto
+- [ ] Eliminare tabelle larghe -> liste a card verticali
+- [ ] PWA installabile (manifest + service worker + icone)
+
+### Schermate premium mobile
+- [ ] Home: Hero Utile Netto dominante + card economiche verticali
+- [ ] Azienda: Command Center (Stalla, Dati Latte, Dati Vitelli, Magazzino, Officina, Alert Operativi)
+- [ ] Finanza: dashboard economica mobile + collegamento Reintegrazione
+- [ ] Reintegrazione: Hero fondo totale, interessi maturati, versamento del mese, lista fondi % copertura, Paga rata
+- [ ] Stalla: card 2x2 grandi, illustrazioni semitrasparenti, contatori grandi, glow per categoria
+- [ ] Campi/Magazzino/Officina/Calendario/Report/AI in versione mobile-first
+
+
+## Fase 14: Alpha 0.2 — STRADA A (rifondazione pulita, UUID primary key)
+> Decisione utente: schema rifondato con UUID come PK, multi-azienda completo, soft-delete. Si accetta reset dati demo.
+
+### Schema (UUID PK)
+- [x] Helper colonne standard Fallinity (id uuid PK, companyId, createdAt/By, updatedAt/By, deletedAt/By, version)
+- [x] Entità piattaforma: organizations, companies, farms, roles, permissions, moduleAccess, companyMemberships, auditLogs (UUID PK)
+- [x] users: aggiungere uuid + platformRole (8 ruoli) mantenendo openId per OAuth
+- [x] Entità operative con UUID PK + companyId: contatti, campi, lavorazioni, transazioni, budget, prodotti, movimentiMagazzino, macchine, interventi, eventi, animali, trattamentiAnimali, gravidanze, zoppie, fondiReintegrazione, rateReintegrazione, chatSessions, chatMessages
+- [x] FK ridefinite su UUID (campoId, animaleId, macchinaId, fondoId, ecc.)
+
+### Migrazione + seed
+- [x] Tabelle vecchie archiviate (_old_*) e nuove tabelle UUID create
+- [x] Seed: organization demo, company demo (comp-demo-0001), farm demo, 8 roles, membership owner
+
+### Backend a domini
+- [x] server/domains/_core (getActor, withCreate, withUpdate, softDeletePayload)
+- [x] server/db.ts con upsertUser (uuid auto-generato), getActiveCompanyId
+- [x] routers.ts riscritto con UUID, companyId context, soft-delete sui domini di business (azienda, finanza, campi, magazzino, officina, calendario, stalla, reintegrazione)
+- [ ] NOTA: dominio AI (chatSessions/chatMessages) usa scope per-utente + hard delete (conversazioni effimere, non entità di business soggette ad audit). Da rivalutare in Beta se serve multi-tenant/soft-delete anche qui.
+- [x] appRouter compone i domini (azienda, finanza, campi, magazzino, officina, calendario, report, stalla, reintegrazione, ai, company)
+
+### Frontend adattamento UUID
+- [x] Aggiornate tutte le pagine ai nuovi tipi UUID (string id): AI, Azienda, Campi, Finanza, Home, Magazzino, Officina, Reintegrazione, Stalla, SelezionaAzienda
+- [x] 0 errori TypeScript, 13 test Vitest passanti, server avvia correttamente

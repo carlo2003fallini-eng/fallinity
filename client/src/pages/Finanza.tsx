@@ -43,7 +43,7 @@ export default function Finanza() {
   const [form, setForm] = useState({ ...EMPTY_FORM });
 
   const { data: transazioni = [], refetch } = trpc.finanza.list.useQuery(
-    tab === "all" ? { limit: 100 } : { tipo: tab, limit: 100 }
+    tab === "all" ? undefined : { tipo: tab }
   );
   const { data: summary }          = trpc.finanza.summary.useQuery();
   const { data: byCategoria = [] }  = trpc.finanza.byCategoria.useQuery();
@@ -60,7 +60,7 @@ export default function Finanza() {
 
   const handleSubmit = () => {
     if (!form.categoria || !form.importo || !form.data) { toast.error("Compila tutti i campi obbligatori"); return; }
-    createMutation.mutate({ ...form, tipo });
+    createMutation.mutate({ ...form, tipo, importo: Number(form.importo) });
   };
 
   const pieData = (byCategoria as any[])
@@ -76,8 +76,8 @@ export default function Finanza() {
       }))
     : [];
 
-  const entrate = summary?.totEntrate ?? 0;
-  const uscite  = summary?.totUscite ?? 0;
+  const entrate = summary?.entrate ?? 0;
+  const uscite  = summary?.uscite ?? 0;
   const utile   = entrate - uscite;
   const margine = entrate > 0 ? (utile / entrate) * 100 : 0;
   const roi     = uscite > 0 ? (utile / uscite) * 100 : 0;
@@ -139,7 +139,7 @@ export default function Finanza() {
               <Wallet size={14} style={{ color: GOLD }} />
             </div>
             <div className="kpi-number" style={{ color: "oklch(0.95 0.005 145)" }}>
-              {(summary?.cntEntrate ?? 0) + (summary?.cntUscite ?? 0)}
+              {(transazioni as any[]).length}
             </div>
           </div>
         </div>

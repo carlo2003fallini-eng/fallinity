@@ -93,7 +93,7 @@ export default function Home() {
   const recentIv = (recent && "interventi" in recent ? (recent.interventi as any[]) : []).slice(0, 2);
   const allRecent = [...recentTx.map((t: any) => ({ ...t, _type: "tx" })), ...recentIv.map((i: any) => ({ ...i, _type: "iv" }))];
 
-  const utile = kpi?.utileNetto ?? 0;
+  const utile = kpi?.utile ?? 0;
   const entrate = kpi?.entrate ?? 0;
   const uscite = kpi?.uscite ?? 0;
   const cashflow = entrate - uscite;
@@ -191,8 +191,8 @@ export default function Home() {
       {/* ── KPI OPERATIVI SECONDARI ────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "CAMPI ATTIVI", value: kpi ? String(kpi.campiAttivi) : "—", sub: "appezzamenti", color: GREEN, icon: Sprout, path: "/campi" },
-          { label: "MACCHINE",     value: kpi ? String(kpi.macchine ?? 0) : "—", sub: `${kpi?.macchineFerme ?? 0} ferme`, color: kpi && (kpi.macchineFerme ?? 0) > 0 ? RED : GREEN, icon: Tractor, path: "/officina" },
+          { label: "CAMPI ATTIVI", value: kpi ? String(kpi.campi) : "—", sub: "appezzamenti", color: GREEN, icon: Sprout, path: "/campi" },
+          { label: "MACCHINE",     value: kpi ? String(kpi.macchine ?? 0) : "—", sub: `parco mezzi`, color: GREEN, icon: Tractor, path: "/officina" },
           { label: "INTERVENTI",   value: kpi ? String(kpi.interventiAperti ?? 0) : "—", sub: "aperti", color: kpi && (kpi.interventiAperti ?? 0) > 0 ? GOLD : GREEN, icon: Wrench, path: "/officina" },
           { label: "SOTTO SCORTA", value: kpi ? String(kpi.prodottiSottoScorta ?? 0) : "—", sub: "prodotti", color: kpi && (kpi.prodottiSottoScorta ?? 0) > 0 ? GOLD : GREEN, icon: Package, path: "/magazzino" },
         ].map(k => (
@@ -210,11 +210,10 @@ export default function Home() {
       </div>
 
       {/* ── ALERT BANNER ───────────────────────────────────────────────────── */}
-      {kpi && (kpi.macchineFerme > 0 || kpi.prodottiSottoScorta > 0 || kpi.interventiAperti > 0) && (
+      {kpi && (kpi.prodottiSottoScorta > 0 || kpi.interventiAperti > 0) && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm" style={{ background: "oklch(0.72 0.15 75 / 0.07)", border: "1px solid oklch(0.72 0.15 75 / 0.25)" }}>
           <AlertTriangle size={15} style={{ color: GOLD, flexShrink: 0 }} />
           <div className="flex flex-wrap gap-4 text-xs" style={{ color: "oklch(0.7 0.01 145)" }}>
-            {kpi.macchineFerme > 0 && <span><span style={{ color: RED, fontWeight: 700 }}>{kpi.macchineFerme}</span> macchine ferme</span>}
             {kpi.interventiAperti > 0 && <span><span style={{ color: GOLD, fontWeight: 700 }}>{kpi.interventiAperti}</span> interventi aperti</span>}
             {kpi.prodottiSottoScorta > 0 && <span><span style={{ color: GOLD, fontWeight: 700 }}>{kpi.prodottiSottoScorta}</span> prodotti sotto scorta</span>}
           </div>

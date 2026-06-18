@@ -1,6 +1,7 @@
-import { eq } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { randomUUID } from "crypto";
+import { InsertUser, users, companyMemberships } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -32,6 +33,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   try {
     const values: InsertUser = {
       openId: user.openId,
+      uuid: randomUUID(),
     };
     const updateSet: Record<string, unknown> = {};
 
@@ -68,6 +70,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.lastSignedIn = new Date();
     }
 
+    // uuid is only set on insert (not in updateSet), so existing rows keep their uuid.
     await db.insert(users).values(values).onDuplicateKeyUpdate({
       set: updateSet,
     });
@@ -89,4 +92,20 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+/**
+ * Restituisce la company attiva dell'utente. Se l'utente non ha activeCompanyId,
+ * prova a derivarla dalla prima membership attiva. Fallback all'azienda demo.
+ */
+export async function getActiveCompanyId(user: { id: number; activeCompanyId?: string | null } | null): Promise<string> {
+  const DEMO_COMPANY = "comp-demo-0001";
+  if (!user) return DEMO_COMPANY;
+  if (user.activeCompanyId) return user.activeCompanyId;
+  const db = await getDb();
+  if (!db) return DEMO_COMPANY;
+  const mem = await db
+    .select()
+    .from(companyMemberships)
+    .where(and(eq(companyMemberships.userId, user.id), eq(companyMemberships.attiva, true), isNull(companyMemberships.deletedAt)))
+    .limit(1);
+  return mem[0]?.companyId ?? DEMO_COMPANY;
+}

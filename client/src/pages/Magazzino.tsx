@@ -26,12 +26,15 @@ export default function Magazzino() {
   const [catFilter, setCatFilter] = useState("");
   const [openProd, setOpenProd] = useState(false);
   const [openMov, setOpenMov]   = useState(false);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [formProd, setFormProd] = useState({ ...EMPTY_PROD });
   const [formMov, setFormMov]   = useState({ ...EMPTY_MOV });
 
   const { data: prodotti = [], refetch } = trpc.magazzino.list.useQuery();
-  const { data: movimenti = [], refetch: refetchMov } = trpc.magazzino.movimenti.useQuery();
+  const { data: movimenti = [], refetch: refetchMov } = trpc.magazzino.movimenti.useQuery(
+    { prodottoId: selectedId ?? "" },
+    { enabled: !!selectedId }
+  );
 
   const createProd = trpc.magazzino.create.useMutation({
     onSuccess: () => { refetch(); setOpenProd(false); setFormProd({ ...EMPTY_PROD }); toast.success("Prodotto aggiunto"); },
@@ -313,7 +316,7 @@ export default function Magazzino() {
             </div>
           </div>
           <div className="px-6 py-4 border-t" style={{ borderColor: "oklch(0.18 0.008 145)" }}>
-            <Button onClick={() => { if (!formProd.nome || !formProd.quantita) { toast.error("Nome e quantità obbligatori"); return; } createProd.mutate(formProd); }}
+            <Button onClick={() => { if (!formProd.nome || !formProd.quantita) { toast.error("Nome e quantità obbligatori"); return; } createProd.mutate({ nome: formProd.nome, categoria: formProd.categoria, unitaMisura: formProd.unitaMisura, quantita: Number(formProd.quantita || 0), quantitaMinima: Number(formProd.quantitaMinima || 0), prezzoUnitario: formProd.prezzoUnitario ? Number(formProd.prezzoUnitario) : undefined }); }}
               disabled={createProd.isPending} className="w-full" style={{ background: GREEN, color: "oklch(0.08 0.005 145)" }}>
               {createProd.isPending ? "Salvataggio..." : "Salva prodotto"}
             </Button>
@@ -367,7 +370,7 @@ export default function Magazzino() {
             </div>
           </div>
           <div className="px-6 py-4 border-t" style={{ borderColor: "oklch(0.18 0.008 145)" }}>
-            <Button onClick={() => { if (!formMov.quantita || !selectedId) { toast.error("Quantità obbligatoria"); return; } createMov.mutate({ ...formMov, prodottoId: selectedId }); }}
+            <Button onClick={() => { if (!formMov.quantita || !selectedId) { toast.error("Quantità obbligatoria"); return; } createMov.mutate({ prodottoId: selectedId, tipo: formMov.tipo, quantita: Number(formMov.quantita), data: formMov.data, descrizione: formMov.note }); }}
               disabled={createMov.isPending} className="w-full" style={{ background: GREEN, color: "oklch(0.08 0.005 145)" }}>
               {createMov.isPending ? "Salvataggio..." : "Registra movimento"}
             </Button>

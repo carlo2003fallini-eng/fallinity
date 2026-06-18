@@ -1,21 +1,23 @@
-import { COOKIE_NAME } from "../shared/const";
+import { z } from "zod";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
-import { z } from "zod";
-import { getDb } from "./db";
-import {
-  contatti, campi, lavorazioni, transazioni, budget,
-  prodotti, movimentiMagazzino, macchine, interventi,
-  eventi, chatSessions, chatMessages, azienda,
-  animali, trattamentiAnimali, gravidanze, zoppie,
-  fondiReintegrazione, rateReintegrazione
-} from "../drizzle/schema";
-import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
 import { invokeLLM } from "./_core/llm";
+import { getDb } from "./db";
+import { getActor, withCreate, withUpdate, softDeletePayload } from "./domains/_core";
+import {
+  companies, contatti, campi, lavorazioni, transazioni, prodotti, movimentiMagazzino,
+  macchine, interventi, eventi, animali, trattamentiAnimali, gravidanze, zoppie,
+  fondiReintegrazione, rateReintegrazione, chatSessions, chatMessages,
+} from "../drizzle/schema";
+
+const DEMO_COMPANY = "comp-demo-0001";
 
 export const appRouter = router({
   system: systemRouter,
+
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -25,328 +27,354 @@ export const appRouter = router({
     }),
   }),
 
-  // ─── DASHBOARD ─────────────────────────────────────────────────────────────
-  dashboard: router({
-    kpi: protectedProcedure.query(async () => {
+  // ─── COMPANY (Azienda attiva) ────────────────────────────────────────────────
+  company: router({
+    current: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return null;
-      const [totEntrate] = await db.execute(
-        sql`SELECT COALESCE(SUM(importo),0) as tot FROM transazioni WHERE tipo='entrata' AND MONTH(data)=MONTH(CURDATE()) AND YEAR(data)=YEAR(CURDATE())`
-      ) as any[];
-      const [totUscite] = await db.execute(
-        sql`SELECT COALESCE(SUM(importo),0) as tot FROM transazioni WHERE tipo='uscita' AND MONTH(data)=MONTH(CURDATE()) AND YEAR(data)=YEAR(CURDATE())`
-      ) as any[];
-      const [cntCampi] = await db.execute(sql`SELECT COUNT(*) as cnt FROM campi WHERE stato='attivo'`) as any[];
-      const [cntMacchine] = await db.execute(sql`SELECT COUNT(*) as cnt FROM macchine`) as any[];
-      const [cntMacchineFerme] = await db.execute(sql`SELECT COUNT(*) as cnt FROM macchine WHERE stato='fermo'`) as any[];
-      const [cntInterventi] = await db.execute(sql`SELECT COUNT(*) as cnt FROM interventi WHERE stato != 'completato'`) as any[];
-      const [cntProdottiSottoScorta] = await db.execute(
-        sql`SELECT COUNT(*) as cnt FROM prodotti WHERE quantita <= quantitaMinima AND quantitaMinima > 0`
-      ) as any[];
-      const entrate = Number((totEntrate as any[])[0]?.tot ?? 0);
-      const uscite = Number((totUscite as any[])[0]?.tot ?? 0);
-      return {
-        entrate,
-        uscite,
-        utileNetto: entrate - uscite,
-        campiAttivi: Number((cntCampi as any[])[0]?.cnt ?? 0),
-        macchine: Number((cntMacchine as any[])[0]?.cnt ?? 0),
-        macchineFerme: Number((cntMacchineFerme as any[])[0]?.cnt ?? 0),
-        interventiAperti: Number((cntInterventi as any[])[0]?.cnt ?? 0),
-        prodottiSottoScorta: Number((cntProdottiSottoScorta as any[])[0]?.cnt ?? 0),
-      };
-    }),
-    recentActivity: protectedProcedure.query(async () => {
-      const db = await getDb();
-      if (!db) return [];
-      const tx = await db.select().from(transazioni).orderBy(desc(transazioni.createdAt)).limit(5);
-      const iv = await db.select().from(interventi).orderBy(desc(interventi.createdAt)).limit(5);
-      return { transazioni: tx, interventi: iv };
-    }),
-    chartData: protectedProcedure.query(async () => {
-      const db = await getDb();
-      if (!db) return [];
-      const rows = await db.execute(
-        sql`SELECT DATE_FORMAT(data,'%b') as mese, MONTH(data) as m, YEAR(data) as y,
-            SUM(CASE WHEN tipo='entrata' THEN importo ELSE 0 END) as entrate,
-            SUM(CASE WHEN tipo='uscita' THEN importo ELSE 0 END) as uscite
-            FROM transazioni
-            WHERE data >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
-            GROUP BY YEAR(data), MONTH(data), DATE_FORMAT(data,'%b')
-            ORDER BY y, m`
-      ) as any[];
-      return (rows as any[])[0] ?? [];
+      const actor = await getActor(ctx);
+      const [c] = await db.select().from(companies).where(eq(companies.id, actor.companyId)).limit(1);
+      return c ?? null;
     }),
   }),
 
-  // ─── AZIENDA ───────────────────────────────────────────────────────────────
+  // ─── AZIENDA / CONTATTI ──────────────────────────────────────────────────────
   azienda: router({
-    get: protectedProcedure.query(async () => {
+    list: protectedProcedure
+      .input(z.object({ tipo: z.enum(["dipendente", "fornitore", "cliente"]).optional() }).optional())
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const actor = await getActor(ctx);
+        const conds = [eq(contatti.companyId, actor.companyId), isNull(contatti.deletedAt)];
+        if (input?.tipo) conds.push(eq(contatti.tipo, input.tipo));
+        return db.select().from(contatti).where(and(...conds)).orderBy(contatti.nome);
+      }),
+    stats: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
-      if (!db) return null;
-      const rows = await db.select().from(azienda).limit(1);
-      return rows[0] ?? null;
+      if (!db) return { totale: 0, dipendenti: 0, fornitori: 0, clienti: 0 };
+      const actor = await getActor(ctx);
+      const rows = await db.select().from(contatti).where(and(eq(contatti.companyId, actor.companyId), isNull(contatti.deletedAt)));
+      return {
+        totale: rows.length,
+        dipendenti: rows.filter(r => r.tipo === "dipendente").length,
+        fornitori: rows.filter(r => r.tipo === "fornitore").length,
+        clienti: rows.filter(r => r.tipo === "cliente").length,
+      };
     }),
-    upsert: protectedProcedure
+    create: protectedProcedure
       .input(z.object({
+        tipo: z.enum(["dipendente", "fornitore", "cliente"]),
         nome: z.string().min(1),
-        partitaIva: z.string().optional(),
-        codiceFiscale: z.string().optional(),
-        indirizzo: z.string().optional(),
-        citta: z.string().optional(),
-        provincia: z.string().optional(),
-        cap: z.string().optional(),
-        telefono: z.string().optional(),
+        cognome: z.string().optional(),
+        aziendaNome: z.string().optional(),
         email: z.string().optional(),
-        settore: z.string().optional(),
-        ettari: z.string().optional(),
+        telefono: z.string().optional(),
+        citta: z.string().optional(),
+        ruolo: z.string().optional(),
+        note: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("DB not available");
-        const existing = await db.select().from(azienda).limit(1);
-        if (existing.length > 0) {
-          await db.update(azienda).set(input as any).where(eq(azienda.id, existing[0].id));
-        } else {
-          await db.insert(azienda).values(input as any);
-        }
+        const actor = await getActor(ctx);
+        await db.insert(contatti).values(withCreate(actor, input) as any);
         return { success: true };
       }),
-    contatti: router({
-      list: protectedProcedure
-        .input(z.object({ tipo: z.enum(["dipendente","fornitore","cliente"]).optional() }).optional())
-        .query(async ({ input }) => {
-          const db = await getDb();
-          if (!db) return [];
-          if (input?.tipo) {
-            return db.select().from(contatti).where(eq(contatti.tipo, input.tipo)).orderBy(contatti.nome);
-          }
-          return db.select().from(contatti).orderBy(contatti.nome);
-        }),
-      create: protectedProcedure
-        .input(z.object({
-          tipo: z.enum(["dipendente","fornitore","cliente"]),
-          nome: z.string().min(1),
-          cognome: z.string().optional(),
-          aziendaNome: z.string().optional(),
-          email: z.string().optional(),
-          telefono: z.string().optional(),
-          indirizzo: z.string().optional(),
-          citta: z.string().optional(),
-          ruolo: z.string().optional(),
-          note: z.string().optional(),
-        }))
-        .mutation(async ({ input }) => {
-          const db = await getDb();
-          if (!db) throw new Error("DB not available");
-          await db.insert(contatti).values(input as any);
-          return { success: true };
-        }),
-      delete: protectedProcedure
-        .input(z.object({ id: z.number() }))
-        .mutation(async ({ input }) => {
-          const db = await getDb();
-          if (!db) throw new Error("DB not available");
-          await db.delete(contatti).where(eq(contatti.id, input.id));
-          return { success: true };
-        }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("DB not available");
+        const actor = await getActor(ctx);
+        await db.update(contatti).set(softDeletePayload(actor) as any)
+          .where(and(eq(contatti.id, input.id), eq(contatti.companyId, actor.companyId)));
+        return { success: true };
+      }),
+  }),
+
+  // ─── DASHBOARD ───────────────────────────────────────────────────────────────
+  dashboard: router({
+    kpi: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return { entrate: 0, uscite: 0, utile: 0, campi: 0, macchine: 0, animali: 0, interventiAperti: 0, prodottiSottoScorta: 0 };
+      const actor = await getActor(ctx);
+      const cid = actor.companyId;
+      const [fin] = (await db.execute(
+        sql`SELECT COALESCE(SUM(CASE WHEN tipo='entrata' THEN importo ELSE 0 END),0) as entrate,
+            COALESCE(SUM(CASE WHEN tipo='uscita' THEN importo ELSE 0 END),0) as uscite
+            FROM transazioni WHERE companyId=${cid} AND deletedAt IS NULL`
+      ) as any[]) as any[];
+      const f = (fin as any[])[0] ?? {};
+      const entrate = Number(f.entrate ?? 0);
+      const uscite = Number(f.uscite ?? 0);
+      const count = async (table: string, extra = "") => {
+        const r = (await db.execute(sql.raw(`SELECT COUNT(*) as cnt FROM ${table} WHERE companyId='${cid}' AND deletedAt IS NULL ${extra}`)) as any[]);
+        return Number((r[0] as any[])[0]?.cnt ?? 0);
+      };
+      const campiCount = await count("campi", "AND stato='attivo'");
+      const macchineCount = await count("macchine");
+      const animaliCount = await count("animali", "AND stato NOT IN ('venduta','morta')");
+      const interventiAperti = await count("interventi", "AND stato != 'completato'");
+      const sottoScorta = await count("prodotti", "AND quantita <= quantitaMinima AND quantitaMinima > 0");
+      return {
+        entrate, uscite, utile: entrate - uscite,
+        campi: campiCount, macchine: macchineCount, animali: animaliCount,
+        interventiAperti, prodottiSottoScorta: sottoScorta,
+      };
+    }),
+    chartData: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const actor = await getActor(ctx);
+      const rows = (await db.execute(
+        sql`SELECT DATE_FORMAT(data,'%b') as mese, MONTH(data) as m, YEAR(data) as y,
+            SUM(CASE WHEN tipo='entrata' THEN importo ELSE 0 END) as entrate,
+            SUM(CASE WHEN tipo='uscita' THEN importo ELSE 0 END) as uscite
+            FROM transazioni WHERE companyId=${actor.companyId} AND deletedAt IS NULL
+            AND data >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+            GROUP BY YEAR(data), MONTH(data), DATE_FORMAT(data,'%b') ORDER BY y, m`
+      ) as any[]);
+      return (rows as any[])[0] as any[] ?? [];
+    }),
+    recentActivity: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const actor = await getActor(ctx);
+      const rows = (await db.execute(
+        sql`SELECT 'transazione' as tipo, descrizione as testo, data as quando FROM transazioni WHERE companyId=${actor.companyId} AND deletedAt IS NULL
+            ORDER BY createdAt DESC LIMIT 8`
+      ) as any[]);
+      return (rows as any[])[0] as any[] ?? [];
     }),
   }),
 
   // ─── FINANZA ───────────────────────────────────────────────────────────────
   finanza: router({
     list: protectedProcedure
-      .input(z.object({
-        tipo: z.enum(["entrata","uscita"]).optional(),
-        limit: z.number().default(50),
-      }).optional())
-      .query(async ({ input }) => {
+      .input(z.object({ tipo: z.enum(["entrata", "uscita"]).optional() }).optional())
+      .query(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) return [];
-        if (input?.tipo) {
-          return db.select().from(transazioni).where(eq(transazioni.tipo, input.tipo)).orderBy(desc(transazioni.data)).limit(input?.limit ?? 50);
-        }
-        return db.select().from(transazioni).orderBy(desc(transazioni.data)).limit(input?.limit ?? 50);
+        const actor = await getActor(ctx);
+        const conds = [eq(transazioni.companyId, actor.companyId), isNull(transazioni.deletedAt)];
+        if (input?.tipo) conds.push(eq(transazioni.tipo, input.tipo));
+        return db.select().from(transazioni).where(and(...conds)).orderBy(desc(transazioni.data)).limit(100);
       }),
+    summary: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return { entrate: 0, uscite: 0, utile: 0, roi: 0 };
+      const actor = await getActor(ctx);
+      const rows = (await db.execute(
+        sql`SELECT COALESCE(SUM(CASE WHEN tipo='entrata' THEN importo ELSE 0 END),0) as entrate,
+            COALESCE(SUM(CASE WHEN tipo='uscita' THEN importo ELSE 0 END),0) as uscite
+            FROM transazioni WHERE companyId=${actor.companyId} AND deletedAt IS NULL`
+      ) as any[]);
+      const r = (rows as any[])[0]?.[0] ?? {};
+      const entrate = Number(r.entrate ?? 0);
+      const uscite = Number(r.uscite ?? 0);
+      return { entrate, uscite, utile: entrate - uscite, roi: uscite > 0 ? ((entrate - uscite) / uscite * 100) : 0 };
+    }),
+    byCategoria: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const actor = await getActor(ctx);
+      const rows = (await db.execute(
+        sql`SELECT categoria as name, SUM(importo) as value FROM transazioni
+            WHERE tipo='uscita' AND companyId=${actor.companyId} AND deletedAt IS NULL
+            GROUP BY categoria ORDER BY value DESC LIMIT 6`
+      ) as any[]);
+      return (rows as any[])[0] as any[] ?? [];
+    }),
     create: protectedProcedure
       .input(z.object({
-        tipo: z.enum(["entrata","uscita"]),
+        tipo: z.enum(["entrata", "uscita"]),
         categoria: z.string().min(1),
         descrizione: z.string().optional(),
-        importo: z.string(),
+        importo: z.number().positive(),
         data: z.string(),
         note: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("DB not available");
-        await db.insert(transazioni).values(input as any);
+        const actor = await getActor(ctx);
+        await db.insert(transazioni).values(withCreate(actor, {
+          ...input, importo: String(input.importo),
+        }) as any);
         return { success: true };
       }),
     delete: protectedProcedure
-      .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .input(z.object({ id: z.string() }))
+      .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("DB not available");
-        await db.delete(transazioni).where(eq(transazioni.id, input.id));
+        const actor = await getActor(ctx);
+        await db.update(transazioni).set(softDeletePayload(actor) as any)
+          .where(and(eq(transazioni.id, input.id), eq(transazioni.companyId, actor.companyId)));
         return { success: true };
       }),
-    summary: protectedProcedure.query(async () => {
-      const db = await getDb();
-      if (!db) return null;
-      const rows = await db.execute(
-        sql`SELECT tipo, SUM(importo) as totale, COUNT(*) as cnt FROM transazioni GROUP BY tipo`
-      ) as any[];
-      const data = (rows as any[])[0] as any[];
-      const entrate = data?.find((r: any) => r.tipo === 'entrata');
-      const uscite = data?.find((r: any) => r.tipo === 'uscita');
-      return {
-        totEntrate: Number(entrate?.totale ?? 0),
-        totUscite: Number(uscite?.totale ?? 0),
-        cntEntrate: Number(entrate?.cnt ?? 0),
-        cntUscite: Number(uscite?.cnt ?? 0),
-      };
-    }),
-    byCategoria: protectedProcedure.query(async () => {
-      const db = await getDb();
-      if (!db) return [];
-      const rows = await db.execute(
-        sql`SELECT categoria, tipo, SUM(importo) as totale FROM transazioni GROUP BY categoria, tipo ORDER BY totale DESC LIMIT 10`
-      ) as any[];
-      return (rows as any[])[0] as any[] ?? [];
-    }),
   }),
 
-  // ─── CAMPI ─────────────────────────────────────────────────────────────────
+  // ─── CAMPI ───────────────────────────────────────────────────────────────────
   campi: router({
-    list: protectedProcedure.query(async () => {
+    list: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
-      return db.select().from(campi).orderBy(campi.nome);
+      const actor = await getActor(ctx);
+      return db.select().from(campi).where(and(eq(campi.companyId, actor.companyId), isNull(campi.deletedAt))).orderBy(campi.nome);
     }),
+    lavorazioni: protectedProcedure
+      .input(z.object({ campoId: z.string() }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const actor = await getActor(ctx);
+        return db.select().from(lavorazioni)
+          .where(and(eq(lavorazioni.campoId, input.campoId), eq(lavorazioni.companyId, actor.companyId), isNull(lavorazioni.deletedAt)))
+          .orderBy(desc(lavorazioni.data));
+      }),
     create: protectedProcedure
       .input(z.object({
         nome: z.string().min(1),
         codice: z.string().optional(),
-        ettari: z.string(),
+        ettari: z.number().positive(),
         comune: z.string().optional(),
-        provincia: z.string().optional(),
         coltura: z.string().optional(),
-        stato: z.enum(["attivo","a_riposo","in_lavorazione"]).default("attivo"),
+        stato: z.enum(["attivo", "a_riposo", "in_lavorazione"]).default("attivo"),
         note: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("DB not available");
-        await db.insert(campi).values(input as any);
+        const actor = await getActor(ctx);
+        await db.insert(campi).values(withCreate(actor, { ...input, ettari: String(input.ettari) }) as any);
+        return { success: true };
+      }),
+    addLavorazione: protectedProcedure
+      .input(z.object({
+        campoId: z.string(),
+        tipo: z.string().min(1),
+        descrizione: z.string().optional(),
+        data: z.string(),
+        operatore: z.string().optional(),
+        costo: z.number().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("DB not available");
+        const actor = await getActor(ctx);
+        await db.insert(lavorazioni).values(withCreate(actor, {
+          ...input, costo: input.costo != null ? String(input.costo) : null,
+        }) as any);
         return { success: true };
       }),
     delete: protectedProcedure
-      .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .input(z.object({ id: z.string() }))
+      .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("DB not available");
-        await db.delete(campi).where(eq(campi.id, input.id));
+        const actor = await getActor(ctx);
+        await db.update(campi).set(softDeletePayload(actor) as any)
+          .where(and(eq(campi.id, input.id), eq(campi.companyId, actor.companyId)));
         return { success: true };
       }),
-    lavorazioni: router({
-      list: protectedProcedure
-        .input(z.object({ campoId: z.number().optional() }).optional())
-        .query(async ({ input }) => {
-          const db = await getDb();
-          if (!db) return [];
-          if (input?.campoId) {
-            return db.select().from(lavorazioni).where(eq(lavorazioni.campoId, input.campoId)).orderBy(desc(lavorazioni.data));
-          }
-          return db.select().from(lavorazioni).orderBy(desc(lavorazioni.data)).limit(50);
-        }),
-      create: protectedProcedure
-        .input(z.object({
-          campoId: z.number(),
-          tipo: z.string().min(1),
-          descrizione: z.string().optional(),
-          data: z.string(),
-          operatore: z.string().optional(),
-          costo: z.string().optional(),
-          stato: z.enum(["pianificata","in_corso","completata"]).default("pianificata"),
-          note: z.string().optional(),
-        }))
-        .mutation(async ({ input }) => {
-          const db = await getDb();
-          if (!db) throw new Error("DB not available");
-          await db.insert(lavorazioni).values(input as any);
-          return { success: true };
-        }),
-    }),
   }),
 
   // ─── MAGAZZINO ─────────────────────────────────────────────────────────────
   magazzino: router({
-    list: protectedProcedure.query(async () => {
+    list: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
-      return db.select().from(prodotti).orderBy(prodotti.nome);
+      const actor = await getActor(ctx);
+      return db.select().from(prodotti).where(and(eq(prodotti.companyId, actor.companyId), isNull(prodotti.deletedAt))).orderBy(prodotti.nome);
     }),
+    stats: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return { totaleProdotti: 0, sottoScorta: 0, valoreMagazzino: 0 };
+      const actor = await getActor(ctx);
+      const rows = await db.select().from(prodotti).where(and(eq(prodotti.companyId, actor.companyId), isNull(prodotti.deletedAt)));
+      let valore = 0, sotto = 0;
+      for (const p of rows) {
+        valore += Number(p.quantita) * Number(p.prezzoUnitario ?? 0);
+        if (Number(p.quantitaMinima ?? 0) > 0 && Number(p.quantita) <= Number(p.quantitaMinima)) sotto++;
+      }
+      return { totaleProdotti: rows.length, sottoScorta: sotto, valoreMagazzino: valore };
+    }),
+    movimenti: protectedProcedure
+      .input(z.object({ prodottoId: z.string() }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const actor = await getActor(ctx);
+        return db.select().from(movimentiMagazzino)
+          .where(and(eq(movimentiMagazzino.prodottoId, input.prodottoId), eq(movimentiMagazzino.companyId, actor.companyId), isNull(movimentiMagazzino.deletedAt)))
+          .orderBy(desc(movimentiMagazzino.data));
+      }),
     create: protectedProcedure
       .input(z.object({
         nome: z.string().min(1),
         codice: z.string().optional(),
         categoria: z.string().optional(),
         unitaMisura: z.string().optional(),
-        quantita: z.string().default("0"),
-        quantitaMinima: z.string().optional(),
-        prezzoUnitario: z.string().optional(),
-        note: z.string().optional(),
+        quantita: z.number().default(0),
+        quantitaMinima: z.number().default(0),
+        prezzoUnitario: z.number().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("DB not available");
-        await db.insert(prodotti).values(input as any);
-        return { success: true };
-      }),
-    delete: protectedProcedure
-      .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
-        const db = await getDb();
-        if (!db) throw new Error("DB not available");
-        await db.delete(prodotti).where(eq(prodotti.id, input.id));
+        const actor = await getActor(ctx);
+        await db.insert(prodotti).values(withCreate(actor, {
+          ...input,
+          quantita: String(input.quantita),
+          quantitaMinima: String(input.quantitaMinima),
+          prezzoUnitario: input.prezzoUnitario != null ? String(input.prezzoUnitario) : null,
+        }) as any);
         return { success: true };
       }),
     movimento: protectedProcedure
       .input(z.object({
-        prodottoId: z.number(),
-        tipo: z.enum(["carico","scarico"]),
-        quantita: z.string(),
+        prodottoId: z.string(),
+        tipo: z.enum(["carico", "scarico"]),
+        quantita: z.number().positive(),
         data: z.string(),
         descrizione: z.string().optional(),
-        operatore: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("DB not available");
-        await db.insert(movimentiMagazzino).values(input as any);
-        const prodotto = await db.select().from(prodotti).where(eq(prodotti.id, input.prodottoId)).limit(1);
-        if (prodotto.length > 0) {
-          const qtaAttuale = Number(prodotto[0].quantita ?? 0);
-          const delta = input.tipo === "carico" ? Number(input.quantita) : -Number(input.quantita);
-          await db.update(prodotti).set({ quantita: String(qtaAttuale + delta) } as any).where(eq(prodotti.id, input.prodottoId));
+        const actor = await getActor(ctx);
+        await db.insert(movimentiMagazzino).values(withCreate(actor, { ...input, quantita: String(input.quantita) }) as any);
+        const [p] = await db.select().from(prodotti).where(eq(prodotti.id, input.prodottoId)).limit(1);
+        if (p) {
+          const nuova = input.tipo === "carico"
+            ? Number(p.quantita) + input.quantita
+            : Number(p.quantita) - input.quantita;
+          await db.update(prodotti).set(withUpdate(actor, { quantita: String(Math.max(0, nuova)) }) as any).where(eq(prodotti.id, input.prodottoId));
         }
         return { success: true };
       }),
-    movimenti: protectedProcedure.query(async () => {
-      const db = await getDb();
-      if (!db) return [];
-      return db.select().from(movimentiMagazzino).orderBy(desc(movimentiMagazzino.createdAt)).limit(50);
-    }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("DB not available");
+        const actor = await getActor(ctx);
+        await db.update(prodotti).set(softDeletePayload(actor) as any)
+          .where(and(eq(prodotti.id, input.id), eq(prodotti.companyId, actor.companyId)));
+        return { success: true };
+      }),
   }),
 
-  // ─── OFFICINA ──────────────────────────────────────────────────────────────
+  // ─── OFFICINA ────────────────────────────────────────────────────────────────
   officina: router({
     macchine: router({
-      list: protectedProcedure.query(async () => {
+      list: protectedProcedure.query(async ({ ctx }) => {
         const db = await getDb();
         if (!db) return [];
-        return db.select().from(macchine).orderBy(macchine.nome);
+        const actor = await getActor(ctx);
+        return db.select().from(macchine).where(and(eq(macchine.companyId, actor.companyId), isNull(macchine.deletedAt))).orderBy(macchine.nome);
       }),
       create: protectedProcedure
         .input(z.object({
@@ -356,61 +384,73 @@ export const appRouter = router({
           targa: z.string().optional(),
           telaio: z.string().optional(),
           anno: z.number().optional(),
-          oreTotali: z.string().optional(),
-          stato: z.enum(["operativo","manutenzione","fermo"]).default("operativo"),
+          oreTotali: z.number().optional(),
+          stato: z.enum(["operativo", "manutenzione", "fermo"]).default("operativo"),
           note: z.string().optional(),
         }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ ctx, input }) => {
           const db = await getDb();
           if (!db) throw new Error("DB not available");
-          await db.insert(macchine).values(input as any);
+          const actor = await getActor(ctx);
+          await db.insert(macchine).values(withCreate(actor, {
+            ...input, oreTotali: input.oreTotali != null ? String(input.oreTotali) : "0",
+          }) as any);
           return { success: true };
         }),
       delete: protectedProcedure
-        .input(z.object({ id: z.number() }))
-        .mutation(async ({ input }) => {
+        .input(z.object({ id: z.string() }))
+        .mutation(async ({ ctx, input }) => {
           const db = await getDb();
           if (!db) throw new Error("DB not available");
-          await db.delete(macchine).where(eq(macchine.id, input.id));
+          const actor = await getActor(ctx);
+          await db.update(macchine).set(softDeletePayload(actor) as any)
+            .where(and(eq(macchine.id, input.id), eq(macchine.companyId, actor.companyId)));
           return { success: true };
         }),
     }),
     interventi: router({
       list: protectedProcedure
-        .input(z.object({ macchinaId: z.number().optional() }).optional())
-        .query(async ({ input }) => {
+        .input(z.object({ macchinaId: z.string().optional() }).optional())
+        .query(async ({ ctx, input }) => {
           const db = await getDb();
           if (!db) return [];
-          if (input?.macchinaId) {
-            return db.select().from(interventi).where(eq(interventi.macchinaId, input.macchinaId)).orderBy(desc(interventi.data));
-          }
-          return db.select().from(interventi).orderBy(desc(interventi.data)).limit(50);
+          const actor = await getActor(ctx);
+          const conds = [eq(interventi.companyId, actor.companyId), isNull(interventi.deletedAt)];
+          if (input?.macchinaId) conds.push(eq(interventi.macchinaId, input.macchinaId));
+          return db.select().from(interventi).where(and(...conds)).orderBy(desc(interventi.data)).limit(50);
         }),
       create: protectedProcedure
         .input(z.object({
-          macchinaId: z.number(),
-          tipo: z.enum(["manutenzione","riparazione","revisione"]),
+          macchinaId: z.string(),
+          tipo: z.enum(["manutenzione", "riparazione", "revisione"]),
           descrizione: z.string().min(1),
           data: z.string(),
-          priorita: z.enum(["alta","media","bassa"]).default("media"),
-          stato: z.enum(["pianificato","in_corso","completato"]).default("pianificato"),
-          costoManodopera: z.string().optional(),
-          costoRicambi: z.string().optional(),
+          priorita: z.enum(["alta", "media", "bassa"]).default("media"),
+          stato: z.enum(["pianificato", "in_corso", "completato"]).default("pianificato"),
+          costoManodopera: z.number().optional(),
+          costoRicambi: z.number().optional(),
           operatore: z.string().optional(),
           note: z.string().optional(),
         }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ ctx, input }) => {
           const db = await getDb();
           if (!db) throw new Error("DB not available");
-          await db.insert(interventi).values(input as any);
+          const actor = await getActor(ctx);
+          await db.insert(interventi).values(withCreate(actor, {
+            ...input,
+            costoManodopera: input.costoManodopera != null ? String(input.costoManodopera) : null,
+            costoRicambi: input.costoRicambi != null ? String(input.costoRicambi) : null,
+          }) as any);
           return { success: true };
         }),
       updateStato: protectedProcedure
-        .input(z.object({ id: z.number(), stato: z.enum(["pianificato","in_corso","completato"]) }))
-        .mutation(async ({ input }) => {
+        .input(z.object({ id: z.string(), stato: z.enum(["pianificato", "in_corso", "completato"]) }))
+        .mutation(async ({ ctx, input }) => {
           const db = await getDb();
           if (!db) throw new Error("DB not available");
-          await db.update(interventi).set({ stato: input.stato } as any).where(eq(interventi.id, input.id));
+          const actor = await getActor(ctx);
+          await db.update(interventi).set(withUpdate(actor, { stato: input.stato }) as any)
+            .where(and(eq(interventi.id, input.id), eq(interventi.companyId, actor.companyId)));
           return { success: true };
         }),
     }),
@@ -419,252 +459,137 @@ export const appRouter = router({
   // ─── CALENDARIO ────────────────────────────────────────────────────────────
   calendario: router({
     list: protectedProcedure
-      .input(z.object({
-        anno: z.number().optional(),
-        mese: z.number().optional(),
-        from: z.string().optional(),
-        to: z.string().optional(),
-      }).optional())
-      .query(async ({ input }) => {
+      .input(z.object({ anno: z.number().optional(), mese: z.number().optional() }).optional())
+      .query(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) return [];
+        const actor = await getActor(ctx);
         if (input?.anno && input?.mese) {
-          const rows = await db.execute(
-            sql`SELECT * FROM eventi WHERE YEAR(dataInizio)=${input.anno} AND MONTH(dataInizio)=${input.mese} ORDER BY dataInizio LIMIT 200`
-          ) as any[];
+          const rows = (await db.execute(
+            sql`SELECT * FROM eventi WHERE companyId=${actor.companyId} AND deletedAt IS NULL
+                AND YEAR(dataInizio)=${input.anno} AND MONTH(dataInizio)=${input.mese} ORDER BY dataInizio LIMIT 200`
+          ) as any[]);
           return (rows as any[])[0] as any[] ?? [];
         }
-        return db.select().from(eventi).orderBy(eventi.dataInizio).limit(100);
+        return db.select().from(eventi).where(and(eq(eventi.companyId, actor.companyId), isNull(eventi.deletedAt))).orderBy(eventi.dataInizio).limit(100);
       }),
     create: protectedProcedure
       .input(z.object({
         titolo: z.string().min(1),
         descrizione: z.string().optional(),
-        tipo: z.enum(["lavorazione","manutenzione","scadenza","trattamento","altro"]).default("altro"),
+        tipo: z.enum(["lavorazione", "manutenzione", "scadenza", "altro"]).default("altro"),
         data: z.string(),
         ora: z.string().optional(),
-        modulo: z.string().optional(),
-        priorita: z.enum(["bassa","normale","alta"]).default("normale"),
+        priorita: z.enum(["bassa", "normale", "alta"]).default("normale"),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("DB not available");
-        await db.insert(eventi).values({
+        const actor = await getActor(ctx);
+        await db.insert(eventi).values(withCreate(actor, {
           titolo: input.titolo,
           descrizione: input.descrizione,
-          tipo: input.tipo as any,
+          tipo: input.tipo,
           dataInizio: new Date(input.data),
           tuttoIlGiorno: !input.ora,
-          colore: input.priorita === 'alta' ? '#f87171' : input.priorita === 'normale' ? '#d4a843' : '#4ade80',
-        } as any);
+          colore: input.priorita === "alta" ? "#f87171" : input.priorita === "normale" ? "#d4a843" : "#4ade80",
+        }) as any);
         return { success: true };
       }),
     toggleCompletato: protectedProcedure
-      .input(z.object({ id: z.number(), completato: z.boolean() }))
-      .mutation(async ({ input }) => {
+      .input(z.object({ id: z.string(), completato: z.boolean() }))
+      .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("DB not available");
-        await db.update(eventi).set({ completato: input.completato } as any).where(eq(eventi.id, input.id));
+        const actor = await getActor(ctx);
+        await db.update(eventi).set(withUpdate(actor, { completato: input.completato }) as any)
+          .where(and(eq(eventi.id, input.id), eq(eventi.companyId, actor.companyId)));
         return { success: true };
       }),
     delete: protectedProcedure
-      .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .input(z.object({ id: z.string() }))
+      .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("DB not available");
-        await db.delete(eventi).where(eq(eventi.id, input.id));
+        const actor = await getActor(ctx);
+        await db.update(eventi).set(softDeletePayload(actor) as any)
+          .where(and(eq(eventi.id, input.id), eq(eventi.companyId, actor.companyId)));
         return { success: true };
       }),
   }),
 
-  // ─── REPORT ────────────────────────────────────────────────────────────────
+  // ─── REPORT (Enterprise Metrics) ─────────────────────────────────────────────
   report: router({
-    summary: protectedProcedure.query(async () => {
+    summary: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
-      if (!db) return {};
-      const rows = await db.execute(
-        sql`SELECT tipo, SUM(importo) as totale FROM transazioni GROUP BY tipo`
-      ) as any[];
-      const data = (rows as any[])[0] as any[] ?? [];
-      const entrate = data.find((r: any) => r.tipo === 'entrata');
-      const uscite = data.find((r: any) => r.tipo === 'uscita');
-      const totE = Number(entrate?.totale ?? 0);
-      const totU = Number(uscite?.totale ?? 0);
-      return {
-        entrateTotali: totE,
-        usciteTotali: totU,
-        utileNetto: totE - totU,
-        roi: totU > 0 ? ((totE - totU) / totU * 100) : 0,
-      };
+      if (!db) return { entrateTotali: 0, usciteTotali: 0, utileNetto: 0, roi: 0 };
+      const actor = await getActor(ctx);
+      const rows = (await db.execute(
+        sql`SELECT COALESCE(SUM(CASE WHEN tipo='entrata' THEN importo ELSE 0 END),0) as e,
+            COALESCE(SUM(CASE WHEN tipo='uscita' THEN importo ELSE 0 END),0) as u
+            FROM transazioni WHERE companyId=${actor.companyId} AND deletedAt IS NULL`
+      ) as any[]);
+      const r = (rows as any[])[0]?.[0] ?? {};
+      const e = Number(r.e ?? 0), u = Number(r.u ?? 0);
+      return { entrateTotali: e, usciteTotali: u, utileNetto: e - u, roi: u > 0 ? ((e - u) / u * 100) : 0 };
     }),
-    finanza: protectedProcedure.query(async () => {
+    finanza: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
-      if (!db) return {};
-      const mensile = await db.execute(
+      if (!db) return { mensile: [], categorieSpese: [] };
+      const actor = await getActor(ctx);
+      const mensile = (await db.execute(
         sql`SELECT DATE_FORMAT(data,'%b') as mese, MONTH(data) as m, YEAR(data) as y,
             SUM(CASE WHEN tipo='entrata' THEN importo ELSE 0 END) as entrate,
             SUM(CASE WHEN tipo='uscita' THEN importo ELSE 0 END) as uscite
-            FROM transazioni WHERE data >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+            FROM transazioni WHERE companyId=${actor.companyId} AND deletedAt IS NULL AND data >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
             GROUP BY YEAR(data), MONTH(data), DATE_FORMAT(data,'%b') ORDER BY y, m`
-      ) as any[];
-      const categorie = await db.execute(
-        sql`SELECT categoria as name, SUM(importo) as value FROM transazioni WHERE tipo='uscita' GROUP BY categoria ORDER BY value DESC LIMIT 5`
-      ) as any[];
-      return {
-        mensile: (mensile as any[])[0] as any[] ?? [],
-        categorieSpese: (categorie as any[])[0] as any[] ?? [],
-      };
+      ) as any[]);
+      const categorie = (await db.execute(
+        sql`SELECT categoria as name, SUM(importo) as value FROM transazioni WHERE tipo='uscita' AND companyId=${actor.companyId} AND deletedAt IS NULL GROUP BY categoria ORDER BY value DESC LIMIT 5`
+      ) as any[]);
+      return { mensile: (mensile as any[])[0] as any[] ?? [], categorieSpese: (categorie as any[])[0] as any[] ?? [] };
     }),
-    operativo: protectedProcedure.query(async () => {
+    operativo: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return {};
-      const [ca] = await db.execute(sql`SELECT COUNT(*) as cnt FROM campi WHERE stato='attivo'`) as any[];
-      const [mo] = await db.execute(sql`SELECT COUNT(*) as cnt FROM macchine WHERE stato='operativo'`) as any[];
-      const [ia] = await db.execute(sql`SELECT COUNT(*) as cnt FROM interventi WHERE stato != 'completato'`) as any[];
-      const [ps] = await db.execute(sql`SELECT COUNT(*) as cnt FROM prodotti WHERE quantita <= quantitaMinima AND quantitaMinima > 0`) as any[];
+      const actor = await getActor(ctx);
+      const cid = actor.companyId;
+      const count = async (table: string, extra = "") => {
+        const r = (await db.execute(sql.raw(`SELECT COUNT(*) as cnt FROM ${table} WHERE companyId='${cid}' AND deletedAt IS NULL ${extra}`)) as any[]);
+        return Number((r[0] as any[])[0]?.cnt ?? 0);
+      };
       return {
-        campiAttivi: Number((ca as any[])[0]?.cnt ?? 0),
-        macchineOperative: Number((mo as any[])[0]?.cnt ?? 0),
-        interventiAperti: Number((ia as any[])[0]?.cnt ?? 0),
-        prodottiSottoScorta: Number((ps as any[])[0]?.cnt ?? 0),
+        campiAttivi: await count("campi", "AND stato='attivo'"),
+        macchineOperative: await count("macchine", "AND stato='operativo'"),
+        interventiAperti: await count("interventi", "AND stato != 'completato'"),
+        prodottiSottoScorta: await count("prodotti", "AND quantita <= quantitaMinima AND quantitaMinima > 0"),
         dataQuality: { completezza: 87, accuratezza: 94, tempestivita: 78, coerenza: 91 },
       };
     }),
   }),
 
-  // ─── AI CHAT ───────────────────────────────────────────────────────────────
-  ai: router({
-    sessions: protectedProcedure.query(async ({ ctx }) => {
-      const db = await getDb();
-      if (!db) return [];
-      return db.select().from(chatSessions).where(eq(chatSessions.userId, ctx.user.id)).orderBy(desc(chatSessions.createdAt)).limit(20);
-    }),
-    messages: protectedProcedure
-      .input(z.object({ sessionId: z.number() }))
-      .query(async ({ input }) => {
-        const db = await getDb();
-        if (!db) return [];
-        return db.select().from(chatMessages).where(eq(chatMessages.sessionId, input.sessionId)).orderBy(chatMessages.createdAt);
-      }),
-    newSession: protectedProcedure
-      .input(z.object({ titolo: z.string().optional() }))
-      .mutation(async ({ ctx, input }) => {
-        const db = await getDb();
-        if (!db) throw new Error("DB not available");
-        const [result] = await db.insert(chatSessions).values({
-          userId: ctx.user.id,
-          titolo: input.titolo ?? "Nuova conversazione",
-        });
-        return { sessionId: (result as any).insertId };
-      }),
-    chat: protectedProcedure
-      .input(z.object({
-        sessionId: z.number(),
-        message: z.string().min(1),
-      }))
-      .mutation(async ({ ctx, input }) => {
-        const db = await getDb();
-        if (!db) throw new Error("DB not available");
-
-        // Save user message
-        await db.insert(chatMessages).values({
-          sessionId: input.sessionId,
-          ruolo: "user",
-          contenuto: input.message,
-        });
-
-        // Get recent context from DB for Explainable AI
-        const kpiRows = await db.execute(
-          sql`SELECT COALESCE(SUM(CASE WHEN tipo='entrata' THEN importo ELSE 0 END),0) as entrate,
-              COALESCE(SUM(CASE WHEN tipo='uscita' THEN importo ELSE 0 END),0) as uscite
-              FROM transazioni WHERE MONTH(data)=MONTH(CURDATE()) AND YEAR(data)=YEAR(CURDATE())`
-        ) as any[];
-        const kpi = ((kpiRows as any[])[0] as any[])?.[0] ?? {};
-        const campiCount = await db.execute(sql`SELECT COUNT(*) as cnt FROM campi WHERE stato='attivo'`) as any[];
-        const macchineCount = await db.execute(sql`SELECT COUNT(*) as cnt FROM macchine`) as any[];
-
-        const systemPrompt = `Sei l'Assistente AI di Fallinity FEOS, il sistema operativo per aziende agricole.
-Rispondi SEMPRE in italiano.
-Sei un esperto di gestione aziendale agricola con approccio "Explainable AI": ogni suggerimento deve essere motivato e trasparente.
-Quando dai un consiglio, spiega SEMPRE il ragionamento dietro di esso.
-
-CONTESTO AZIENDALE ATTUALE:
-- Entrate mese corrente: €${Number(kpi.entrate ?? 0).toLocaleString('it-IT')}
-- Uscite mese corrente: €${Number(kpi.uscite ?? 0).toLocaleString('it-IT')}
-- Utile netto: €${(Number(kpi.entrate ?? 0) - Number(kpi.uscite ?? 0)).toLocaleString('it-IT')}
-- Campi attivi: ${((campiCount as any[])[0] as any[])?.[0]?.cnt ?? 0}
-- Macchine registrate: ${((macchineCount as any[])[0] as any[])?.[0]?.cnt ?? 0}
-
-Principi Fallinity DNA che segui:
-1. Entity First — tutto è un'entità
-2. Event Driven — tutto nasce da un evento
-3. Decision First — mostra decisioni, non solo dati
-4. Explainable AI — ogni suggerimento è motivato
-5. Enterprise Memory — l'esperienza non va mai persa`;
-
-        // Get chat history
-        const history = await db.select().from(chatMessages)
-          .where(eq(chatMessages.sessionId, input.sessionId))
-          .orderBy(chatMessages.createdAt)
-          .limit(20);
-
-        const messages = [
-          ...history.slice(0, -1).map(m => ({ role: m.ruolo as "user" | "assistant", content: m.contenuto })),
-          { role: "user" as const, content: input.message },
-        ];
-
-        const response = await invokeLLM({
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...messages,
-          ],
-        });
-        const rawContent = response.choices?.[0]?.message?.content;
-        const assistantContent = typeof rawContent === 'string' ? rawContent : "Mi dispiace, non ho potuto elaborare la risposta.";
-
-        await db.insert(chatMessages).values({
-          sessionId: input.sessionId,
-          ruolo: "assistant",
-          contenuto: assistantContent,
-        });
-
-        // Update session title if first message
-        if (history.length <= 1) {
-          const shortTitle = input.message.slice(0, 50) + (input.message.length > 50 ? "..." : "");
-          await db.update(chatSessions).set({ titolo: shortTitle } as any).where(eq(chatSessions.id, input.sessionId));
-        }
-
-        return { content: assistantContent };
-      }),
-    deleteSession: protectedProcedure
-      .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
-        const db = await getDb();
-        if (!db) throw new Error("DB not available");
-        await db.delete(chatMessages).where(eq(chatMessages.sessionId, input.id));
-        await db.delete(chatSessions).where(eq(chatSessions.id, input.id));
-        return { success: true };
-      }),
-  }),
-  // ── STALLA ────────────────────────────────────────────────────────────────
+  // ─── STALLA ────────────────────────────────────────────────────────────────
   stalla: router({
-    list: protectedProcedure.query(async () => {
+    list: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
-      return db.select().from(animali).orderBy(animali.matricola);
+      const actor = await getActor(ctx);
+      return db.select().from(animali).where(and(eq(animali.companyId, actor.companyId), isNull(animali.deletedAt))).orderBy(animali.matricola);
     }),
-    stats: protectedProcedure.query(async () => {
+    stats: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return { sincronizzazioniOggi: 0, zoppieAperte: 0, trattamentiPianificati: 0, partiMese: 0 };
-      const [sinc] = await db.execute(sql`SELECT COUNT(*) as cnt FROM trattamentiAnimali WHERE tipo='sincronizzazione' AND stato='pianificato' AND DATE(dataTrattamento)=CURDATE()`) as any[];
-      const [zopp] = await db.execute(sql`SELECT COUNT(*) as cnt FROM zoppie WHERE stato!='risolta'`) as any[];
-      const [tratt] = await db.execute(sql`SELECT COUNT(*) as cnt FROM trattamentiAnimali WHERE stato='pianificato'`) as any[];
-      const [parti] = await db.execute(sql`SELECT COUNT(*) as cnt FROM gravidanze WHERE stato='in_corso' AND MONTH(dataPartoPrevisto)=MONTH(NOW()) AND YEAR(dataPartoPrevisto)=YEAR(NOW())`) as any[];
+      const actor = await getActor(ctx);
+      const cid = actor.companyId;
+      const scalar = async (q: string) => {
+        const r = (await db.execute(sql.raw(q)) as any[]);
+        return Number((r[0] as any[])[0]?.cnt ?? 0);
+      };
       return {
-        sincronizzazioniOggi: Number((sinc as any[])[0]?.cnt ?? 0),
-        zoppieAperte: Number((zopp as any[])[0]?.cnt ?? 0),
-        trattamentiPianificati: Number((tratt as any[])[0]?.cnt ?? 0),
-        partiMese: Number((parti as any[])[0]?.cnt ?? 0),
+        sincronizzazioniOggi: await scalar(`SELECT COUNT(*) as cnt FROM trattamentiAnimali WHERE companyId='${cid}' AND deletedAt IS NULL AND tipo='sincronizzazione' AND stato='pianificato' AND DATE(dataTrattamento)=CURDATE()`),
+        zoppieAperte: await scalar(`SELECT COUNT(*) as cnt FROM zoppie WHERE companyId='${cid}' AND deletedAt IS NULL AND stato!='risolta'`),
+        trattamentiPianificati: await scalar(`SELECT COUNT(*) as cnt FROM trattamentiAnimali WHERE companyId='${cid}' AND deletedAt IS NULL AND stato='pianificato'`),
+        partiMese: await scalar(`SELECT COUNT(*) as cnt FROM gravidanze WHERE companyId='${cid}' AND deletedAt IS NULL AND stato='in_corso' AND MONTH(dataPartoPrevisto)=MONTH(NOW()) AND YEAR(dataPartoPrevisto)=YEAR(NOW())`),
       };
     }),
     add: protectedProcedure
@@ -675,51 +600,56 @@ Principi Fallinity DNA che segui:
         razza: z.string().optional(),
         stato: z.enum(["attiva", "asciutta", "gravida", "infermeria"]).default("attiva"),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("DB not available");
-        await db.insert(animali).values(input as any);
+        const actor = await getActor(ctx);
+        await db.insert(animali).values(withCreate(actor, input) as any);
         return { success: true };
       }),
     eseguiTrattamento: protectedProcedure
-      .input(z.object({ animaleId: z.number() }))
-      .mutation(async ({ input }) => {
+      .input(z.object({ animaleId: z.string() }))
+      .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("DB not available");
-        await db.update(trattamentiAnimali)
-          .set({ stato: "eseguito" } as any)
-          .where(and(eq(trattamentiAnimali.animaleId, input.animaleId), eq(trattamentiAnimali.stato, "pianificato")));
+        const actor = await getActor(ctx);
+        await db.update(trattamentiAnimali).set(withUpdate(actor, { stato: "eseguito" }) as any)
+          .where(and(eq(trattamentiAnimali.animaleId, input.animaleId), eq(trattamentiAnimali.stato, "pianificato"), eq(trattamentiAnimali.companyId, actor.companyId)));
         return { success: true };
       }),
-    zoppie: protectedProcedure.query(async () => {
+    zoppie: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
-      return db.select().from(zoppie).orderBy(desc(zoppie.createdAt));
+      const actor = await getActor(ctx);
+      return db.select().from(zoppie).where(and(eq(zoppie.companyId, actor.companyId), isNull(zoppie.deletedAt))).orderBy(desc(zoppie.createdAt));
     }),
     addZoppia: protectedProcedure
       .input(z.object({
-        animaleId: z.number(),
+        animaleId: z.string(),
         dataRilevazione: z.string(),
         score: z.number().min(1).max(5).default(1),
         zampa: z.string().optional(),
         diagnosi: z.string().optional(),
         trattamento: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("DB not available");
-        await db.insert(zoppie).values(input as any);
+        const actor = await getActor(ctx);
+        await db.insert(zoppie).values(withCreate(actor, input) as any);
         return { success: true };
       }),
   }),
 
-  // ── REINTEGRAZIONE ────────────────────────────────────────────────────────
+  // ─── REINTEGRAZIONE ──────────────────────────────────────────────────────────
   reintegrazione: router({
-    list: protectedProcedure.query(async () => {
+    list: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
-      const fondi = await db.select().from(fondiReintegrazione).where(eq(fondiReintegrazione.attivo, true)).orderBy(fondiReintegrazione.nomeDisplay);
-      // Arricchisci con nome macchina
+      const actor = await getActor(ctx);
+      const fondi = await db.select().from(fondiReintegrazione)
+        .where(and(eq(fondiReintegrazione.companyId, actor.companyId), eq(fondiReintegrazione.attivo, true), isNull(fondiReintegrazione.deletedAt)))
+        .orderBy(fondiReintegrazione.nomeDisplay);
       const result = [];
       for (const f of fondi) {
         const [mac] = await db.select().from(macchine).where(eq(macchine.id, f.macchinaId)).limit(1);
@@ -727,19 +657,20 @@ Principi Fallinity DNA che segui:
       }
       return result;
     }),
-    totale: protectedProcedure.query(async () => {
+    totale: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return { totale: 0, interessi: 0, fondiCount: 0 };
-      const [tot] = await db.execute(sql`SELECT COALESCE(SUM(fondoAttuale),0) as totale, COALESCE(SUM(fondoAttuale*tassoInteresse),0) as interessi, COUNT(*) as cnt FROM fondiReintegrazione WHERE attivo=1`) as any[];
-      return {
-        totale: Number((tot as any[])[0]?.totale ?? 0),
-        interessi: Number((tot as any[])[0]?.interessi ?? 0),
-        fondiCount: Number((tot as any[])[0]?.cnt ?? 0),
-      };
+      const actor = await getActor(ctx);
+      const rows = (await db.execute(
+        sql`SELECT COALESCE(SUM(fondoAttuale),0) as totale, COALESCE(SUM(fondoAttuale*tassoInteresse),0) as interessi, COUNT(*) as cnt
+            FROM fondiReintegrazione WHERE companyId=${actor.companyId} AND attivo=1 AND deletedAt IS NULL`
+      ) as any[]);
+      const r = (rows as any[])[0]?.[0] ?? {};
+      return { totale: Number(r.totale ?? 0), interessi: Number(r.interessi ?? 0), fondiCount: Number(r.cnt ?? 0) };
     }),
     add: protectedProcedure
       .input(z.object({
-        macchinaId: z.number(),
+        macchinaId: z.string(),
         nomeDisplay: z.string().min(1),
         valoreAcquisto: z.number().positive(),
         fondoAttuale: z.number().min(0).default(0),
@@ -747,34 +678,126 @@ Principi Fallinity DNA che segui:
         annoObiettivo: z.number().optional(),
         rataConsigliata: z.number().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("DB not available");
-        await db.insert(fondiReintegrazione).values(input as any);
+        const actor = await getActor(ctx);
+        await db.insert(fondiReintegrazione).values(withCreate(actor, {
+          ...input,
+          valoreAcquisto: String(input.valoreAcquisto),
+          fondoAttuale: String(input.fondoAttuale),
+          tassoInteresse: String(input.tassoInteresse),
+          rataConsigliata: input.rataConsigliata != null ? String(input.rataConsigliata) : null,
+        }) as any);
         return { success: true };
       }),
     pagaRata: protectedProcedure
-      .input(z.object({ fondoId: z.number(), importo: z.number().positive() }))
-      .mutation(async ({ input }) => {
+      .input(z.object({ fondoId: z.string(), importo: z.number().positive() }))
+      .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("DB not available");
-        // Aggiorna fondo
+        const actor = await getActor(ctx);
         const [fondo] = await db.select().from(fondiReintegrazione).where(eq(fondiReintegrazione.id, input.fondoId)).limit(1);
         if (!fondo) throw new Error("Fondo non trovato");
         const nuovoFondo = Number(fondo.fondoAttuale) + input.importo;
-        await db.update(fondiReintegrazione).set({ fondoAttuale: String(nuovoFondo) } as any).where(eq(fondiReintegrazione.id, input.fondoId));
-        // Registra rata
-        const today = new Date().toISOString().split("T")[0];
-        await db.insert(rateReintegrazione).values({ fondoId: input.fondoId, importo: String(input.importo) as any, data: today, pagata: true } as any);
+        await db.update(fondiReintegrazione).set(withUpdate(actor, { fondoAttuale: String(nuovoFondo) }) as any).where(eq(fondiReintegrazione.id, input.fondoId));
+        await db.insert(rateReintegrazione).values(withCreate(actor, {
+          fondoId: input.fondoId, importo: String(input.importo), data: new Date().toISOString().split("T")[0], pagata: true,
+        }) as any);
         return { success: true };
       }),
     rate: protectedProcedure
-      .input(z.object({ fondoId: z.number() }))
+      .input(z.object({ fondoId: z.string() }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const actor = await getActor(ctx);
+        return db.select().from(rateReintegrazione)
+          .where(and(eq(rateReintegrazione.fondoId, input.fondoId), eq(rateReintegrazione.companyId, actor.companyId), isNull(rateReintegrazione.deletedAt)))
+          .orderBy(desc(rateReintegrazione.data));
+      }),
+  }),
+
+  // ─── AI COPILOT ──────────────────────────────────────────────────────────────
+  ai: router({
+    sessions: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select().from(chatSessions).where(eq(chatSessions.userId, ctx.user.id)).orderBy(desc(chatSessions.createdAt)).limit(20);
+    }),
+    messages: protectedProcedure
+      .input(z.object({ sessionId: z.string() }))
       .query(async ({ input }) => {
         const db = await getDb();
         if (!db) return [];
-        return db.select().from(rateReintegrazione).where(eq(rateReintegrazione.fondoId, input.fondoId)).orderBy(desc(rateReintegrazione.data));
+        return db.select().from(chatMessages).where(eq(chatMessages.sessionId, input.sessionId)).orderBy(chatMessages.createdAt);
+      }),
+    newSession: protectedProcedure
+      .input(z.object({ titolo: z.string().optional() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("DB not available");
+        const actor = await getActor(ctx);
+        const id = crypto.randomUUID();
+        await db.insert(chatSessions).values({
+          id, companyId: actor.companyId, userId: ctx.user.id, titolo: input.titolo ?? "Nuova conversazione",
+        } as any);
+        return { sessionId: id };
+      }),
+    chat: protectedProcedure
+      .input(z.object({ sessionId: z.string(), message: z.string().min(1) }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("DB not available");
+        const actor = await getActor(ctx);
+
+        await db.insert(chatMessages).values({ id: crypto.randomUUID(), sessionId: input.sessionId, ruolo: "user", contenuto: input.message } as any);
+
+        const kpiRows = (await db.execute(
+          sql`SELECT COALESCE(SUM(CASE WHEN tipo='entrata' THEN importo ELSE 0 END),0) as entrate,
+              COALESCE(SUM(CASE WHEN tipo='uscita' THEN importo ELSE 0 END),0) as uscite
+              FROM transazioni WHERE companyId=${actor.companyId} AND deletedAt IS NULL AND MONTH(data)=MONTH(CURDATE()) AND YEAR(data)=YEAR(CURDATE())`
+        ) as any[]);
+        const kpi = (kpiRows as any[])[0]?.[0] ?? {};
+
+        const systemPrompt = `Sei il Copilot AI di Fallinity FEOS, il sistema operativo per aziende agricole.
+Rispondi SEMPRE in italiano con approccio "Explainable AI": ogni suggerimento deve essere motivato e trasparente, spiegando il ragionamento.
+
+CONTESTO AZIENDALE (mese corrente):
+- Entrate: €${Number(kpi.entrate ?? 0).toLocaleString('it-IT')}
+- Uscite: €${Number(kpi.uscite ?? 0).toLocaleString('it-IT')}
+- Utile netto: €${(Number(kpi.entrate ?? 0) - Number(kpi.uscite ?? 0)).toLocaleString('it-IT')}
+
+Principi Fallinity DNA: Entity First, Event Driven, Decision First, Explainable AI, Enterprise Memory.`;
+
+        const history = await db.select().from(chatMessages).where(eq(chatMessages.sessionId, input.sessionId)).orderBy(chatMessages.createdAt).limit(20);
+        const messages = [
+          ...history.slice(0, -1).map(m => ({ role: m.ruolo as "user" | "assistant", content: m.contenuto })),
+          { role: "user" as const, content: input.message },
+        ];
+
+        const response = await invokeLLM({ messages: [{ role: "system", content: systemPrompt }, ...messages] });
+        const rawContent = response.choices?.[0]?.message?.content;
+        const assistantContent = typeof rawContent === 'string' ? rawContent : "Mi dispiace, non ho potuto elaborare la risposta.";
+
+        await db.insert(chatMessages).values({ id: crypto.randomUUID(), sessionId: input.sessionId, ruolo: "assistant", contenuto: assistantContent } as any);
+
+        if (history.length <= 1) {
+          const shortTitle = input.message.slice(0, 50) + (input.message.length > 50 ? "..." : "");
+          await db.update(chatSessions).set({ titolo: shortTitle } as any).where(eq(chatSessions.id, input.sessionId));
+        }
+        return { content: assistantContent };
+      }),
+    deleteSession: protectedProcedure
+      .input(z.object({ id: z.string() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("DB not available");
+        await db.delete(chatMessages).where(eq(chatMessages.sessionId, input.id));
+        await db.delete(chatSessions).where(eq(chatSessions.id, input.id));
+        return { success: true };
       }),
   }),
 });
+
 export type AppRouter = typeof appRouter;

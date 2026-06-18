@@ -280,7 +280,7 @@ export default function Stalla() {
 }
 
 // ── SINCRONIZZAZIONI VIEW ─────────────────────────────────────────────────────
-function SincronizzazioniView({ animali, onEsegui }: { animali: any[]; onEsegui: (id: number) => void }) {
+function SincronizzazioniView({ animali, onEsegui }: { animali: any[]; onEsegui: (id: string) => void }) {
   const [eseguiti, setEseguiti] = useState<Set<number>>(new Set());
   const daSincronizzare = animali.filter(a => a.stato === "attiva").slice(0, 6);
 
