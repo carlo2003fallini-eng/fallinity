@@ -7,7 +7,9 @@ import { getDb } from "./db";
 import {
   contatti, campi, lavorazioni, transazioni, budget,
   prodotti, movimentiMagazzino, macchine, interventi,
-  eventi, chatSessions, chatMessages, azienda
+  eventi, chatSessions, chatMessages, azienda,
+  animali, trattamentiAnimali, gravidanze, zoppie,
+  fondiReintegrazione, rateReintegrazione
 } from "../drizzle/schema";
 import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
 import { invokeLLM } from "./_core/llm";
@@ -644,6 +646,135 @@ Principi Fallinity DNA che segui:
         return { success: true };
       }),
   }),
-});
+  // ── STALLA ────────────────────────────────────────────────────────────────
+  stalla: router({
+    list: protectedProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select().from(animali).orderBy(animali.matricola);
+    }),
+    stats: protectedProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return { sincronizzazioniOggi: 0, zoppieAperte: 0, trattamentiPianificati: 0, partiMese: 0 };
+      const [sinc] = await db.execute(sql`SELECT COUNT(*) as cnt FROM trattamentiAnimali WHERE tipo='sincronizzazione' AND stato='pianificato' AND DATE(dataTrattamento)=CURDATE()`) as any[];
+      const [zopp] = await db.execute(sql`SELECT COUNT(*) as cnt FROM zoppie WHERE stato!='risolta'`) as any[];
+      const [tratt] = await db.execute(sql`SELECT COUNT(*) as cnt FROM trattamentiAnimali WHERE stato='pianificato'`) as any[];
+      const [parti] = await db.execute(sql`SELECT COUNT(*) as cnt FROM gravidanze WHERE stato='in_corso' AND MONTH(dataPartoPrevisto)=MONTH(NOW()) AND YEAR(dataPartoPrevisto)=YEAR(NOW())`) as any[];
+      return {
+        sincronizzazioniOggi: Number((sinc as any[])[0]?.cnt ?? 0),
+        zoppieAperte: Number((zopp as any[])[0]?.cnt ?? 0),
+        trattamentiPianificati: Number((tratt as any[])[0]?.cnt ?? 0),
+        partiMese: Number((parti as any[])[0]?.cnt ?? 0),
+      };
+    }),
+    add: protectedProcedure
+      .input(z.object({
+        matricola: z.string().min(1),
+        nome: z.string().optional(),
+        gruppo: z.string().optional(),
+        razza: z.string().optional(),
+        stato: z.enum(["attiva", "asciutta", "gravida", "infermeria"]).default("attiva"),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("DB not available");
+        await db.insert(animali).values(input as any);
+        return { success: true };
+      }),
+    eseguiTrattamento: protectedProcedure
+      .input(z.object({ animaleId: z.number() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("DB not available");
+        await db.update(trattamentiAnimali)
+          .set({ stato: "eseguito" } as any)
+          .where(and(eq(trattamentiAnimali.animaleId, input.animaleId), eq(trattamentiAnimali.stato, "pianificato")));
+        return { success: true };
+      }),
+    zoppie: protectedProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select().from(zoppie).orderBy(desc(zoppie.createdAt));
+    }),
+    addZoppia: protectedProcedure
+      .input(z.object({
+        animaleId: z.number(),
+        dataRilevazione: z.string(),
+        score: z.number().min(1).max(5).default(1),
+        zampa: z.string().optional(),
+        diagnosi: z.string().optional(),
+        trattamento: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("DB not available");
+        await db.insert(zoppie).values(input as any);
+        return { success: true };
+      }),
+  }),
 
+  // ── REINTEGRAZIONE ────────────────────────────────────────────────────────
+  reintegrazione: router({
+    list: protectedProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      const fondi = await db.select().from(fondiReintegrazione).where(eq(fondiReintegrazione.attivo, true)).orderBy(fondiReintegrazione.nomeDisplay);
+      // Arricchisci con nome macchina
+      const result = [];
+      for (const f of fondi) {
+        const [mac] = await db.select().from(macchine).where(eq(macchine.id, f.macchinaId)).limit(1);
+        result.push({ ...f, nomeMacchina: mac?.nome ?? f.nomeDisplay });
+      }
+      return result;
+    }),
+    totale: protectedProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return { totale: 0, interessi: 0, fondiCount: 0 };
+      const [tot] = await db.execute(sql`SELECT COALESCE(SUM(fondoAttuale),0) as totale, COALESCE(SUM(fondoAttuale*tassoInteresse),0) as interessi, COUNT(*) as cnt FROM fondiReintegrazione WHERE attivo=1`) as any[];
+      return {
+        totale: Number((tot as any[])[0]?.totale ?? 0),
+        interessi: Number((tot as any[])[0]?.interessi ?? 0),
+        fondiCount: Number((tot as any[])[0]?.cnt ?? 0),
+      };
+    }),
+    add: protectedProcedure
+      .input(z.object({
+        macchinaId: z.number(),
+        nomeDisplay: z.string().min(1),
+        valoreAcquisto: z.number().positive(),
+        fondoAttuale: z.number().min(0).default(0),
+        tassoInteresse: z.number().min(0).max(1).default(0.03),
+        annoObiettivo: z.number().optional(),
+        rataConsigliata: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("DB not available");
+        await db.insert(fondiReintegrazione).values(input as any);
+        return { success: true };
+      }),
+    pagaRata: protectedProcedure
+      .input(z.object({ fondoId: z.number(), importo: z.number().positive() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("DB not available");
+        // Aggiorna fondo
+        const [fondo] = await db.select().from(fondiReintegrazione).where(eq(fondiReintegrazione.id, input.fondoId)).limit(1);
+        if (!fondo) throw new Error("Fondo non trovato");
+        const nuovoFondo = Number(fondo.fondoAttuale) + input.importo;
+        await db.update(fondiReintegrazione).set({ fondoAttuale: String(nuovoFondo) } as any).where(eq(fondiReintegrazione.id, input.fondoId));
+        // Registra rata
+        const today = new Date().toISOString().split("T")[0];
+        await db.insert(rateReintegrazione).values({ fondoId: input.fondoId, importo: String(input.importo) as any, data: today, pagata: true } as any);
+        return { success: true };
+      }),
+    rate: protectedProcedure
+      .input(z.object({ fondoId: z.number() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        return db.select().from(rateReintegrazione).where(eq(rateReintegrazione.fondoId, input.fondoId)).orderBy(desc(rateReintegrazione.data));
+      }),
+  }),
+});
 export type AppRouter = typeof appRouter;

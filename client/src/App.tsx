@@ -14,6 +14,9 @@ import Officina from "./pages/Officina";
 import Calendario from "./pages/Calendario";
 import Report from "./pages/Report";
 import AI from "./pages/AI";
+import Stalla from "./pages/Stalla";
+import Reintegrazione from "./pages/Reintegrazione";
+import SelezionaAzienda from "./pages/SelezionaAzienda";
 
 function Router() {
   return (
@@ -28,6 +31,8 @@ function Router() {
         <Route path="/calendario" component={Calendario} />
         <Route path="/report" component={Report} />
         <Route path="/ai" component={AI} />
+        <Route path="/stalla" component={Stalla} />
+        <Route path="/reintegrazione" component={Reintegrazione} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

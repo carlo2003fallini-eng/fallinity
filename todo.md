@@ -83,3 +83,14 @@
 - [x] Report Enterprise Metrics: header "Enterprise Metrics™", 4 score cards (Completezza/Accuratezza/Tempestività/Coerenza), grafici performance, tabella metriche
 - [x] AI: chat bubble layout (utente destra/AI sinistra), badge "Explainable AI™", panel suggerimenti contestuali, indicatori XAI
 - [x] Sidebar: logo Fallinity in alto, voci con icone e label, sezione utente in basso, indicatore modulo attivo con bordo verde
+
+## Fase 10: Nuovi Moduli da CORE-UX
+- [ ] Schema DB: tabelle stalla (animali, gruppi, sincronizzazioni, gravidanze, zoppie, trattamenti, parti, asciutta, infermeria)
+- [ ] Schema DB: tabelle reintegrazione (fondi_macchine, rate_versamento)
+- [ ] Login page: sfondo agricolo sfocato, logo grande, slogan, form premium, biometrico placeholder
+- [ ] Selezione azienda: card multi-tenant con foto/logo/ruolo/notifiche, badge ATTIVA
+- [ ] Modulo Stalla: dashboard con 8 card modulari (Gruppi/Sincronizzazioni/Gravidanze/Zoppie/Trattamenti/Parti/Asciutta/Infermeria)
+- [ ] Modulo Sincronizzazioni: lista vacche con numero/matricola/farmaco/ora/prossimo trattamento/pulsante esegui
+- [ ] Modulo Reintegrazione: hero totale fondi, versamento consigliato, lista fondi per macchina con progress bar e pulsante paga rata
+- [ ] Home Dashboard: Hero card Utile Netto grande (metà schermo), card Cashflow e Fondo Reintegrazione, azioni rapide (Entrata/Uscita/Intervento/Report), alert operativi feed
+- [ ] Sidebar: aggiungere voci Stalla e Reintegrazione

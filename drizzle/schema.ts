@@ -212,6 +212,94 @@ export const eventi = mysqlTable("eventi", {
 export type Evento = typeof eventi.$inferSelect;
 export type InsertEvento = typeof eventi.$inferInsert;
 
+// ─── STALLA ──────────────────────────────────────────────────────────────────
+export const animali = mysqlTable("animali", {
+  id: int("id").autoincrement().primaryKey(),
+  matricola: varchar("matricola", { length: 50 }).notNull(),
+  nome: varchar("nome", { length: 100 }),
+  gruppo: varchar("gruppo", { length: 100 }),
+  razza: varchar("razza", { length: 100 }),
+  dataNascita: date("dataNascita"),
+  sesso: mysqlEnum("sesso", ["femmina", "maschio"]).default("femmina").notNull(),
+  stato: mysqlEnum("stato", ["attiva", "asciutta", "gravida", "infermeria", "venduta", "morta"]).default("attiva").notNull(),
+  produzioneMedia: decimal("produzioneMedia", { precision: 8, scale: 2 }),
+  note: text("note"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Animale = typeof animali.$inferSelect;
+export type InsertAnimale = typeof animali.$inferInsert;
+
+export const trattamentiAnimali = mysqlTable("trattamentiAnimali", {
+  id: int("id").autoincrement().primaryKey(),
+  animaleId: int("animaleId").notNull(),
+  tipo: mysqlEnum("tipo", ["sincronizzazione", "vaccino", "farmaco", "visita", "altro"]).default("altro").notNull(),
+  farmaco: varchar("farmaco", { length: 255 }),
+  dose: varchar("dose", { length: 100 }),
+  dataTrattamento: timestamp("dataTrattamento").notNull(),
+  prossimoTrattamento: timestamp("prossimoTrattamento"),
+  veterinario: varchar("veterinario", { length: 255 }),
+  stato: mysqlEnum("stato", ["pianificato", "eseguito", "saltato"]).default("pianificato").notNull(),
+  note: text("note"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type TrattamentoAnimale = typeof trattamentiAnimali.$inferSelect;
+export type InsertTrattamentoAnimale = typeof trattamentiAnimali.$inferInsert;
+
+export const gravidanze = mysqlTable("gravidanze", {
+  id: int("id").autoincrement().primaryKey(),
+  animaleId: int("animaleId").notNull(),
+  dataInseminazione: date("dataInseminazione").notNull(),
+  dataPartoPrevisto: date("dataPartoPrevisto"),
+  dataPartoEffettivo: date("dataPartoEffettivo"),
+  stato: mysqlEnum("stato", ["in_corso", "partorita", "abortita"]).default("in_corso").notNull(),
+  note: text("note"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type Gravidanza = typeof gravidanze.$inferSelect;
+
+export const zoppie = mysqlTable("zoppie", {
+  id: int("id").autoincrement().primaryKey(),
+  animaleId: int("animaleId").notNull(),
+  dataRilevazione: date("dataRilevazione").notNull(),
+  score: int("score").default(1),
+  zampa: varchar("zampa", { length: 50 }),
+  diagnosi: text("diagnosi"),
+  trattamento: text("trattamento"),
+  stato: mysqlEnum("stato", ["aperta", "in_trattamento", "risolta"]).default("aperta").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type Zoppia = typeof zoppie.$inferSelect;
+
+// ─── REINTEGRAZIONE ───────────────────────────────────────────────────────────
+export const fondiReintegrazione = mysqlTable("fondiReintegrazione", {
+  id: int("id").autoincrement().primaryKey(),
+  macchinaId: int("macchinaId").notNull(),
+  nomeDisplay: varchar("nomeDisplay", { length: 255 }).notNull(),
+  valoreAcquisto: decimal("valoreAcquisto", { precision: 14, scale: 2 }).notNull(),
+  fondoAttuale: decimal("fondoAttuale", { precision: 14, scale: 2 }).default("0").notNull(),
+  tassoInteresse: decimal("tassoInteresse", { precision: 5, scale: 3 }).default("0.030"),
+  annoObiettivo: int("annoObiettivo"),
+  rataConsigliata: decimal("rataConsigliata", { precision: 12, scale: 2 }),
+  attivo: boolean("attivo").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type FondoReintegrazione = typeof fondiReintegrazione.$inferSelect;
+export type InsertFondoReintegrazione = typeof fondiReintegrazione.$inferInsert;
+
+export const rateReintegrazione = mysqlTable("rateReintegrazione", {
+  id: int("id").autoincrement().primaryKey(),
+  fondoId: int("fondoId").notNull(),
+  importo: decimal("importo", { precision: 12, scale: 2 }).notNull(),
+  data: date("data").notNull(),
+  tipo: mysqlEnum("tipo", ["programmata", "extra"]).default("programmata").notNull(),
+  pagata: boolean("pagata").default(false).notNull(),
+  note: text("note"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type RataReintegrazione = typeof rateReintegrazione.$inferSelect;
+
 // ─── AI CHAT ──────────────────────────────────────────────────────────────────
 export const chatSessions = mysqlTable("chatSessions", {
   id: int("id").autoincrement().primaryKey(),

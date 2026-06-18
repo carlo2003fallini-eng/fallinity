@@ -15,6 +15,8 @@ import {
   Wrench,
   ChevronRight,
   Zap,
+  Activity,
+  RefreshCw,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import {
@@ -49,6 +51,8 @@ const moduleCards = [
   { icon: CalendarDays,label: "Calendario", path: "/calendario", desc: "Pianificazione",    color: BLUE },
   { icon: BarChart3,   label: "Report",     path: "/report",     desc: "Enterprise Metrics",color: GREEN },
   { icon: Bot,         label: "AI",         path: "/ai",         desc: "Explainable AI",    color: GOLD },
+  { icon: Activity,    label: "Stalla",     path: "/stalla",     desc: "Gestione animali",  color: GREEN },
+  { icon: RefreshCw,   label: "Reintegrazione", path: "/reintegrazione", desc: "Fondi macchine", color: GOLD },
 ];
 
 export default function Home() {

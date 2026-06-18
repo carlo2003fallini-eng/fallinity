@@ -25,6 +25,8 @@ import {
   Tractor,
   Wallet,
   Bell,
+  Activity,
+  RefreshCw,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -44,6 +46,8 @@ const menuItems = [
   { icon: CalendarDays,label: "Calendario", path: "/calendario", desc: "Pianificazione attività" },
   { icon: BarChart3,   label: "Report",     path: "/report",     desc: "Enterprise Metrics" },
   { icon: Bot,         label: "AI",         path: "/ai",         desc: "Assistente Explainable AI" },
+  { icon: Activity,    label: "Stalla",     path: "/stalla",     desc: "Gestione animali" },
+  { icon: RefreshCw,   label: "Reintegrazione", path: "/reintegrazione", desc: "Fondi macchine" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "feos-sidebar-width";
