@@ -9,6 +9,7 @@ import {
   CheckCircle2, Clock, XCircle, ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
+import { FAL_IMAGES } from "@/lib/assets";
 
 const GREEN = "oklch(0.65 0.18 142)";
 const GOLD  = "oklch(0.72 0.15 75)";
@@ -67,20 +68,24 @@ export default function Officina() {
   return (
     <div className="space-y-5 animate-fade-in-up">
 
-      {/* ── HEADER ─────────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold" style={{ fontFamily: "var(--font-display)", color: "oklch(0.95 0.005 145)" }}>
-            Officina
-          </h1>
-          <p className="text-sm mt-0.5" style={{ color: "oklch(0.5 0.01 145)" }}>
-            Parco macchine, manutenzioni e interventi
-          </p>
+      {/* ── HERO PREMIUM ───────────────────────────────────────────────────── */}
+      <div className="relative rounded-2xl overflow-hidden min-h-[160px] flex items-end p-6"
+        style={{ backgroundImage: `linear-gradient(90deg, oklch(0.08 0.006 145 / 0.94) 0%, oklch(0.08 0.006 145 / 0.5) 100%), url(${FAL_IMAGES.officinaTractor})`, backgroundSize: "cover", backgroundPosition: "center" }}>
+        <div className="flex items-end justify-between w-full flex-wrap gap-3">
+          <div>
+            <p className="text-xs font-semibold tracking-[0.2em] uppercase mb-1" style={{ color: GOLD }}>Parco Mezzi & Manutenzioni</p>
+            <h1 className="text-3xl font-bold" style={{ fontFamily: "var(--font-display)", color: "oklch(0.97 0.005 145)", letterSpacing: "-0.02em" }}>
+              Officina
+            </h1>
+            <p className="text-sm mt-1" style={{ color: "oklch(0.78 0.01 145)" }}>
+              {macchineList.length} mezzi · {aperti} interventi aperti · {ferme} fermi
+            </p>
+          </div>
+          <Button onClick={() => { setFormM({ ...EMPTY_M }); setOpenMacchina(true); }}
+            className="gap-2" style={{ background: GREEN, color: "oklch(0.08 0.005 145)" }}>
+            <Plus size={15} /> Nuova macchina
+          </Button>
         </div>
-        <Button onClick={() => { setFormM({ ...EMPTY_M }); setOpenMacchina(true); }}
-          className="gap-2" style={{ background: GREEN, color: "oklch(0.08 0.005 145)" }}>
-          <Plus size={15} /> Nuova macchina
-        </Button>
       </div>
 
       {/* ── KPI ────────────────────────────────────────────────────────────── */}

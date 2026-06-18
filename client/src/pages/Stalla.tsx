@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
+import { FAL_IMAGES } from "@/lib/assets";
 
 const GREEN = "oklch(0.72 0.22 145)";
 const GOLD = "oklch(0.78 0.15 85)";
@@ -90,6 +91,18 @@ export default function Stalla() {
 
       {sub === "dashboard" && (
         <>
+          {/* Hero stalla */}
+          <div className="relative rounded-2xl overflow-hidden min-h-[150px] flex flex-col justify-end p-6"
+            style={{ backgroundImage: `linear-gradient(90deg, oklch(0.08 0.006 145 / 0.92) 0%, oklch(0.08 0.006 145 / 0.55) 100%), url(${FAL_IMAGES.stallaCows})`, backgroundSize: "cover", backgroundPosition: "center" }}>
+            <p className="text-xs font-semibold tracking-[0.2em] uppercase mb-1" style={{ color: GREEN }}>Gestione Zootecnica</p>
+            <h2 className="text-2xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif", color: "oklch(0.97 0.005 145)" }}>
+              {attive.length} vacche in produzione
+            </h2>
+            <p className="text-sm mt-1" style={{ color: "oklch(0.78 0.01 145)" }}>
+              {gravide.length} gravide · {asciutta.length} in asciutta · {infermeria.length} in infermeria
+            </p>
+          </div>
+
           {/* KPI rapidi */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
@@ -110,28 +123,46 @@ export default function Stalla() {
             ))}
           </div>
 
-          {/* Grid moduli */}
+          {/* Grid moduli — card 2x2 glow premium */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {MODULI.map(mod => (
+            {MODULI.map(mod => {
+              const count = modCounts[mod.id] ?? 0;
+              const hasAlert = (mod.id === "zoppie" || mod.id === "infermeria") && count > 0;
+              return (
               <button
                 key={mod.id}
                 onClick={() => setSub(mod.id)}
-                className="rounded-xl p-5 text-left transition-all duration-200 group hover:scale-[1.02]"
-                style={{ background: SURFACE2, border: `1px solid ${BORDER}` }}
+                className="relative rounded-2xl p-5 text-left transition-all duration-300 group overflow-hidden hover:-translate-y-1"
+                style={{
+                  background: `linear-gradient(155deg, ${mod.color}14 0%, ${SURFACE2} 55%)`,
+                  border: `1px solid ${mod.color}28`,
+                  boxShadow: `0 0 0 0 ${mod.color}00`,
+                }}
+                onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 8px 30px -8px ${mod.color}55, inset 0 0 40px -20px ${mod.color}40`; e.currentTarget.style.borderColor = `${mod.color}55`; }}
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = `0 0 0 0 ${mod.color}00`; e.currentTarget.style.borderColor = `${mod.color}28`; }}
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: `${mod.color}18`, border: `1px solid ${mod.color}30` }}>
-                    <mod.icon className="w-6 h-6" style={{ color: mod.color }} />
+                {/* Illustrazione semitrasparente di sfondo */}
+                <mod.icon className="absolute -right-3 -bottom-3 w-24 h-24 transition-transform duration-500 group-hover:scale-110" style={{ color: mod.color, opacity: 0.07 }} />
+                {/* Glow radiale d'angolo */}
+                <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full blur-2xl transition-opacity duration-300 opacity-40 group-hover:opacity-70" style={{ background: mod.color }} />
+
+                <div className="relative z-10">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: `${mod.color}22`, border: `1px solid ${mod.color}40`, backdropFilter: "blur(4px)" }}>
+                      <mod.icon className="w-5 h-5" style={{ color: mod.color }} />
+                    </div>
+                    {hasAlert
+                      ? <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: mod.color, boxShadow: `0 0 8px ${mod.color}` }} />
+                      : <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" style={{ color: "oklch(0.4 0.008 145)" }} />}
                   </div>
-                  <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" style={{ color: "oklch(0.35 0.008 145)" }} />
+                  <div className="text-4xl font-bold mb-1" style={{ color: mod.color, fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "-0.03em" }}>
+                    {count}
+                  </div>
+                  <div className="text-sm font-semibold mb-0.5" style={{ color: "oklch(0.9 0.006 145)" }}>{mod.label}</div>
+                  <div className="text-xs" style={{ color: "oklch(0.5 0.008 145)" }}>{mod.desc}</div>
                 </div>
-                <div className="text-3xl font-bold mb-1" style={{ color: mod.color, fontFamily: "'Space Grotesk', sans-serif" }}>
-                  {modCounts[mod.id] ?? 0}
-                </div>
-                <div className="text-sm font-semibold mb-0.5" style={{ color: "oklch(0.88 0.006 145)" }}>{mod.label}</div>
-                <div className="text-xs" style={{ color: "oklch(0.45 0.008 145)" }}>{mod.desc}</div>
               </button>
-            ))}
+            );})}
           </div>
 
           {/* Lista animali recenti */}

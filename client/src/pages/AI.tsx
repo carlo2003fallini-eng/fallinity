@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Streamdown } from "streamdown";
-import { Send, Plus, Trash2, Bot, User, Zap, Brain, Eye, Shield, Lightbulb, MessageSquare } from "lucide-react";
+import { Send, Plus, Trash2, Bot, User, Zap, Brain, Eye, Shield, Lightbulb, MessageSquare, TrendingUp, Sprout, Tractor, Activity } from "lucide-react";
 import { toast } from "sonner";
 
 const GREEN = "oklch(0.65 0.18 142)";
@@ -31,6 +31,7 @@ export default function AI() {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const { data: kpi } = trpc.dashboard.kpi.useQuery();
   const { data: sessions = [], refetch: refetchSessions } = trpc.ai.sessions.useQuery();
   const { data: messages = [], refetch: refetchMessages } = trpc.ai.messages.useQuery(
     { sessionId: selectedSession! },
@@ -160,13 +161,33 @@ export default function AI() {
             <Bot size={16} style={{ color: GREEN }} />
           </div>
           <div>
-            <h2 className="text-sm font-semibold" style={{ color: "oklch(0.9 0.01 145)" }}>Assistente AI Fallinity</h2>
-            <p className="text-xs" style={{ color: "oklch(0.45 0.01 145)" }}>Explainable AI™ · Suggerimenti motivati e trasparenti</p>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold" style={{ color: "oklch(0.9 0.01 145)" }}>Fallinity Copilot</h2>
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ background: `${GOLD}20`, color: GOLD }}>Explainable AI™</span>
+            </div>
+            <p className="text-xs" style={{ color: "oklch(0.45 0.01 145)" }}>Suggerimenti motivati sui dati reali della tua azienda</p>
           </div>
           <div className="ml-auto flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: GREEN }} />
             <span className="text-xs" style={{ color: GREEN }}>Online</span>
           </div>
+        </div>
+
+        {/* Banner contesto live */}
+        <div className="flex items-center gap-4 px-5 py-2.5 border-b overflow-x-auto" style={{ borderColor: "oklch(0.16 0.007 145)", background: "oklch(0.09 0.005 145)" }}>
+          <span className="text-[10px] font-semibold uppercase tracking-wider shrink-0" style={{ color: "oklch(0.4 0.01 145)" }}>Contesto live</span>
+          {[
+            { icon: TrendingUp, label: "Utile", value: `€${Number(kpi?.utileNetto ?? 0).toLocaleString("it-IT")}`, color: (kpi?.utileNetto ?? 0) >= 0 ? GREEN : "oklch(0.6 0.2 25)" },
+            { icon: Sprout, label: "Campi", value: String(kpi?.campiAttivi ?? 0), color: GREEN },
+            { icon: Tractor, label: "Mezzi", value: String(kpi?.macchine ?? 0), color: GOLD },
+            { icon: Activity, label: "Sotto scorta", value: String(kpi?.prodottiSottoScorta ?? 0), color: (kpi?.prodottiSottoScorta ?? 0) > 0 ? GOLD : GREEN },
+          ].map(c => (
+            <div key={c.label} className="flex items-center gap-1.5 shrink-0">
+              <c.icon size={12} style={{ color: c.color }} />
+              <span className="text-[11px]" style={{ color: "oklch(0.5 0.01 145)" }}>{c.label}:</span>
+              <span className="text-[11px] font-semibold" style={{ color: "oklch(0.85 0.01 145)" }}>{c.value}</span>
+            </div>
+          ))}
         </div>
 
         {/* Messaggi */}

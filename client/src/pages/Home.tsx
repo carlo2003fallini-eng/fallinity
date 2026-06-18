@@ -9,6 +9,7 @@ import {
   Package,
   Sprout,
   TrendingUp,
+  TrendingDown,
   Tractor,
   Wallet,
   AlertTriangle,
@@ -17,6 +18,9 @@ import {
   Zap,
   Activity,
   RefreshCw,
+  PiggyBank,
+  Plus,
+  FileText,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import {
@@ -30,6 +34,7 @@ import {
 } from "recharts";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import { FAL_IMAGES } from "@/lib/assets";
 
 const GREEN = "oklch(0.65 0.18 142)";
 const GOLD = "oklch(0.72 0.15 75)";
@@ -43,16 +48,23 @@ const fmt = (n: number) =>
   new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
 
 const moduleCards = [
-  { icon: Building2,   label: "Azienda",    path: "/azienda",    desc: "Anagrafica",        color: GREEN },
-  { icon: Wallet,      label: "Finanza",    path: "/finanza",    desc: "Entrate & Uscite",  color: GOLD },
-  { icon: Sprout,      label: "Campi",      path: "/campi",      desc: "Appezzamenti",      color: GREEN },
-  { icon: Package,     label: "Magazzino",  path: "/magazzino",  desc: "Scorte",            color: GOLD },
-  { icon: Tractor,     label: "Officina",   path: "/officina",   desc: "Macchine",          color: RED },
-  { icon: CalendarDays,label: "Calendario", path: "/calendario", desc: "Pianificazione",    color: BLUE },
-  { icon: BarChart3,   label: "Report",     path: "/report",     desc: "Enterprise Metrics",color: GREEN },
-  { icon: Bot,         label: "AI",         path: "/ai",         desc: "Explainable AI",    color: GOLD },
-  { icon: Activity,    label: "Stalla",     path: "/stalla",     desc: "Gestione animali",  color: GREEN },
-  { icon: RefreshCw,   label: "Reintegrazione", path: "/reintegrazione", desc: "Fondi macchine", color: GOLD },
+  { icon: Building2,   label: "Azienda",    path: "/azienda",    color: GREEN },
+  { icon: Wallet,      label: "Finanza",    path: "/finanza",    color: GOLD },
+  { icon: Sprout,      label: "Campi",      path: "/campi",      color: GREEN },
+  { icon: Package,     label: "Magazzino",  path: "/magazzino",  color: GOLD },
+  { icon: Tractor,     label: "Officina",   path: "/officina",   color: RED },
+  { icon: Activity,    label: "Stalla",     path: "/stalla",     color: GREEN },
+  { icon: CalendarDays,label: "Calendario", path: "/calendario", color: BLUE },
+  { icon: BarChart3,   label: "Report",     path: "/report",     color: GREEN },
+  { icon: RefreshCw,   label: "Reintegr.",  path: "/reintegrazione", color: GOLD },
+  { icon: Bot,         label: "AI Copilot", path: "/ai",         color: GOLD },
+];
+
+const quickActions = [
+  { icon: Plus,    label: "Nuova Entrata",   path: "/finanza",  color: GREEN },
+  { icon: ArrowUpRight, label: "Nuova Uscita", path: "/finanza", color: RED },
+  { icon: Wrench,  label: "Intervento",      path: "/officina", color: GOLD },
+  { icon: FileText,label: "Report",          path: "/report",   color: BLUE },
 ];
 
 export default function Home() {
@@ -61,6 +73,7 @@ export default function Home() {
   const { data: kpi, isLoading: kpiLoading } = trpc.dashboard.kpi.useQuery();
   const { data: chartRaw } = trpc.dashboard.chartData.useQuery();
   const { data: recent } = trpc.dashboard.recentActivity.useQuery();
+  const { data: fondoTot } = trpc.reintegrazione.totale.useQuery();
 
   const chartData = Array.isArray(chartRaw)
     ? chartRaw.map((r: any) => ({
@@ -80,56 +93,118 @@ export default function Home() {
   const recentIv = (recent && "interventi" in recent ? (recent.interventi as any[]) : []).slice(0, 2);
   const allRecent = [...recentTx.map((t: any) => ({ ...t, _type: "tx" })), ...recentIv.map((i: any) => ({ ...i, _type: "iv" }))];
 
+  const utile = kpi?.utileNetto ?? 0;
+  const entrate = kpi?.entrate ?? 0;
+  const uscite = kpi?.uscite ?? 0;
+  const cashflow = entrate - uscite;
+  const margine = entrate > 0 ? (utile / entrate) * 100 : 0;
+  const fondo = fondoTot?.totale ?? 0;
+
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-6 animate-fade-in-up pb-4">
 
       {/* ── HEADER ─────────────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-end justify-between flex-wrap gap-3">
         <div>
-          <p className="text-xs font-semibold tracking-widest uppercase mb-1" style={{ color: GREEN }}>
-            FALLINITY FEOS
-          </p>
-          <h1 className="text-3xl font-bold" style={{ fontFamily: "var(--font-display)", color: "oklch(0.95 0.005 145)", letterSpacing: "-0.03em" }}>
+          <p className="fal-eyebrow mb-1.5">Fallinity FEOS · Dashboard</p>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{ fontFamily: "var(--font-display)", color: "oklch(0.96 0.005 145)", letterSpacing: "-0.03em" }}>
             {greeting}, {userName}
           </h1>
-          <p className="text-sm mt-1" style={{ color: "oklch(0.5 0.01 145)" }}>
+          <p className="text-sm mt-1 capitalize" style={{ color: "oklch(0.5 0.01 145)" }}>
             {now.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
           </p>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: "oklch(0.65 0.18 142 / 0.08)", border: "1px solid oklch(0.65 0.18 142 / 0.2)" }}>
-          <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: GREEN }} />
+          <div className="w-2 h-2 rounded-full fal-pulse" style={{ background: GREEN }} />
           <span className="text-xs font-medium" style={{ color: GREEN }}>Sistema operativo</span>
         </div>
       </div>
 
-      {/* ── KPI CARDS ──────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        {[
-          { label: "UTILE NETTO", value: kpi ? fmt(kpi.utileNetto) : "—", sub: "mese corrente", color: kpi && kpi.utileNetto >= 0 ? GREEN : RED, icon: TrendingUp, trend: kpi && kpi.utileNetto >= 0 ? "up" : "down" },
-          { label: "ENTRATE",     value: kpi ? fmt(kpi.entrate)   : "—", sub: "mese corrente", color: GREEN, icon: ArrowDownRight, trend: "up" },
-          { label: "USCITE",      value: kpi ? fmt(kpi.uscite)    : "—", sub: "mese corrente", color: RED,   icon: ArrowUpRight,   trend: "down" },
-          { label: "CAMPI ATTIVI",value: kpi ? String(kpi.campiAttivi) : "—", sub: "appezzamenti", color: GREEN, icon: Sprout, trend: "neutral" },
-          { label: "MACCHINE",    value: kpi ? String(kpi.macchine ?? 0) : "—", sub: `${kpi?.macchineFerme ?? 0} ferme`, color: kpi && (kpi.macchineFerme ?? 0) > 0 ? RED : GREEN, icon: Tractor, trend: "neutral" },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl p-5" style={{ background: "oklch(0.11 0.006 145)", border: `1px solid oklch(0.18 0.008 145)` }}>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold tracking-wider" style={{ color: "oklch(0.45 0.01 145)" }}>{k.label}</span>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${k.color}1a` }}>
-                <k.icon size={16} style={{ color: k.color }} />
+      {/* ── HERO UTILE NETTO + CARD ECONOMICHE ─────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        {/* HERO dominante */}
+        <div className="lg:col-span-2 fal-hero fal-img-overlay min-h-[280px] flex flex-col justify-between p-7"
+          style={{ backgroundImage: `url(${FAL_IMAGES.heroFarm})`, backgroundSize: "cover", backgroundPosition: "center" }}>
+          <div className="relative z-10 flex items-start justify-between">
+            <div>
+              <p className="fal-eyebrow" style={{ color: utile >= 0 ? GREEN : RED }}>Utile Netto · Mese corrente</p>
+              <div className="flex items-center gap-2 mt-1">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: utile >= 0 ? "oklch(0.65 0.18 142 / 0.2)" : "oklch(0.55 0.22 25 / 0.2)", backdropFilter: "blur(8px)" }}>
+                  {utile >= 0 ? <TrendingUp size={18} style={{ color: GREEN }} /> : <TrendingDown size={18} style={{ color: RED }} />}
+                </div>
               </div>
             </div>
+            <span className="text-xs font-medium px-2.5 py-1 rounded-full relative z-10" style={{ background: "oklch(0.09 0.006 145 / 0.6)", color: margine >= 0 ? GREEN : RED, backdropFilter: "blur(8px)", border: `1px solid ${margine >= 0 ? "oklch(0.65 0.18 142 / 0.3)" : "oklch(0.55 0.22 25 / 0.3)"}` }}>
+              Margine {margine.toFixed(1)}%
+            </span>
+          </div>
+          <div className="relative z-10">
             {kpiLoading ? (
-              <div className="h-9 w-28 rounded animate-pulse mb-2" style={{ background: "oklch(0.15 0.006 145)" }} />
+              <div className="h-16 w-72 rounded animate-pulse" style={{ background: "oklch(0.2 0.01 145 / 0.5)" }} />
             ) : (
-              <div className="text-3xl font-bold mb-1" style={{ fontFamily: "var(--font-display)", color: "oklch(0.95 0.005 145)", letterSpacing: "-0.04em" }}>
-                {k.value}
+              <div className="kpi-number-xl" style={{ color: utile >= 0 ? "oklch(0.97 0.005 145)" : RED }}>
+                {fmt(utile)}
               </div>
             )}
-            <div className="flex items-center gap-1">
-              {k.trend === "up"   && <ArrowUpRight   size={11} style={{ color: GREEN }} />}
-              {k.trend === "down" && <ArrowDownRight  size={11} style={{ color: RED }}   />}
-              <span className="text-xs" style={{ color: "oklch(0.45 0.01 145)" }}>{k.sub}</span>
+            <div className="flex items-center gap-4 mt-3 text-sm">
+              <span className="flex items-center gap-1.5" style={{ color: "oklch(0.8 0.01 145)" }}>
+                <ArrowDownRight size={14} style={{ color: GREEN }} /> {fmt(entrate)}
+              </span>
+              <span className="flex items-center gap-1.5" style={{ color: "oklch(0.8 0.01 145)" }}>
+                <ArrowUpRight size={14} style={{ color: RED }} /> {fmt(uscite)}
+              </span>
+              <button onClick={() => setLocation("/finanza")} className="ml-auto flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors" style={{ background: "oklch(0.65 0.18 142 / 0.15)", color: GREEN, backdropFilter: "blur(8px)" }}>
+                Apri Finanza <ChevronRight size={13} />
+              </button>
             </div>
+          </div>
+        </div>
+
+        {/* Colonna card economiche */}
+        <div className="flex flex-col gap-4">
+          {/* Cashflow */}
+          <div className="fal-card fal-card-hover fal-glow-blue flex-1 p-5 flex flex-col justify-between cursor-pointer" onClick={() => setLocation("/finanza")}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold tracking-wider" style={{ color: "oklch(0.5 0.01 145)" }}>CASHFLOW</span>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "oklch(0.6 0.15 220 / 0.12)" }}>
+                <Activity size={15} style={{ color: BLUE }} />
+              </div>
+            </div>
+            <div className="kpi-number mt-2" style={{ color: cashflow >= 0 ? "oklch(0.95 0.005 145)" : RED }}>{fmt(cashflow)}</div>
+            <p className="text-xs mt-1" style={{ color: "oklch(0.45 0.01 145)" }}>flusso di cassa netto</p>
+          </div>
+          {/* Fondo Reintegrazione */}
+          <div className="fal-card fal-card-hover fal-glow-gold flex-1 p-5 flex flex-col justify-between cursor-pointer" onClick={() => setLocation("/reintegrazione")}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold tracking-wider" style={{ color: "oklch(0.5 0.01 145)" }}>FONDO REINTEGRAZIONE</span>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "oklch(0.72 0.15 75 / 0.12)" }}>
+                <PiggyBank size={15} style={{ color: GOLD }} />
+              </div>
+            </div>
+            <div className="kpi-number mt-2" style={{ color: GOLD }}>{fmt(fondo)}</div>
+            <p className="text-xs mt-1" style={{ color: "oklch(0.45 0.01 145)" }}>{fondoTot?.fondiCount ?? 0} fondi macchine attivi</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── KPI OPERATIVI SECONDARI ────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "CAMPI ATTIVI", value: kpi ? String(kpi.campiAttivi) : "—", sub: "appezzamenti", color: GREEN, icon: Sprout, path: "/campi" },
+          { label: "MACCHINE",     value: kpi ? String(kpi.macchine ?? 0) : "—", sub: `${kpi?.macchineFerme ?? 0} ferme`, color: kpi && (kpi.macchineFerme ?? 0) > 0 ? RED : GREEN, icon: Tractor, path: "/officina" },
+          { label: "INTERVENTI",   value: kpi ? String(kpi.interventiAperti ?? 0) : "—", sub: "aperti", color: kpi && (kpi.interventiAperti ?? 0) > 0 ? GOLD : GREEN, icon: Wrench, path: "/officina" },
+          { label: "SOTTO SCORTA", value: kpi ? String(kpi.prodottiSottoScorta ?? 0) : "—", sub: "prodotti", color: kpi && (kpi.prodottiSottoScorta ?? 0) > 0 ? GOLD : GREEN, icon: Package, path: "/magazzino" },
+        ].map(k => (
+          <div key={k.label} className="fal-card fal-card-hover p-5 cursor-pointer" onClick={() => setLocation(k.path)}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold tracking-wider" style={{ color: "oklch(0.45 0.01 145)" }}>{k.label}</span>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${k.color}1a` }}>
+                <k.icon size={15} style={{ color: k.color }} />
+              </div>
+            </div>
+            <div className="kpi-number" style={{ color: "oklch(0.95 0.005 145)" }}>{k.value}</div>
+            <p className="text-xs mt-1" style={{ color: "oklch(0.45 0.01 145)" }}>{k.sub}</p>
           </div>
         ))}
       </div>
@@ -149,11 +224,24 @@ export default function Home() {
         </div>
       )}
 
+      {/* ── AZIONI RAPIDE ──────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {quickActions.map(a => (
+          <button key={a.label} onClick={() => setLocation(a.path)}
+            className="fal-card fal-card-hover flex items-center gap-3 p-4 text-left">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${a.color}1a` }}>
+              <a.icon size={18} style={{ color: a.color }} />
+            </div>
+            <span className="text-sm font-medium" style={{ color: "oklch(0.85 0.01 145)" }}>{a.label}</span>
+          </button>
+        ))}
+      </div>
+
       {/* ── CHART + ACTIVITY ───────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
         {/* Andamento economico */}
-        <div className="lg:col-span-2 rounded-xl p-5" style={{ background: "oklch(0.11 0.006 145)", border: "1px solid oklch(0.18 0.008 145)" }}>
+        <div className="lg:col-span-2 fal-card p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-semibold" style={{ color: "oklch(0.85 0.01 145)", fontFamily: "var(--font-display)" }}>Andamento Economico</h3>
@@ -168,7 +256,7 @@ export default function Home() {
             </div>
           </div>
           {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={220}>
               <AreaChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                 <defs>
                   {[["gEnt", GREEN_HEX, 0.3], ["gUsc", RED_HEX, 0.2], ["gUti", BLUE_HEX, 0.2]].map(([id, c, op]) => (
@@ -188,7 +276,7 @@ export default function Home() {
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[200px] flex items-center justify-center flex-col gap-2" style={{ color: "oklch(0.4 0.01 145)" }}>
+            <div className="h-[220px] flex items-center justify-center flex-col gap-2" style={{ color: "oklch(0.4 0.01 145)" }}>
               <BarChart3 size={32} className="opacity-20" />
               <p className="text-sm">Nessun dato — aggiungi transazioni in Finanza</p>
             </div>
@@ -196,7 +284,7 @@ export default function Home() {
         </div>
 
         {/* Attività recenti */}
-        <div className="rounded-xl p-5" style={{ background: "oklch(0.11 0.006 145)", border: "1px solid oklch(0.18 0.008 145)" }}>
+        <div className="fal-card p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold" style={{ color: "oklch(0.85 0.01 145)", fontFamily: "var(--font-display)" }}>Attività Recenti</h3>
           </div>
@@ -238,20 +326,17 @@ export default function Home() {
           <Zap size={13} style={{ color: GREEN }} />
           <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "oklch(0.45 0.01 145)" }}>Aree principali</span>
         </div>
-        <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
+        <div className="grid grid-cols-5 sm:grid-cols-10 gap-3">
           {moduleCards.map(mod => (
             <button
               key={mod.path}
               onClick={() => setLocation(mod.path)}
-              className="flex flex-col items-center gap-2 p-4 rounded-xl transition-all duration-150"
-              style={{ background: "oklch(0.11 0.006 145)", border: "1px solid oklch(0.18 0.008 145)" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.14 0.008 145)"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.11 0.006 145)"; }}
+              className="fal-card fal-card-hover flex flex-col items-center gap-2 p-4"
             >
               <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${mod.color}1a` }}>
                 <mod.icon size={18} style={{ color: mod.color }} />
               </div>
-              <span className="text-xs font-medium" style={{ color: "oklch(0.7 0.01 145)" }}>{mod.label}</span>
+              <span className="text-[11px] font-medium text-center leading-tight" style={{ color: "oklch(0.7 0.01 145)" }}>{mod.label}</span>
             </button>
           ))}
         </div>

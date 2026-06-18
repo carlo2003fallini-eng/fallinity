@@ -101,3 +101,48 @@
 - [x] Header superiore con logo/azienda e profilo utente
 - [x] Adattare il padding del contenuto per la bottom bar
 - [x] Verifica visiva responsive
+
+## Fase 12: Alpha 0.2 — Elevazione Qualità UX & Design System
+
+### Asset visivi
+- [ ] Immagine Hero agricola premium (campo/azienda al tramonto, tono dark)
+- [ ] Immagine Officina/mezzo agricolo (trattore, capannone)
+- [ ] Immagine Stalla/bovini per card Azienda
+- [ ] Immagine Dati Latte (mungitura/latte)
+- [ ] Immagine Dati Vitelli
+- [ ] Immagine Magazzino/silos
+- [ ] Immagine Campi/colture
+
+### Design System Fallinity
+- [ ] Consolidare token CSS: glow minimale, ombre soft, gerarchia card
+- [ ] Tipografia premium uniforme (display + body)
+- [ ] Microanimazioni fluide (hover card, entrate staggered)
+- [ ] Spaziature uniformi cross-modulo
+- [ ] Palette colori per modulo (verde Stalla, oro Finanza/Reint., blu Dati, ecc.)
+
+### Home (Dashboard principale)
+- [ ] Hero Card dominante Utile Netto (grande, glow verde)
+- [ ] Card economiche: Entrate, Uscite, Cashflow, Fondo Reintegrazione
+- [ ] Trasmettere senso di controllo immediato dell'azienda
+
+### Finanza (peso maggiore)
+- [ ] Dashboard economica con grafici prominenti
+- [ ] Alert finanziari e andamento economico
+- [ ] Collegamento diretto alla Reintegrazione
+
+### Azienda (card premium moduli)
+- [ ] Card premium: Stalla, Dati Latte, Dati Vitelli, Magazzino, Officina
+- [ ] KPI principali + immagini di sfondo + grafici integrati
+
+### Stalla (allineata ai mockup)
+- [ ] Card grandi 2x2 con glow colorato e illustrazioni semitrasparenti
+- [ ] Contatori ben evidenziati
+- [ ] Accesso moduli: Gruppi, Sincronizzazioni, Gravidanze, Zoppie, Trattamenti, Parti/Post-parto, Asciutta, Infermeria
+
+### Officina (premium)
+- [ ] Hero con immagine mezzo/officina
+- [ ] Sezioni: Mezzi, Manutenzioni, Ricambi, Interventi
+
+### AI Copilot
+- [ ] Trasformare AI da pagina separata a Copilot contestuale Fallinity
+- [ ] Suggerimenti azioni basati sul contesto aziendale
