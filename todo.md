@@ -85,12 +85,19 @@
 - [x] Sidebar: logo Fallinity in alto, voci con icone e label, sezione utente in basso, indicatore modulo attivo con bordo verde
 
 ## Fase 10: Nuovi Moduli da CORE-UX
-- [ ] Schema DB: tabelle stalla (animali, gruppi, sincronizzazioni, gravidanze, zoppie, trattamenti, parti, asciutta, infermeria)
-- [ ] Schema DB: tabelle reintegrazione (fondi_macchine, rate_versamento)
-- [ ] Login page: sfondo agricolo sfocato, logo grande, slogan, form premium, biometrico placeholder
-- [ ] Selezione azienda: card multi-tenant con foto/logo/ruolo/notifiche, badge ATTIVA
-- [ ] Modulo Stalla: dashboard con 8 card modulari (Gruppi/Sincronizzazioni/Gravidanze/Zoppie/Trattamenti/Parti/Asciutta/Infermeria)
-- [ ] Modulo Sincronizzazioni: lista vacche con numero/matricola/farmaco/ora/prossimo trattamento/pulsante esegui
-- [ ] Modulo Reintegrazione: hero totale fondi, versamento consigliato, lista fondi per macchina con progress bar e pulsante paga rata
-- [ ] Home Dashboard: Hero card Utile Netto grande (metà schermo), card Cashflow e Fondo Reintegrazione, azioni rapide (Entrata/Uscita/Intervento/Report), alert operativi feed
-- [ ] Sidebar: aggiungere voci Stalla e Reintegrazione
+- [x] Schema DB: tabelle stalla (animali, gruppi, sincronizzazioni, gravidanze, zoppie, trattamenti, parti, asciutta, infermeria)
+- [x] Schema DB: tabelle reintegrazione (fondi_macchine, rate_versamento)
+- [x] Login page: sfondo agricolo sfocato, logo grande, slogan, form premium, biometrico placeholder
+- [x] Selezione azienda: card multi-tenant con foto/logo/ruolo/notifiche, badge ATTIVA
+- [x] Modulo Stalla: dashboard con 8 card modulari (Gruppi/Sincronizzazioni/Gravidanze/Zoppie/Trattamenti/Parti/Asciutta/Infermeria)
+- [x] Modulo Sincronizzazioni: lista vacche con numero/matricola/farmaco/ora/prossimo trattamento/pulsante esegui
+- [x] Modulo Reintegrazione: hero totale fondi, versamento consigliato, lista fondi per macchina con progress bar e pulsante paga rata
+- [x] Home Dashboard: Hero card Utile Netto grande (metà schermo), card Cashflow e Fondo Reintegrazione, azioni rapide (Entrata/Uscita/Intervento/Report), alert operativi feed
+- [x] Sidebar: aggiungere voci Stalla e Reintegrazione
+
+## Fase 11: Navigazione Bottom Bar
+- [x] Convertire DashboardLayout da sidebar a bottom navigation bar
+- [x] Bottom bar fissa con icone moduli principali + menu "Altro" per moduli secondari
+- [x] Header superiore con logo/azienda e profilo utente
+- [x] Adattare il padding del contenuto per la bottom bar
+- [x] Verifica visiva responsive

@@ -8,35 +8,40 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { getLoginUrl } from "@/const";
-import { useIsMobile } from "@/hooks/useMobile";
 import {
   BarChart3,
   Bot,
   Building2,
   CalendarDays,
-  ChevronLeft,
-  ChevronRight,
   Home,
   LogOut,
   Package,
   Settings,
   Sprout,
-  TrendingUp,
   Tractor,
   Wallet,
   Bell,
   Activity,
   RefreshCw,
+  Grid3x3,
+  X,
 } from "lucide-react";
-import { CSSProperties, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
 
 const LOGO_URL = "/manus-storage/fallinity-logo_8c31d682.png";
 
-const menuItems = [
+const GREEN = "oklch(0.65 0.18 142)";
+const TEXT_DIM = "oklch(0.5 0.01 145)";
+const TEXT_BRIGHT = "oklch(0.9 0.01 145)";
+const PANEL = "oklch(0.09 0.006 145)";
+const BORDER = "oklch(0.18 0.008 145)";
+
+type MenuItem = { icon: typeof Home; label: string; path: string; desc: string };
+
+const allItems: MenuItem[] = [
   { icon: Home,        label: "Home",       path: "/",           desc: "Dashboard principale" },
   { icon: Building2,   label: "Azienda",    path: "/azienda",    desc: "Anagrafica e contatti" },
   { icon: Wallet,      label: "Finanza",    path: "/finanza",    desc: "Entrate, uscite, budget" },
@@ -50,22 +55,13 @@ const menuItems = [
   { icon: RefreshCw,   label: "Reintegrazione", path: "/reintegrazione", desc: "Fondi macchine" },
 ];
 
-const SIDEBAR_WIDTH_KEY = "feos-sidebar-width";
-const DEFAULT_WIDTH = 260;
-const MIN_WIDTH = 220;
-const MAX_WIDTH = 320;
+// Voci principali nella bottom bar (le altre vanno nel menu "Altro")
+const primaryPaths = ["/", "/finanza", "/campi", "/stalla"];
+const primaryItems = primaryPaths.map(p => allItems.find(i => i.path === p)!);
+const moreItems = allItems.filter(i => !primaryPaths.includes(i.path));
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [sidebarWidth, setSidebarWidth] = useState(() => {
-    const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
-    return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
-  });
-  const [collapsed, setCollapsed] = useState(false);
   const { loading, user } = useAuth();
-
-  useEffect(() => {
-    localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
-  }, [sidebarWidth]);
 
   if (loading) return <DashboardLayoutSkeleton />;
 
@@ -92,370 +88,197 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  return (
-    <FEOSLayout
-      collapsed={collapsed}
-      setCollapsed={setCollapsed}
-      sidebarWidth={sidebarWidth}
-      setSidebarWidth={setSidebarWidth}
-    >
-      {children}
-    </FEOSLayout>
-  );
+  return <FEOSLayout>{children}</FEOSLayout>;
 }
 
-function FEOSLayout({
-  children,
-  collapsed,
-  setCollapsed,
-  sidebarWidth,
-  setSidebarWidth,
-}: {
-  children: React.ReactNode;
-  collapsed: boolean;
-  setCollapsed: (v: boolean) => void;
-  sidebarWidth: number;
-  setSidebarWidth: (w: number) => void;
-}) {
+function FEOSLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
-  const [isResizing, setIsResizing] = useState(false);
-  const sidebarRef = useRef<HTMLDivElement>(null);
-  const isMobile = useIsMobile();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
-  const effectiveWidth = collapsed ? 68 : sidebarWidth;
+  const activeItem = allItems.find(item => item.path === location);
+  const isMoreActive = moreItems.some(i => i.path === location);
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing) return;
-      const sidebarLeft = sidebarRef.current?.getBoundingClientRect().left ?? 0;
-      const newWidth = e.clientX - sidebarLeft;
-      if (newWidth >= MIN_WIDTH && newWidth <= MAX_WIDTH) setSidebarWidth(newWidth);
-    };
-    const handleMouseUp = () => {
-      setIsResizing(false);
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-    };
-    if (isResizing) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-      document.body.style.cursor = "col-resize";
-      document.body.style.userSelect = "none";
-    }
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isResizing, setSidebarWidth]);
+  const navigate = (path: string) => {
+    setLocation(path);
+    setMoreOpen(false);
+  };
 
-  const activeItem = menuItems.find(item => item.path === location);
-
-  const SidebarContent = () => (
-    <div
-      className="flex flex-col h-full"
-      style={{ width: effectiveWidth }}
-    >
-      {/* Logo */}
-      <div
-        className="flex items-center gap-3 px-4 py-5 border-b"
-        style={{ borderColor: "oklch(0.18 0.008 145)" }}
+  return (
+    <div className="flex flex-col min-h-screen bg-background">
+      {/* Top header */}
+      <header
+        className="sticky top-0 z-40 flex items-center justify-between px-4 sm:px-6 h-14 border-b"
+        style={{
+          background: "oklch(0.09 0.006 145 / 0.95)",
+          borderColor: BORDER,
+          backdropFilter: "blur(12px)",
+        }}
       >
-        <img src={LOGO_URL} alt="Fallinity" className="w-8 h-8 object-contain shrink-0" />
-        {!collapsed && (
-          <div className="min-w-0">
+        <button onClick={() => navigate("/")} className="flex items-center gap-2.5">
+          <img src={LOGO_URL} alt="Fallinity" className="w-8 h-8 object-contain" />
+          <div className="text-left">
             <div
-              className="font-bold text-base tracking-tight"
-              style={{ fontFamily: "var(--font-display)", color: "oklch(0.95 0.005 145)" }}
+              className="font-bold text-base tracking-tight leading-none"
+              style={{ fontFamily: "var(--font-display)", color: TEXT_BRIGHT }}
             >
               FALLINITY
             </div>
-            <div className="text-xs" style={{ color: "oklch(0.65 0.18 142)" }}>
-              Enterprise OS
+            <div className="text-[10px] leading-tight" style={{ color: GREEN }}>
+              {activeItem?.label ?? "Enterprise OS"}
             </div>
           </div>
-        )}
-      </div>
+        </button>
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-0.5">
-        {menuItems.map((item, i) => {
+        <div className="flex items-center gap-2">
+          <button
+            className="relative p-2 rounded-lg transition-colors"
+            style={{ color: TEXT_DIM }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.14 0.008 145)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+          >
+            <Bell size={18} />
+            <span
+              className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
+              style={{ background: GREEN, boxShadow: `0 0 4px ${GREEN}` }}
+            />
+          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 transition-colors"
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.14 0.008 145)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+              >
+                <Avatar className="h-7 w-7 border" style={{ borderColor: "oklch(0.65 0.18 142 / 0.4)" }}>
+                  <AvatarFallback
+                    className="text-xs font-semibold"
+                    style={{ background: "oklch(0.65 0.18 142 / 0.15)", color: GREEN }}
+                  >
+                    {user?.name?.charAt(0).toUpperCase() ?? "U"}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <div className="px-3 py-2">
+                <p className="text-sm font-medium">{user?.name}</p>
+                <p className="text-xs text-muted-foreground">{user?.email}</p>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="cursor-pointer">
+                <Settings className="mr-2 h-4 w-4" />
+                Impostazioni
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={logout}
+                className="cursor-pointer text-destructive focus:text-destructive"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Esci
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </header>
+
+      {/* Main content (con padding inferiore per la bottom bar) */}
+      <main className="flex-1 p-4 sm:p-6 pb-24">{children}</main>
+
+      {/* "Altro" drawer overlay */}
+      {moreOpen && (
+        <div className="fixed inset-0 z-50">
+          <div
+            className="absolute inset-0 bg-black/60 animate-in fade-in duration-200"
+            onClick={() => setMoreOpen(false)}
+          />
+          <div
+            className="absolute bottom-0 left-0 right-0 rounded-t-2xl border-t p-4 pb-24 animate-in slide-in-from-bottom duration-300"
+            style={{ background: PANEL, borderColor: BORDER }}
+          >
+            <div className="flex items-center justify-between mb-4 px-1">
+              <h3 className="font-semibold text-sm" style={{ color: TEXT_BRIGHT, fontFamily: "var(--font-display)" }}>
+                Tutti i moduli
+              </h3>
+              <button onClick={() => setMoreOpen(false)} className="p-1 rounded-md" style={{ color: TEXT_DIM }}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-w-2xl mx-auto">
+              {moreItems.map(item => {
+                const isActive = location === item.path;
+                return (
+                  <button
+                    key={item.path}
+                    onClick={() => navigate(item.path)}
+                    className="flex flex-col items-center gap-2 p-3 rounded-xl transition-all duration-150"
+                    style={{
+                      background: isActive ? "oklch(0.65 0.18 142 / 0.12)" : "oklch(0.12 0.008 145)",
+                      border: isActive ? `1px solid ${GREEN}` : "1px solid transparent",
+                    }}
+                  >
+                    <item.icon size={22} style={{ color: isActive ? GREEN : TEXT_DIM }} />
+                    <span
+                      className="text-xs font-medium text-center leading-tight"
+                      style={{ color: isActive ? GREEN : "oklch(0.7 0.01 145)" }}
+                    >
+                      {item.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom navigation bar */}
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-40 flex items-stretch justify-around h-16 border-t"
+        style={{
+          background: "oklch(0.08 0.006 145 / 0.97)",
+          borderColor: BORDER,
+          backdropFilter: "blur(16px)",
+          paddingBottom: "env(safe-area-inset-bottom)",
+        }}
+      >
+        {primaryItems.map(item => {
           const isActive = location === item.path;
           return (
             <button
               key={item.path}
-              onClick={() => {
-                setLocation(item.path);
-                if (isMobile) setMobileOpen(false);
-              }}
-              title={collapsed ? item.label : undefined}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group"
-              style={{
-                animationDelay: `${i * 30}ms`,
-                background: isActive ? "oklch(0.65 0.18 142 / 0.12)" : "transparent",
-                color: isActive ? "oklch(0.65 0.18 142)" : "oklch(0.55 0.01 145)",
-                borderLeft: isActive ? "2px solid oklch(0.65 0.18 142)" : "2px solid transparent",
-              }}
-              onMouseEnter={e => {
-                if (!isActive) {
-                  (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.14 0.008 145)";
-                  (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.85 0.01 145)";
-                }
-              }}
-              onMouseLeave={e => {
-                if (!isActive) {
-                  (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                  (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.55 0.01 145)";
-                }
-              }}
+              onClick={() => navigate(item.path)}
+              className="flex-1 flex flex-col items-center justify-center gap-1 transition-all duration-150 relative"
+              style={{ color: isActive ? GREEN : TEXT_DIM }}
             >
-              <item.icon
-                className="shrink-0"
-                size={18}
-                style={{ color: isActive ? "oklch(0.65 0.18 142)" : "inherit" }}
-              />
-              {!collapsed && (
-                <div className="flex-1 min-w-0 text-left">
-                  <div className="truncate">{item.label}</div>
-                  {isActive && (
-                    <div className="text-xs truncate" style={{ color: "oklch(0.65 0.18 142 / 0.7)" }}>
-                      {item.desc}
-                    </div>
-                  )}
-                </div>
+              {isActive && (
+                <span
+                  className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-0.5 rounded-full"
+                  style={{ background: GREEN, boxShadow: `0 0 6px ${GREEN}` }}
+                />
               )}
-              {!collapsed && item.label === "AI" && (
-                <Badge
-                  className="text-[10px] px-1.5 py-0 h-4 shrink-0"
-                  style={{ background: "oklch(0.65 0.18 142 / 0.15)", color: "oklch(0.65 0.18 142)", border: "none" }}
-                >
-                  AI
-                </Badge>
-              )}
+              <item.icon size={20} style={{ transform: isActive ? "scale(1.05)" : "scale(1)" }} />
+              <span className="text-[10px] font-medium">{item.label}</span>
             </button>
           );
         })}
-      </nav>
 
-      {/* Footer utente */}
-      <div
-        className="p-3 border-t"
-        style={{ borderColor: "oklch(0.18 0.008 145)" }}
-      >
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              className="flex items-center gap-3 w-full rounded-lg px-2 py-2 transition-colors text-left"
-              style={{ background: "transparent" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.14 0.008 145)"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-            >
-              <Avatar className="h-8 w-8 shrink-0 border" style={{ borderColor: "oklch(0.65 0.18 142 / 0.4)" }}>
-                <AvatarFallback
-                  className="text-xs font-semibold"
-                  style={{ background: "oklch(0.65 0.18 142 / 0.15)", color: "oklch(0.65 0.18 142)" }}
-                >
-                  {user?.name?.charAt(0).toUpperCase() ?? "U"}
-                </AvatarFallback>
-              </Avatar>
-              {!collapsed && (
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate" style={{ color: "oklch(0.85 0.01 145)" }}>
-                    {user?.name ?? "Utente"}
-                  </p>
-                  <p className="text-xs truncate" style={{ color: "oklch(0.45 0.01 145)" }}>
-                    {user?.email ?? ""}
-                  </p>
-                </div>
-              )}
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52">
-            <div className="px-3 py-2">
-              <p className="text-sm font-medium">{user?.name}</p>
-              <p className="text-xs text-muted-foreground">{user?.email}</p>
-            </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer">
-              <Settings className="mr-2 h-4 w-4" />
-              Impostazioni
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={logout}
-              className="cursor-pointer text-destructive focus:text-destructive"
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Esci
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </div>
-  );
-
-  if (isMobile) {
-    return (
-      <div className="flex flex-col min-h-screen bg-background">
-        {/* Mobile top bar */}
-        <div
-          className="flex items-center justify-between px-4 h-14 border-b sticky top-0 z-50"
-          style={{ background: "oklch(0.09 0.006 145)", borderColor: "oklch(0.18 0.008 145)" }}
-        >
-          <button onClick={() => setMobileOpen(true)} className="p-1">
-            <div className="flex flex-col gap-1.5">
-              <span className="block w-5 h-0.5 bg-foreground rounded" />
-              <span className="block w-5 h-0.5 bg-foreground rounded" />
-              <span className="block w-5 h-0.5 bg-foreground rounded" />
-            </div>
-          </button>
-          <div className="flex items-center gap-2">
-            <img src={LOGO_URL} alt="Fallinity" className="w-6 h-6 object-contain" />
-            <span className="font-bold text-sm" style={{ fontFamily: "var(--font-display)" }}>
-              {activeItem?.label ?? "FALLINITY"}
-            </span>
-          </div>
-          <button className="p-1 relative">
-            <Bell size={20} style={{ color: "oklch(0.55 0.01 145)" }} />
-          </button>
-        </div>
-
-        {/* Mobile drawer overlay */}
-        {mobileOpen && (
-          <div className="fixed inset-0 z-50 flex">
-            <div
-              className="absolute inset-0 bg-black/60"
-              onClick={() => setMobileOpen(false)}
-            />
-            <div
-              className="relative z-10 h-full overflow-y-auto"
-              style={{ background: "oklch(0.09 0.006 145)", borderRight: "1px solid oklch(0.18 0.008 145)" }}
-            >
-              <SidebarContent />
-            </div>
-          </div>
-        )}
-
-        <main className="flex-1 overflow-auto p-4">{children}</main>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex min-h-screen bg-background">
-      {/* Sidebar */}
-      <div
-        ref={sidebarRef}
-        className="relative flex-shrink-0 h-screen sticky top-0 overflow-hidden transition-all duration-200"
-        style={{
-          width: effectiveWidth,
-          background: "oklch(0.09 0.006 145)",
-          borderRight: "1px solid oklch(0.18 0.008 145)",
-        }}
-      >
-        <SidebarContent />
-
-        {/* Collapse toggle */}
+        {/* Bottone "Altro" */}
         <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-20 z-10 w-6 h-6 rounded-full flex items-center justify-center transition-all"
-          style={{
-            background: "oklch(0.15 0.008 145)",
-            border: "1px solid oklch(0.22 0.01 145)",
-            color: "oklch(0.55 0.01 145)",
-          }}
+          onClick={() => setMoreOpen(true)}
+          className="flex-1 flex flex-col items-center justify-center gap-1 transition-all duration-150 relative"
+          style={{ color: isMoreActive ? GREEN : TEXT_DIM }}
         >
-          {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
+          {isMoreActive && (
+            <span
+              className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-0.5 rounded-full"
+              style={{ background: GREEN, boxShadow: `0 0 6px ${GREEN}` }}
+            />
+          )}
+          <Grid3x3 size={20} />
+          <span className="text-[10px] font-medium">Altro</span>
         </button>
-
-        {/* Resize handle */}
-        {!collapsed && (
-          <div
-            className="absolute top-0 right-0 w-1 h-full cursor-col-resize transition-colors hover:bg-primary/30"
-            onMouseDown={() => setIsResizing(true)}
-          />
-        )}
-      </div>
-
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-auto">
-        {/* Top bar */}
-        <div
-          className="sticky top-0 z-40 flex items-center justify-between px-6 h-14 border-b"
-          style={{
-            background: "oklch(0.09 0.006 145 / 0.95)",
-            borderColor: "oklch(0.18 0.008 145)",
-            backdropFilter: "blur(12px)",
-          }}
-        >
-          <div className="flex items-center gap-3">
-            <div>
-              <h2
-                className="text-sm font-semibold"
-                style={{ fontFamily: "var(--font-display)", color: "oklch(0.85 0.01 145)" }}
-              >
-                {activeItem?.label ?? "Fallinity FEOS"}
-              </h2>
-              <p className="text-xs" style={{ color: "oklch(0.45 0.01 145)" }}>
-                {activeItem?.desc ?? "Enterprise Operating System"}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              className="relative p-2 rounded-lg transition-colors"
-              style={{ color: "oklch(0.55 0.01 145)" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.14 0.008 145)"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-            >
-              <Bell size={18} />
-              <span
-                className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
-                style={{ background: "oklch(0.65 0.18 142)", boxShadow: "0 0 4px oklch(0.65 0.18 142 / 0.8)" }}
-              />
-            </button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors"
-                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.14 0.008 145)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-                >
-                  <Avatar className="h-7 w-7 border" style={{ borderColor: "oklch(0.65 0.18 142 / 0.4)" }}>
-                    <AvatarFallback
-                      className="text-xs font-semibold"
-                      style={{ background: "oklch(0.65 0.18 142 / 0.15)", color: "oklch(0.65 0.18 142)" }}
-                    >
-                      {user?.name?.charAt(0).toUpperCase() ?? "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                <div className="px-3 py-2">
-                  <p className="text-sm font-medium">{user?.name}</p>
-                  <p className="text-xs text-muted-foreground">{user?.email}</p>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Impostazioni
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={logout}
-                  className="cursor-pointer text-destructive focus:text-destructive"
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Esci
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-
-        <main className="flex-1 p-6">{children}</main>
-      </div>
+      </nav>
     </div>
   );
 }
