@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   Tractor, Plus, Trash2, Wrench, AlertTriangle,
-  CheckCircle2, Clock, XCircle, ChevronRight,
+  CheckCircle2, Clock, XCircle, ChevronRight, Package,
 } from "lucide-react";
 import { toast } from "sonner";
 import { FAL_IMAGES } from "@/lib/assets";
@@ -277,6 +277,55 @@ export default function Officina() {
           )}
         </div>
       </div>
+
+      {/* ── RICAMBI & COSTI ────────────────────────────────────────────────── */}
+      {(() => {
+        const totRicambi = tuttiList.reduce((s, i) => s + Number(i.costoRicambi ?? 0), 0);
+        const totManodopera = tuttiList.reduce((s, i) => s + Number(i.costoManodopera ?? 0), 0);
+        const perTipo: Record<string, number> = {};
+        tuttiList.forEach(i => { perTipo[i.tipo] = (perTipo[i.tipo] ?? 0) + Number(i.costoRicambi ?? 0); });
+        const tipiOrdinati = Object.entries(perTipo).sort((a, b) => b[1] - a[1]);
+        const maxTipo = Math.max(1, ...Object.values(perTipo));
+        return (
+          <div className="rounded-xl overflow-hidden" style={{ background: "oklch(0.11 0.006 145)", border: "1px solid oklch(0.18 0.008 145)" }}>
+            <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: "oklch(0.18 0.008 145)", background: "oklch(0.10 0.005 145)" }}>
+              <Package size={13} style={{ color: BLUE }} />
+              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: BLUE }}>Ricambi & Costi</span>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 p-5">
+              <div className="rounded-xl p-4" style={{ background: "oklch(0.09 0.005 145)", border: "1px solid oklch(0.16 0.007 145)" }}>
+                <p className="text-xs font-semibold tracking-wider mb-2" style={{ color: "oklch(0.45 0.01 145)" }}>COSTO RICAMBI TOTALE</p>
+                <p className="text-2xl font-bold" style={{ fontFamily: "var(--font-display)", color: GOLD }}>€{totRicambi.toLocaleString("it-IT")}</p>
+                <p className="text-xs mt-1" style={{ color: "oklch(0.45 0.01 145)" }}>su {tuttiList.length} interventi</p>
+              </div>
+              <div className="rounded-xl p-4" style={{ background: "oklch(0.09 0.005 145)", border: "1px solid oklch(0.16 0.007 145)" }}>
+                <p className="text-xs font-semibold tracking-wider mb-2" style={{ color: "oklch(0.45 0.01 145)" }}>COSTO MANODOPERA</p>
+                <p className="text-2xl font-bold" style={{ fontFamily: "var(--font-display)", color: GREEN }}>€{totManodopera.toLocaleString("it-IT")}</p>
+                <p className="text-xs mt-1" style={{ color: "oklch(0.45 0.01 145)" }}>totale interventi</p>
+              </div>
+              <div className="rounded-xl p-4" style={{ background: "oklch(0.09 0.005 145)", border: "1px solid oklch(0.16 0.007 145)" }}>
+                <p className="text-xs font-semibold tracking-wider mb-2" style={{ color: "oklch(0.45 0.01 145)" }}>SPESA OFFICINA TOTALE</p>
+                <p className="text-2xl font-bold" style={{ fontFamily: "var(--font-display)", color: "oklch(0.95 0.005 145)" }}>€{(totRicambi + totManodopera).toLocaleString("it-IT")}</p>
+                <p className="text-xs mt-1" style={{ color: "oklch(0.45 0.01 145)" }}>ricambi + manodopera</p>
+              </div>
+            </div>
+            {tipiOrdinati.length > 0 && (
+              <div className="px-5 pb-5 space-y-2.5">
+                <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: "oklch(0.45 0.01 145)" }}>Ricambi per tipo di intervento</p>
+                {tipiOrdinati.map(([tipo, costo]) => (
+                  <div key={tipo} className="flex items-center gap-3">
+                    <span className="text-xs capitalize w-28 shrink-0" style={{ color: "oklch(0.6 0.01 145)" }}>{tipo}</span>
+                    <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "oklch(0.16 0.007 145)" }}>
+                      <div className="h-full rounded-full transition-all" style={{ width: `${(costo / maxTipo) * 100}%`, background: BLUE }} />
+                    </div>
+                    <span className="text-xs font-medium w-20 text-right shrink-0" style={{ color: GOLD }}>€{costo.toLocaleString("it-IT")}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ── SHEET: NUOVA MACCHINA ───────────────────────────────────────────── */}
       <Sheet open={openMacchina} onOpenChange={setOpenMacchina}>

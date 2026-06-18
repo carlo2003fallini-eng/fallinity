@@ -105,44 +105,44 @@
 ## Fase 12: Alpha 0.2 — Elevazione Qualità UX & Design System
 
 ### Asset visivi
-- [ ] Immagine Hero agricola premium (campo/azienda al tramonto, tono dark)
-- [ ] Immagine Officina/mezzo agricolo (trattore, capannone)
-- [ ] Immagine Stalla/bovini per card Azienda
-- [ ] Immagine Dati Latte (mungitura/latte)
-- [ ] Immagine Dati Vitelli
-- [ ] Immagine Magazzino/silos
-- [ ] Immagine Campi/colture
+- [x] Immagine Hero agricola premium (campo/azienda al tramonto, tono dark)
+- [x] Immagine Officina/mezzo agricolo (trattore, capannone)
+- [x] Immagine Stalla/bovini per card Azienda
+- [x] Immagine Dati Latte (mungitura/latte)
+- [x] Immagine Dati Vitelli
+- [x] Immagine Magazzino/silos
+- [x] Immagine Campi/colture
 
 ### Design System Fallinity
-- [ ] Consolidare token CSS: glow minimale, ombre soft, gerarchia card
-- [ ] Tipografia premium uniforme (display + body)
-- [ ] Microanimazioni fluide (hover card, entrate staggered)
-- [ ] Spaziature uniformi cross-modulo
-- [ ] Palette colori per modulo (verde Stalla, oro Finanza/Reint., blu Dati, ecc.)
+- [x] Consolidare token CSS: glow minimale, ombre soft, gerarchia card
+- [x] Tipografia premium uniforme (display + body)
+- [x] Microanimazioni fluide (hover card, entrate staggered)
+- [x] Spaziature uniformi cross-modulo
+- [x] Palette colori per modulo (verde Stalla, oro Finanza/Reint., blu Dati, ecc.)
 
 ### Home (Dashboard principale)
-- [ ] Hero Card dominante Utile Netto (grande, glow verde)
-- [ ] Card economiche: Entrate, Uscite, Cashflow, Fondo Reintegrazione
-- [ ] Trasmettere senso di controllo immediato dell'azienda
+- [x] Hero Card dominante Utile Netto (grande, glow verde)
+- [x] Card economiche: Entrate, Uscite, Cashflow, Fondo Reintegrazione
+- [x] Trasmettere senso di controllo immediato dell'azienda
 
 ### Finanza (peso maggiore)
-- [ ] Dashboard economica con grafici prominenti
-- [ ] Alert finanziari e andamento economico
-- [ ] Collegamento diretto alla Reintegrazione
+- [x] Dashboard economica con grafici prominenti
+- [x] Alert finanziari e andamento economico
+- [x] Collegamento diretto alla Reintegrazione
 
 ### Azienda (card premium moduli)
-- [ ] Card premium: Stalla, Dati Latte, Dati Vitelli, Magazzino, Officina
-- [ ] KPI principali + immagini di sfondo + grafici integrati
+- [x] Card premium: Stalla, Dati Latte, Dati Vitelli, Magazzino, Officina
+- [x] KPI principali + immagini di sfondo + grafici integrati
 
 ### Stalla (allineata ai mockup)
-- [ ] Card grandi 2x2 con glow colorato e illustrazioni semitrasparenti
-- [ ] Contatori ben evidenziati
-- [ ] Accesso moduli: Gruppi, Sincronizzazioni, Gravidanze, Zoppie, Trattamenti, Parti/Post-parto, Asciutta, Infermeria
+- [x] Card grandi 2x2 con glow colorato e illustrazioni semitrasparenti
+- [x] Contatori ben evidenziati
+- [x] Accesso moduli: Gruppi, Sincronizzazioni, Gravidanze, Zoppie, Trattamenti, Parti/Post-parto, Asciutta, Infermeria
 
 ### Officina (premium)
-- [ ] Hero con immagine mezzo/officina
-- [ ] Sezioni: Mezzi, Manutenzioni, Ricambi, Interventi
+- [x] Hero con immagine mezzo/officina
+- [x] Sezioni: Mezzi, Manutenzioni, Ricambi (riepilogo costi per tipo), Interventi
 
 ### AI Copilot
-- [ ] Trasformare AI da pagina separata a Copilot contestuale Fallinity
-- [ ] Suggerimenti azioni basati sul contesto aziendale
+- [x] Trasformare AI da pagina separata a Copilot contestuale Fallinity
+- [x] Suggerimenti azioni basati sul contesto aziendale
