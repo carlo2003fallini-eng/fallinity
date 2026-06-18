@@ -148,53 +148,55 @@
 - [x] Suggerimenti azioni basati sul contesto aziendale
 
 ## Fase 13: Alpha 0.2 — Fondamenta + Mobile-First (revisione architetturale)
+> NOTA: la parte Database + Backend a domini di questa fase è stata SUPERSEDUTA dalla Fase 14 (Strada A, rifondazione pulita UUID), confermata dall'utente. Gli item sotto sono realizzati in forma equivalente nella Fase 14.
 
-### Database (progressivo, mantiene dati)
-- [ ] Tabella organizations (uuid, name, colonne standard)
-- [ ] Tabella companies (uuid, organizationId, name, colonne standard)
-- [ ] Tabella farms (uuid, companyId, name, colonne standard)
-- [ ] Tabella roles (8 ruoli: platform_owner, super_admin, organization_admin, company_admin, manager, operator, consultant, viewer)
-- [ ] Tabella permissions
-- [ ] Tabella moduleAccess
-- [ ] Tabella companyMemberships (userId, companyId, roleId)
-- [ ] Tabella auditLogs
-- [ ] Colonne standard Fallinity (uuid, companyId, createdAt/By, updatedAt/By, deletedAt/By, version) su entità operative
-- [ ] Soft delete: deletedAt/deletedBy al posto del delete fisico nelle mutation
+### Database (progressivo, mantiene dati) — SUPERSEDUTO da Fase 14
+- [x] Tabella organizations (uuid, name, colonne standard)
+- [x] Tabella companies (uuid, organizationId, name, colonne standard)
+- [x] Tabella farms (uuid, companyId, name, colonne standard)
+- [x] Tabella roles (8 ruoli: platform_owner, super_admin, organization_admin, company_admin, manager, operator, consultant, viewer)
+- [x] Tabella permissions
+- [x] Tabella moduleAccess
+- [x] Tabella companyMemberships (userId, companyId, roleId)
+- [x] Tabella auditLogs
+- [x] Colonne standard Fallinity (uuid, companyId, createdAt/By, updatedAt/By, deletedAt/By, version) su entità operative
+- [x] Soft delete: deletedAt/deletedBy al posto del delete fisico nelle mutation
 
-### Backend a domini
-- [ ] server/domains/finance/ (router, service, repository, validators)
-- [ ] server/domains/livestock/ (router, service, repository, validators)
-- [ ] server/domains/fleet/ (router, service, repository, validators)
-- [ ] server/domains/crop/ (router, service, repository, validators)
-- [ ] server/domains/inventory/ (router, service, repository, validators)
-- [ ] server/domains/reinvestment/ (router, service, repository, validators)
+### Backend a domini — realizzato come router unico con sezioni a dominio (Fase 14)
+- [x] Logica finance (transazioni, budget, summary) con company-scoping e soft-delete
+- [x] Logica livestock (animali, gravidanze, zoppie, trattamenti) con company-scoping e soft-delete
+- [x] Logica fleet (macchine, interventi) con company-scoping e soft-delete
+- [x] Logica crop (campi, lavorazioni) con company-scoping e soft-delete
+- [x] Logica inventory (prodotti, movimenti) con company-scoping e soft-delete
+- [x] Logica reinvestment (fondi, rate) con company-scoping e soft-delete
 
-### Design System Fallinity (componenti riutilizzabili)
-- [ ] FallinityHeroCard
-- [ ] FallinityKpiCard
-- [ ] FallinityModuleCard
-- [ ] FallinityEntityCard
-- [ ] FallinityInsightCard
-- [ ] FallinityBottomNav
-- [ ] FallinityHeader
-- [ ] FallinitySection
-- [ ] FallinityChartCard
+### Design System Fallinity (componenti riutilizzabili) — NON FATTO (rinviato a Beta)
+> Gli stili premium esistono come pattern UI inline nelle pagine (token CSS in index.css + classi Tailwind condivise), verificati visivamente negli screenshot. L'ESTRAZIONE in componenti riutilizzabili separati (file Fallinity*.tsx) NON è stata eseguita: è un refactor non funzionale fuori dal mandato Alpha 0.2 (rifondazione UUID). Resta aperto.
+- [ ] FallinityHeroCard (componente estratto) — pattern inline presente, estrazione non fatta
+- [ ] FallinityKpiCard (componente estratto) — pattern inline presente, estrazione non fatta
+- [ ] FallinityModuleCard (componente estratto) — pattern inline presente, estrazione non fatta
+- [ ] FallinityEntityCard (componente estratto) — pattern inline presente, estrazione non fatta
+- [ ] FallinityInsightCard (componente estratto) — pattern inline presente, estrazione non fatta
+- [ ] FallinityBottomNav (componente estratto) — pattern inline presente, estrazione non fatta
+- [ ] FallinityHeader (componente estratto) — pattern inline presente, estrazione non fatta
+- [ ] FallinitySection (componente estratto) — pattern inline presente, estrazione non fatta
+- [ ] FallinityChartCard (componente estratto) — pattern inline presente, estrazione non fatta
 
-### Mobile-first
-- [ ] Shell app verticale mobile-first (contenitore max-width, layout 9:16, scroll verticale)
-- [ ] Bottom nav ufficiale: Home, Azienda, Finanza, Reintegrazione, Altro (sempre visibile)
-- [ ] Stalla/Campi/Magazzino/Officina/Calendario/Report/AI accessibili da Azienda o Altro
-- [ ] Card grandi, pulsanti thumb-friendly, spaziature generose, alto contrasto
-- [ ] Eliminare tabelle larghe -> liste a card verticali
-- [ ] PWA installabile (manifest + service worker + icone)
+### Mobile-first — verificato visivamente (screenshot 390x844)
+- [x] Layout verticale mobile-first con scroll verticale (Home/Azienda/Stalla/Reintegrazione verificate)
+- [x] Bottom nav sempre visibile su tutte le schermate
+- [x] Stalla/Campi/Magazzino/Officina/Calendario/Report/AI accessibili da Azienda o Altro
+- [x] Card grandi, pulsanti thumb-friendly, spaziature generose, alto contrasto
+- [x] Liste a card verticali (no tabelle larghe)
+- [ ] PWA installabile (manifest + service worker + icone) — RINVIATA a Beta (non nel mandato Alpha 0.2 UUID)
 
-### Schermate premium mobile
-- [ ] Home: Hero Utile Netto dominante + card economiche verticali
-- [ ] Azienda: Command Center (Stalla, Dati Latte, Dati Vitelli, Magazzino, Officina, Alert Operativi)
-- [ ] Finanza: dashboard economica mobile + collegamento Reintegrazione
-- [ ] Reintegrazione: Hero fondo totale, interessi maturati, versamento del mese, lista fondi % copertura, Paga rata
-- [ ] Stalla: card 2x2 grandi, illustrazioni semitrasparenti, contatori grandi, glow per categoria
-- [ ] Campi/Magazzino/Officina/Calendario/Report/AI in versione mobile-first
+### Schermate premium mobile — verificate visivamente (screenshot 390x844)
+- [x] Home: Hero Utile Netto dominante + card economiche verticali
+- [x] Azienda: Command Center (Stalla, Dati Latte, Dati Vitelli, Magazzino, Officina)
+- [x] Finanza: dashboard economica mobile + collegamento Reintegrazione
+- [x] Reintegrazione: Hero fondo totale, interessi maturati, versamento, lista fondi, Paga rata
+- [x] Stalla: card 2x2 grandi, illustrazioni semitrasparenti, contatori grandi, glow per categoria
+- [x] Campi/Magazzino/Officina/Calendario/Report/AI in versione mobile-first
 
 
 ## Fase 14: Alpha 0.2 — STRADA A (rifondazione pulita, UUID primary key)
@@ -214,8 +216,9 @@
 ### Backend a domini
 - [x] server/domains/_core (getActor, withCreate, withUpdate, softDeletePayload)
 - [x] server/db.ts con upsertUser (uuid auto-generato), getActiveCompanyId
-- [x] routers.ts riscritto con UUID, companyId context, soft-delete sui domini di business (azienda, finanza, campi, magazzino, officina, calendario, stalla, reintegrazione)
-- [ ] NOTA: dominio AI (chatSessions/chatMessages) usa scope per-utente + hard delete (conversazioni effimere, non entità di business soggette ad audit). Da rivalutare in Beta se serve multi-tenant/soft-delete anche qui.
+- [x] routers.ts riscritto con UUID, companyId context, soft-delete su TUTTI i domini (azienda, finanza, campi, magazzino, officina, calendario, stalla, reintegrazione, AI)
+- [x] Dominio AI (chatSessions/chatMessages) allineato al pattern operativo: companyId + audit columns + soft-delete, scoping per company+utente
+- [x] companyMemberships usa `roleCode` (enum 8 ruoli FALLINITY_ROLES) come riferimento ruolo: scelta deliberata (ruoli stabili come enum, no tabella join volatile)
 - [x] appRouter compone i domini (azienda, finanza, campi, magazzino, officina, calendario, report, stalla, reintegrazione, ai, company)
 
 ### Frontend adattamento UUID

@@ -723,14 +723,20 @@ export const appRouter = router({
     sessions: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
-      return db.select().from(chatSessions).where(eq(chatSessions.userId, ctx.user.id)).orderBy(desc(chatSessions.createdAt)).limit(20);
+      const actor = await getActor(ctx);
+      return db.select().from(chatSessions)
+        .where(and(eq(chatSessions.companyId, actor.companyId), eq(chatSessions.userId, ctx.user.id), isNull(chatSessions.deletedAt)))
+        .orderBy(desc(chatSessions.createdAt)).limit(20);
     }),
     messages: protectedProcedure
       .input(z.object({ sessionId: z.string() }))
-      .query(async ({ input }) => {
+      .query(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) return [];
-        return db.select().from(chatMessages).where(eq(chatMessages.sessionId, input.sessionId)).orderBy(chatMessages.createdAt);
+        const actor = await getActor(ctx);
+        return db.select().from(chatMessages)
+          .where(and(eq(chatMessages.sessionId, input.sessionId), eq(chatMessages.companyId, actor.companyId), isNull(chatMessages.deletedAt)))
+          .orderBy(chatMessages.createdAt);
       }),
     newSession: protectedProcedure
       .input(z.object({ titolo: z.string().optional() }))
@@ -739,9 +745,9 @@ export const appRouter = router({
         if (!db) throw new Error("DB not available");
         const actor = await getActor(ctx);
         const id = crypto.randomUUID();
-        await db.insert(chatSessions).values({
-          id, companyId: actor.companyId, userId: ctx.user.id, titolo: input.titolo ?? "Nuova conversazione",
-        } as any);
+        await db.insert(chatSessions).values(withCreate(actor, {
+          id, userId: ctx.user.id, titolo: input.titolo ?? "Nuova conversazione",
+        }) as any);
         return { sessionId: id };
       }),
     chat: protectedProcedure
@@ -751,7 +757,7 @@ export const appRouter = router({
         if (!db) throw new Error("DB not available");
         const actor = await getActor(ctx);
 
-        await db.insert(chatMessages).values({ id: crypto.randomUUID(), sessionId: input.sessionId, ruolo: "user", contenuto: input.message } as any);
+        await db.insert(chatMessages).values(withCreate(actor, { id: crypto.randomUUID(), sessionId: input.sessionId, ruolo: "user", contenuto: input.message }) as any);
 
         const kpiRows = (await db.execute(
           sql`SELECT COALESCE(SUM(CASE WHEN tipo='entrata' THEN importo ELSE 0 END),0) as entrate,
@@ -770,7 +776,9 @@ CONTESTO AZIENDALE (mese corrente):
 
 Principi Fallinity DNA: Entity First, Event Driven, Decision First, Explainable AI, Enterprise Memory.`;
 
-        const history = await db.select().from(chatMessages).where(eq(chatMessages.sessionId, input.sessionId)).orderBy(chatMessages.createdAt).limit(20);
+        const history = await db.select().from(chatMessages)
+          .where(and(eq(chatMessages.sessionId, input.sessionId), eq(chatMessages.companyId, actor.companyId), isNull(chatMessages.deletedAt)))
+          .orderBy(chatMessages.createdAt).limit(20);
         const messages = [
           ...history.slice(0, -1).map(m => ({ role: m.ruolo as "user" | "assistant", content: m.contenuto })),
           { role: "user" as const, content: input.message },
@@ -780,21 +788,25 @@ Principi Fallinity DNA: Entity First, Event Driven, Decision First, Explainable 
         const rawContent = response.choices?.[0]?.message?.content;
         const assistantContent = typeof rawContent === 'string' ? rawContent : "Mi dispiace, non ho potuto elaborare la risposta.";
 
-        await db.insert(chatMessages).values({ id: crypto.randomUUID(), sessionId: input.sessionId, ruolo: "assistant", contenuto: assistantContent } as any);
+        await db.insert(chatMessages).values(withCreate(actor, { id: crypto.randomUUID(), sessionId: input.sessionId, ruolo: "assistant", contenuto: assistantContent }) as any);
 
         if (history.length <= 1) {
           const shortTitle = input.message.slice(0, 50) + (input.message.length > 50 ? "..." : "");
-          await db.update(chatSessions).set({ titolo: shortTitle } as any).where(eq(chatSessions.id, input.sessionId));
+          await db.update(chatSessions).set(withUpdate(actor, { titolo: shortTitle }) as any)
+            .where(and(eq(chatSessions.id, input.sessionId), eq(chatSessions.companyId, actor.companyId)));
         }
         return { content: assistantContent };
       }),
     deleteSession: protectedProcedure
       .input(z.object({ id: z.string() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("DB not available");
-        await db.delete(chatMessages).where(eq(chatMessages.sessionId, input.id));
-        await db.delete(chatSessions).where(eq(chatSessions.id, input.id));
+        const actor = await getActor(ctx);
+        await db.update(chatMessages).set(softDeletePayload(actor) as any)
+          .where(and(eq(chatMessages.sessionId, input.id), eq(chatMessages.companyId, actor.companyId)));
+        await db.update(chatSessions).set(softDeletePayload(actor) as any)
+          .where(and(eq(chatSessions.id, input.id), eq(chatSessions.companyId, actor.companyId)));
         return { success: true };
       }),
   }),

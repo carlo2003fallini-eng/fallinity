@@ -506,19 +506,31 @@ CREATE TABLE rateReintegrazione (
 -- ─── CHAT SESSIONS ──────────────────────────────────────────────────────────────
 CREATE TABLE chatSessions (
   id VARCHAR(36) PRIMARY KEY,
-  companyId VARCHAR(36),
+  companyId VARCHAR(36) NOT NULL,
   userId INT NOT NULL,
   titolo VARCHAR(255),
   createdAt TIMESTAMP NOT NULL DEFAULT NOW(),
-  updatedAt TIMESTAMP NOT NULL DEFAULT NOW() ON UPDATE NOW()
+  updatedAt TIMESTAMP NOT NULL DEFAULT NOW() ON UPDATE NOW(),
+  createdBy VARCHAR(36),
+  updatedBy VARCHAR(36),
+  deletedAt TIMESTAMP NULL,
+  deletedBy VARCHAR(36),
+  version INT NOT NULL DEFAULT 1
 );
 
 -- ─── CHAT MESSAGES ──────────────────────────────────────────────────────────────
 CREATE TABLE chatMessages (
   id VARCHAR(36) PRIMARY KEY,
+  companyId VARCHAR(36) NOT NULL,
   sessionId VARCHAR(36) NOT NULL,
   ruolo ENUM('user','assistant') NOT NULL,
   contenuto TEXT NOT NULL,
   reasoning TEXT,
-  createdAt TIMESTAMP NOT NULL DEFAULT NOW()
+  createdAt TIMESTAMP NOT NULL DEFAULT NOW(),
+  updatedAt TIMESTAMP NOT NULL DEFAULT NOW() ON UPDATE NOW(),
+  createdBy VARCHAR(36),
+  updatedBy VARCHAR(36),
+  deletedAt TIMESTAMP NULL,
+  deletedBy VARCHAR(36),
+  version INT NOT NULL DEFAULT 1
 );

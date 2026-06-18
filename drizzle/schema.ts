@@ -454,22 +454,22 @@ export type InsertRataReintegrazione = typeof rateReintegrazione.$inferInsert;
 // ─── AI CHAT ──────────────────────────────────────────────────────────────────
 export const chatSessions = mysqlTable("chatSessions", {
   id: uuidPk(),
-  companyId: varchar("companyId", { length: 36 }),
+  companyId: companyRef(),
   userId: int("userId").notNull(),
   titolo: varchar("titolo", { length: 255 }),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  ...auditColumns,
 });
 export type ChatSession = typeof chatSessions.$inferSelect;
 export type InsertChatSession = typeof chatSessions.$inferInsert;
 
 export const chatMessages = mysqlTable("chatMessages", {
   id: uuidPk(),
+  companyId: companyRef(),
   sessionId: varchar("sessionId", { length: 36 }).notNull(),
   ruolo: mysqlEnum("ruolo", ["user", "assistant"]).notNull(),
   contenuto: text("contenuto").notNull(),
   reasoning: text("reasoning"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  ...auditColumns,
 });
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = typeof chatMessages.$inferInsert;
