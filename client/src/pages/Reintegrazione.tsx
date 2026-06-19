@@ -17,7 +17,7 @@ function fmt(n: number) {
   return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
 }
 
-export default function Reintegrazione() {
+export default function Reintegrazione({ embedded = false }: { embedded?: boolean }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [rataSheet, setRataSheet] = useState<{ open: boolean; fondoId: string; nome: string; rata: number }>({ open: false, fondoId: "", nome: "", rata: 0 });
   const [addForm, setAddForm] = useState({ macchinaId: "", nomeDisplay: "", valoreAcquisto: "", fondoAttuale: "0", tassoInteresse: "3", annoObiettivo: "" });
@@ -41,22 +41,32 @@ export default function Reintegrazione() {
   const versConsigliato = fondi.reduce((s, f) => s + Number(f.rataConsigliata ?? 0), 0);
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold" style={{ color: "oklch(0.96 0.005 145)", fontFamily: "'Space Grotesk', sans-serif" }}>
-            Reintegrazione
-          </h1>
-          <p className="text-sm mt-0.5" style={{ color: "oklch(0.50 0.01 145)" }}>
-            Fondi di reintegrazione per macchine e attrezzature
-          </p>
+    <div className={embedded ? "space-y-6" : "p-6 space-y-6"}>
+      {/* Header (nascosto quando embedded dentro Finanza) */}
+      {!embedded && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold" style={{ color: "oklch(0.96 0.005 145)", fontFamily: "'Space Grotesk', sans-serif" }}>
+              Reintegrazione
+            </h1>
+            <p className="text-sm mt-0.5" style={{ color: "oklch(0.50 0.01 145)" }}>
+              Fondi di reintegrazione per macchine e attrezzature
+            </p>
+          </div>
+          <Button onClick={() => setSheetOpen(true)} className="flex items-center gap-2 font-semibold" style={{ background: GOLD, color: "oklch(0.08 0.01 145)" }}>
+            <Plus className="w-4 h-4" />
+            Nuovo fondo
+          </Button>
         </div>
-        <Button onClick={() => setSheetOpen(true)} className="flex items-center gap-2 font-semibold" style={{ background: GOLD, color: "oklch(0.08 0.01 145)" }}>
-          <Plus className="w-4 h-4" />
-          Nuovo fondo
-        </Button>
-      </div>
+      )}
+      {embedded && (
+        <div className="flex justify-end">
+          <Button onClick={() => setSheetOpen(true)} className="flex items-center gap-2 font-semibold" style={{ background: GOLD, color: "oklch(0.08 0.01 145)" }}>
+            <Plus className="w-4 h-4" />
+            Nuovo fondo
+          </Button>
+        </div>
+      )}
 
       {/* Hero card — Totale fondi */}
       <div className="rounded-2xl p-6 relative overflow-hidden" style={{

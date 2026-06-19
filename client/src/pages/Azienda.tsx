@@ -244,7 +244,7 @@ export default function Azienda() {
 
       {/* ── SHEET FORM ─────────────────────────────────────────────────────── */}
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="right" className="w-[400px] sm:max-w-[400px] p-0 flex flex-col"
+        <SheetContent side="right" className="w-full sm:w-[400px] sm:max-w-[400px] p-0 flex flex-col"
           style={{ background: "oklch(0.10 0.005 145)", border: "none", borderLeft: "1px solid oklch(0.18 0.008 145)" }}>
           <SheetHeader className="px-6 py-5 border-b" style={{ borderColor: "oklch(0.18 0.008 145)" }}>
             <div className="flex items-center gap-3">

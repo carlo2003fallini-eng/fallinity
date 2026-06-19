@@ -129,6 +129,25 @@ describe("appRouter structure", () => {
     // officina may be a nested router or flat object
     const keys = officinaRecord._def?.record ? Object.keys(officinaRecord._def.record) : Object.keys(officinaRecord);
     expect(keys).toContain("macchine");
+    expect(keys).toContain("interventi");
+    expect(keys).toContain("dashboard");
+  });
+
+  it("exposes calendario sub-procedures incl. today", () => {
+    const calRecord = (appRouter._def.record as any).calendario;
+    const keys = calRecord._def?.record ? Object.keys(calRecord._def.record) : Object.keys(calRecord);
+    expect(keys).toContain("list");
+    expect(keys).toContain("today");
+    expect(keys).toContain("create");
+  });
+
+  it("exposes azienda sub-procedures", () => {
+    const azRecord = (appRouter._def.record as any).azienda;
+    const keys = azRecord._def?.record ? Object.keys(azRecord._def.record) : Object.keys(azRecord);
+    expect(keys).toContain("list");
+    expect(keys).toContain("stats");
+    expect(keys).toContain("create");
+    expect(keys).toContain("delete");
   });
 
   it("exposes magazzino sub-procedures", () => {
@@ -157,10 +176,10 @@ describe("protected procedures", () => {
     await expect(caller.dashboard.kpi()).rejects.toThrow();
   });
 
-  it("azienda.contatti.list rejects unauthenticated requests", async () => {
+  it("azienda.list rejects unauthenticated requests", async () => {
     const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
-    await expect(caller.azienda.contatti.list()).rejects.toThrow();
+    await expect(caller.azienda.list()).rejects.toThrow();
   });
 
   it("finanza.list rejects unauthenticated requests", async () => {

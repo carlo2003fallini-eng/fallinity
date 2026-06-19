@@ -16,6 +16,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from "recharts";
 import { FAL_IMAGES } from "@/lib/assets";
+import Reintegrazione from "./Reintegrazione";
 
 const GREEN = "oklch(0.65 0.18 142)";
 const RED   = "oklch(0.55 0.22 25)";
@@ -37,6 +38,8 @@ const EMPTY_FORM = { categoria: "", descrizione: "", importo: "", data: new Date
 
 export default function Finanza() {
   const [, setLocation] = useLocation();
+  // Tab di primo livello: la Reintegrazione vive DENTRO Finanza (non e' una voce di nav separata).
+  const [mainTab, setMainTab] = useState<"economia" | "reintegrazione">("economia");
   const [tab, setTab]   = useState<"all" | "entrata" | "uscita">("all");
   const [open, setOpen] = useState(false);
   const [tipo, setTipo] = useState<"entrata" | "uscita">("entrata");
@@ -94,11 +97,32 @@ export default function Finanza() {
             Finanza
           </h1>
         </div>
-        <Button onClick={() => { setForm({ ...EMPTY_FORM }); setOpen(true); }}
-          className="gap-2" style={{ background: GREEN, color: "oklch(0.08 0.005 145)" }}>
-          <Plus size={15} /> Nuova transazione
-        </Button>
+        {mainTab === "economia" && (
+          <Button onClick={() => { setForm({ ...EMPTY_FORM }); setOpen(true); }}
+            className="gap-2" style={{ background: GREEN, color: "oklch(0.08 0.005 145)" }}>
+            <Plus size={15} /> Nuova transazione
+          </Button>
+        )}
       </div>
+
+      {/* ── TAB PRIMARIE: ECONOMIA | REINTEGRAZIONE ────────────────────────── */}
+      <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: "oklch(0.11 0.006 145)", border: "1px solid oklch(0.18 0.008 145)" }}>
+        {([["economia", "Economia", Wallet], ["reintegrazione", "Reintegrazione", RefreshCw]] as const).map(([v, l, Icon]) => (
+          <button key={v} onClick={() => setMainTab(v)}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all duration-150"
+            style={{
+              background: mainTab === v ? (v === "economia" ? `${GREEN}1f` : `${GOLD}1f`) : "transparent",
+              color: mainTab === v ? (v === "economia" ? GREEN : GOLD) : "oklch(0.55 0.01 145)",
+            }}>
+            <Icon size={15} /> {l}
+          </button>
+        ))}
+      </div>
+
+      {/* La tab Reintegrazione riusa l'intero modulo (nessuna duplicazione di logica). */}
+      {mainTab === "reintegrazione" && <Reintegrazione embedded />}
+
+      {mainTab === "economia" && (<>
 
       {/* ── HERO ECONOMICA + KPI ───────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -171,9 +195,10 @@ export default function Finanza() {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[220px] flex items-center justify-center flex-col gap-2" style={{ color: "oklch(0.4 0.01 145)" }}>
+            <div className="h-[220px] flex items-center justify-center flex-col gap-2 text-center px-6" style={{ color: "oklch(0.4 0.01 145)" }}>
               <TrendingUp size={32} className="opacity-20" />
-              <p className="text-sm">Nessun dato — aggiungi transazioni</p>
+              <p className="text-sm font-medium" style={{ color: "oklch(0.6 0.01 145)" }}>Andamento non ancora disponibile</p>
+              <p className="text-xs">Registra entrate e uscite per vedere il confronto mensile.</p>
             </div>
           )}
         </div>
@@ -204,16 +229,17 @@ export default function Finanza() {
               </div>
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center h-40 gap-2" style={{ color: "oklch(0.4 0.01 145)" }}>
+            <div className="flex flex-col items-center justify-center h-40 gap-2 text-center px-6" style={{ color: "oklch(0.4 0.01 145)" }}>
               <PiggyBank size={28} className="opacity-20" />
-              <p className="text-xs">Nessun dato</p>
+              <p className="text-xs font-medium" style={{ color: "oklch(0.6 0.01 145)" }}>Nessuna uscita registrata</p>
+              <p className="text-xs">La ripartizione per categoria apparirà qui.</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* ── COLLEGAMENTO REINTEGRAZIONE ────────────────────────────────────── */}
-      <button onClick={() => setLocation("/reintegrazione")}
+      {/* ── ANTEPRIMA REINTEGRAZIONE (porta alla tab) ──────────────────────── */}
+      <button onClick={() => setMainTab("reintegrazione")}
         className="fal-card fal-card-hover fal-glow-gold w-full flex items-center gap-4 p-5 text-left">
         <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: "oklch(0.72 0.15 75 / 0.12)" }}>
           <RefreshCw size={20} style={{ color: GOLD }} />
@@ -302,7 +328,7 @@ export default function Finanza() {
 
       {/* ── SHEET FORM ─────────────────────────────────────────────────────── */}
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="right" className="w-[400px] sm:max-w-[400px] p-0 flex flex-col"
+        <SheetContent side="right" className="w-full sm:w-[400px] sm:max-w-[400px] p-0 flex flex-col"
           style={{ background: "oklch(0.10 0.005 145)", border: "none", borderLeft: "1px solid oklch(0.18 0.008 145)" }}>
           <SheetHeader className="px-6 py-5 border-b" style={{ borderColor: "oklch(0.18 0.008 145)" }}>
             <div className="flex items-center gap-3">
@@ -368,6 +394,7 @@ export default function Finanza() {
           </div>
         </SheetContent>
       </Sheet>
+      </>)}
 
     </div>
   );

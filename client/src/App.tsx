@@ -32,7 +32,7 @@ function Router() {
         <Route path="/report" component={Report} />
         <Route path="/ai" component={AI} />
         <Route path="/stalla" component={Stalla} />
-        <Route path="/reintegrazione" component={Reintegrazione} />
+        <Route path="/reintegrazione">{() => <Reintegrazione />}</Route>
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

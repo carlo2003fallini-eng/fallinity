@@ -223,3 +223,57 @@
 ### Frontend adattamento UUID
 - [x] Aggiornate tutte le pagine ai nuovi tipi UUID (string id): AI, Azienda, Campi, Finanza, Home, Magazzino, Officina, Reintegrazione, Stalla, SelezionaAzienda
 - [x] 0 errori TypeScript, 13 test Vitest passanti, server avvia correttamente
+
+
+## Fase 15: Alpha 0.3 — Consolidamento (UX mobile nativa + Design System + architettura)
+> Obiettivo: NON nuove feature, ma qualità. Esperienza tipo Revolut/Tesla/Notion Mobile mantenendo identità Fallinity.
+
+### Bugfix DB
+- [x] Tabella `zoppie` non migrata (mancavano companyId/audit/soft-delete, id int): ricreata come UUID + colonne standard, vecchia archiviata in `_old_zoppie`. Query KPI verificata.
+
+### Backend a domini (router/service/repository/validators)
+- [x] Struttura server/domains/<dominio>/ con repository (query Drizzle), service (logica+audit), validators (zod), router (tRPC sottile)
+- [x] Domini: core (company/azienda/dashboard), finance, livestock(stalla), crop(campi), inventory(magazzino), fleet(officina), calendar, reinvestment, ai, report
+- [x] appRouter compone i router di dominio; routers.ts ridotto da 815 a ~60 righe (orchestratore sottile)
+- [x] Nuove procedure abilitanti: calendario.today, officina.dashboard; superficie tRPC invariata per il resto
+- [x] 0 errori TS, 15 test Vitest verdi (estesi a azienda/calendario/officina), server riavvia pulito
+
+### Design System Fallinity (componenti formali)
+- [x] FallinityHeroCard, FallinityKpiCard, FallinityModuleCard, FallinityEntityCard
+- [x] FallinityInsightCard, FallinityChartCard, FallinitySection
+- [x] FallinityEmptyState (stato vuoto ricco con CTA), FallinityMissionCard (missione di oggi)
+- [x] FallinityHeader e FallinityBottomNavigation estratti come componenti formali e usati dal DashboardLayout
+- [x] Token CSS verificati esistenti (kpi-number-xl, fal-hero, fal-eyebrow, fal-glow-*, fal-img-overlay)
+- [x] FallinityBottomNavigation a 4 voci (Home/Azienda/Finanza/Altro) -> realizzata in Fase 4
+
+### Navigazione definitiva (4 voci)
+- [x] Bottom nav: Home, Azienda, Finanza, Altro (solo queste 4)
+- [x] Reintegrazione spostata DENTRO Finanza (tab Economia|Reintegrazione, riuso modulo, route deep-link mantenuta)
+- [x] FallinityBottomNavigation a 4 voci realizzata nel DashboardLayout
+- [x] "Altro" hub raccoglie i moduli operativi non primari (Reintegrazione esclusa)
+- [ ] Altro = hub funzioni secondarie: Report, AI, Gestione utenti, Gestione aziende, Impostazioni, Backup, Audit, Supporto
+- [ ] Azienda = command center: Stalla, Campi, Magazzino, Officina, Calendario
+
+### Home (centro di controllo)
+- [x] Hero Card Utile Netto + card Cashflow/Fondo Reintegrazione + KPI operativi
+- [x] Calendario Oggi (procedura calendario.today, solo eventi di oggi + "Apri Calendario", empty state ricco)
+- [x] Missione di oggi: priorità (interventi/scorta/zoppie/eventi) + avanzamento X/Y con barra di progresso
+- [x] Alert cross-modulo: Officina (interventi), Magazzino (scorta), Stalla (zoppie), Finanza (utile negativo)
+- [x] Azioni rapide (Nuova Entrata/Uscita/Intervento/Report) + moduli rapidi
+- [x] Insight AI: card con suggerimento contestuale derivato dai KPI + link al Copilot
+- [x] Backend: dashboardKpi esteso con zoppieAttive
+
+### Schermate premium
+- [x] Azienda: Command Center con card grandi a immagine (Stalla/Dati Latte/Dati Vitelli/Magazzino/Officina) + Anagrafica Unificata
+- [x] Finanza: centro economico con tab Economia|Reintegrazione, Hero Utile+ROI, Margine, Transazioni, Andamento, Distribuzione Uscite, Fondo
+- [x] Stalla: KPI 2x2 + card moduli con glow per categoria (Gruppi/Sincronizzazioni/Gravidanze/Zoppie/Trattamenti/Parti/Asciutta/Infermeria)
+- [x] Officina: dashboard premium (hero, KPI responsive 2x2 mobile, Priorit\u00e0 del giorno, Ricambi & Costi)
+
+### Mobile-first 9:16
+- [x] Overflow orizzontale corretto: KPI Officina responsive 2x2, tutti i Sheet form full-width su mobile (w-full sm:w-[...])
+- [x] Form leggibili su mobile: griglie a 2 colonne solo per campi piccoli correlati (data/ora, quantit\u00e0/unit\u00e0)
+- [x] Empty states ricchi (icona + titolo + spiegazione) in Home (chart, attivit\u00e0) e Finanza (andamento, distribuzione uscite)
+
+### Verifica
+- [x] AI riprogettata mobile-first: sidebar conversazioni in drawer su mobile, chat full-width, domande suggerite a colonna singola (era layout desktop a 2 colonne rotto su 390px)
+- [x] 0 errori TS, 15 test Vitest verdi, screenshot mobile 9:16 di tutte le schermate, checkpoint Alpha 0.3

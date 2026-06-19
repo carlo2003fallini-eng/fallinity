@@ -30,6 +30,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import { Button } from "./ui/button";
+import { FallinityHeader, FallinityBottomNavigation } from "./fallinity";
 
 const LOGO_URL = "/manus-storage/fallinity-logo_8c31d682.png";
 
@@ -55,10 +56,14 @@ const allItems: MenuItem[] = [
   { icon: RefreshCw,   label: "Reintegrazione", path: "/reintegrazione", desc: "Fondi macchine" },
 ];
 
-// Voci principali nella bottom bar (le altre vanno nel menu "Altro")
-const primaryPaths = ["/", "/finanza", "/campi", "/stalla"];
+// Bottom bar definitiva a 4 voci: Home, Azienda, Finanza, Altro.
+// Reintegrazione NON e' una voce separata: vive dentro Finanza (tab dedicata).
+const primaryPaths = ["/", "/azienda", "/finanza"];
 const primaryItems = primaryPaths.map(p => allItems.find(i => i.path === p)!);
-const moreItems = allItems.filter(i => !primaryPaths.includes(i.path));
+// "Altro" raccoglie i moduli operativi non primari (Reintegrazione esclusa: e' dentro Finanza).
+const moreItems = allItems.filter(
+  i => !primaryPaths.includes(i.path) && i.path !== "/reintegrazione",
+);
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { loading, user } = useAuth();
@@ -106,81 +111,64 @@ function FEOSLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      {/* Top header */}
-      <header
-        className="sticky top-0 z-40 flex items-center justify-between px-4 sm:px-6 h-14 border-b"
-        style={{
-          background: "oklch(0.09 0.006 145 / 0.95)",
-          borderColor: BORDER,
-          backdropFilter: "blur(12px)",
-        }}
-      >
-        <button onClick={() => navigate("/")} className="flex items-center gap-2.5">
-          <img src={LOGO_URL} alt="Fallinity" className="w-8 h-8 object-contain" />
-          <div className="text-left">
-            <div
-              className="font-bold text-base tracking-tight leading-none"
-              style={{ fontFamily: "var(--font-display)", color: TEXT_BRIGHT }}
+      {/* Top header (componente design-system) */}
+      <FallinityHeader
+        logoUrl={LOGO_URL}
+        subtitle={activeItem?.label ?? "Enterprise OS"}
+        onLogoClick={() => navigate("/")}
+        actions={
+          <>
+            <button
+              className="relative p-2 rounded-lg transition-colors"
+              style={{ color: TEXT_DIM }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.14 0.008 145)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
             >
-              FALLINITY
-            </div>
-            <div className="text-[10px] leading-tight" style={{ color: GREEN }}>
-              {activeItem?.label ?? "Enterprise OS"}
-            </div>
-          </div>
-        </button>
-
-        <div className="flex items-center gap-2">
-          <button
-            className="relative p-2 rounded-lg transition-colors"
-            style={{ color: TEXT_DIM }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.14 0.008 145)"; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-          >
-            <Bell size={18} />
-            <span
-              className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
-              style={{ background: GREEN, boxShadow: `0 0 4px ${GREEN}` }}
-            />
-          </button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 transition-colors"
-                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.14 0.008 145)"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-              >
-                <Avatar className="h-7 w-7 border" style={{ borderColor: "oklch(0.65 0.18 142 / 0.4)" }}>
-                  <AvatarFallback
-                    className="text-xs font-semibold"
-                    style={{ background: "oklch(0.65 0.18 142 / 0.15)", color: GREEN }}
-                  >
-                    {user?.name?.charAt(0).toUpperCase() ?? "U"}
-                  </AvatarFallback>
-                </Avatar>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
-              <div className="px-3 py-2">
-                <p className="text-sm font-medium">{user?.name}</p>
-                <p className="text-xs text-muted-foreground">{user?.email}</p>
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer">
-                <Settings className="mr-2 h-4 w-4" />
-                Impostazioni
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={logout}
-                className="cursor-pointer text-destructive focus:text-destructive"
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Esci
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </header>
+              <Bell size={18} />
+              <span
+                className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
+                style={{ background: GREEN, boxShadow: `0 0 4px ${GREEN}` }}
+              />
+            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 transition-colors"
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.14 0.008 145)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                >
+                  <Avatar className="h-7 w-7 border" style={{ borderColor: "oklch(0.65 0.18 142 / 0.4)" }}>
+                    <AvatarFallback
+                      className="text-xs font-semibold"
+                      style={{ background: "oklch(0.65 0.18 142 / 0.15)", color: GREEN }}
+                    >
+                      {user?.name?.charAt(0).toUpperCase() ?? "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <div className="px-3 py-2">
+                  <p className="text-sm font-medium">{user?.name}</p>
+                  <p className="text-xs text-muted-foreground">{user?.email}</p>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Impostazioni
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={logout}
+                  className="cursor-pointer text-destructive focus:text-destructive"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Esci
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        }
+      />
 
       {/* Main content (con padding inferiore per la bottom bar) */}
       <main className="flex-1 p-4 sm:p-6 pb-24">{children}</main>
@@ -232,53 +220,15 @@ function FEOSLayout({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {/* Bottom navigation bar */}
-      <nav
-        className="fixed bottom-0 left-0 right-0 z-40 flex items-stretch justify-around h-16 border-t"
-        style={{
-          background: "oklch(0.08 0.006 145 / 0.97)",
-          borderColor: BORDER,
-          backdropFilter: "blur(16px)",
-          paddingBottom: "env(safe-area-inset-bottom)",
-        }}
-      >
-        {primaryItems.map(item => {
-          const isActive = location === item.path;
-          return (
-            <button
-              key={item.path}
-              onClick={() => navigate(item.path)}
-              className="flex-1 flex flex-col items-center justify-center gap-1 transition-all duration-150 relative"
-              style={{ color: isActive ? GREEN : TEXT_DIM }}
-            >
-              {isActive && (
-                <span
-                  className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-0.5 rounded-full"
-                  style={{ background: GREEN, boxShadow: `0 0 6px ${GREEN}` }}
-                />
-              )}
-              <item.icon size={20} style={{ transform: isActive ? "scale(1.05)" : "scale(1)" }} />
-              <span className="text-[10px] font-medium">{item.label}</span>
-            </button>
-          );
-        })}
-
-        {/* Bottone "Altro" */}
-        <button
-          onClick={() => setMoreOpen(true)}
-          className="flex-1 flex flex-col items-center justify-center gap-1 transition-all duration-150 relative"
-          style={{ color: isMoreActive ? GREEN : TEXT_DIM }}
-        >
-          {isMoreActive && (
-            <span
-              className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-0.5 rounded-full"
-              style={{ background: GREEN, boxShadow: `0 0 6px ${GREEN}` }}
-            />
-          )}
-          <Grid3x3 size={20} />
-          <span className="text-[10px] font-medium">Altro</span>
-        </button>
-      </nav>
+      {/* Bottom navigation bar (componente design-system) */}
+      <FallinityBottomNavigation
+        items={primaryItems.map(i => ({ icon: i.icon, label: i.label, path: i.path }))}
+        activePath={location}
+        onNavigate={navigate}
+        onMore={() => setMoreOpen(true)}
+        moreActive={isMoreActive}
+        moreIcon={Grid3x3}
+      />
     </div>
   );
 }

@@ -35,7 +35,8 @@ import {
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { FAL_IMAGES } from "@/lib/assets";
-import { FallinityKpiCard, FallinityInsightCard, FallinitySection } from "@/components/fallinity";
+import { FallinityKpiCard, FallinityInsightCard, FallinitySection, FallinityMissionCard, FallinityEmptyState } from "@/components/fallinity";
+import { CalendarCheck, CheckCircle2 } from "lucide-react";
 
 const GREEN = "oklch(0.65 0.18 142)";
 const GOLD = "oklch(0.72 0.15 75)";
@@ -75,6 +76,8 @@ export default function Home() {
   const { data: chartRaw } = trpc.dashboard.chartData.useQuery();
   const { data: recent } = trpc.dashboard.recentActivity.useQuery();
   const { data: fondoTot } = trpc.reintegrazione.totale.useQuery();
+  const { data: todayData } = trpc.calendario.today.useQuery();
+  const eventiOggi: any[] = Array.isArray(todayData) ? todayData : ((todayData as any)?.eventi ?? []);
 
   const chartData = Array.isArray(chartRaw)
     ? chartRaw.map((r: any) => ({
@@ -100,6 +103,39 @@ export default function Home() {
   const cashflow = entrate - uscite;
   const margine = entrate > 0 ? (utile / entrate) * 100 : 0;
   const fondo = fondoTot?.totale ?? 0;
+  const zoppieAttive = (kpi as any)?.zoppieAttive ?? 0;
+
+  // ── Missione di oggi: attività prioritarie + avanzamento ──
+  const missioneItems = [
+    (kpi?.interventiAperti ?? 0) > 0,
+    (kpi?.prodottiSottoScorta ?? 0) > 0,
+    zoppieAttive > 0,
+    eventiOggi.length > 0,
+  ];
+  const missione = (() => {
+    const totale = missioneItems.filter(Boolean).length;
+    // "completate" = priorità risolte (qui derivate: eventi già segnati completati)
+    const completate = eventiOggi.filter((e: any) => e.completato).length;
+    const pct = totale > 0 ? Math.round((completate / totale) * 100) : 0;
+    return { totale, completate, pct };
+  })();
+
+  // ── Alert cross-modulo: Officina, Magazzino, Stalla, Finanza ──
+  const alerts: { value: number | string; label: string; color: string; path: string }[] = [];
+  if ((kpi?.interventiAperti ?? 0) > 0) alerts.push({ value: kpi!.interventiAperti, label: "interventi aperti", color: GOLD, path: "/officina" });
+  if ((kpi?.prodottiSottoScorta ?? 0) > 0) alerts.push({ value: kpi!.prodottiSottoScorta, label: "prodotti sotto scorta", color: GOLD, path: "/magazzino" });
+  if (zoppieAttive > 0) alerts.push({ value: zoppieAttive, label: "zoppie da trattare", color: GOLD, path: "/stalla" });
+  if (utile < 0) alerts.push({ value: fmt(utile), label: "utile negativo nel mese", color: RED, path: "/finanza" });
+
+  // ── Insight AI contestuale ──
+  const aiInsight = (() => {
+    if (utile < 0) return "L'utile del mese è negativo: rivedi le uscite principali e valuta priorità di spesa.";
+    if (zoppieAttive > 0) return `Ci sono ${zoppieAttive} casi di zoppia attivi: pianifica i trattamenti per ridurre l'impatto sulla produzione.`;
+    if ((kpi?.prodottiSottoScorta ?? 0) > 0) return `${kpi?.prodottiSottoScorta} prodotti sono sotto scorta: valuta un riordino per evitare fermi operativi.`;
+    if ((kpi?.interventiAperti ?? 0) > 0) return `Hai ${kpi?.interventiAperti} interventi di manutenzione aperti: completarli protegge il valore del parco mezzi.`;
+    if (fondo > 0) return "I fondi di reintegrazione stanno crescendo: continua i versamenti per coprire il rinnovo macchine.";
+    return "Tutto sotto controllo. Chiedi al Copilot un'analisi su finanza, stalla o campi.";
+  })();
 
   return (
     <div className="space-y-6 animate-fade-in-up pb-4">
@@ -209,19 +245,128 @@ export default function Home() {
         ))}
       </div>
 
-      {/* ── ALERT BANNER ───────────────────────────────────────────────────── */}
-      {kpi && (kpi.prodottiSottoScorta > 0 || kpi.interventiAperti > 0) && (
+      {/* ── CALENDARIO OGGI + MISSIONE DI OGGI ─────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <FallinityInsightCard
+          title="Oggi in agenda"
+          subtitle={now.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })}
+          legend={
+            <button onClick={() => setLocation("/calendario")} className="text-xs font-medium flex items-center gap-1" style={{ color: BLUE }}>
+              Apri Calendario <ChevronRight size={13} />
+            </button>
+          }
+        >
+          {eventiOggi.length === 0 ? (
+            <FallinityEmptyState
+              icon={CalendarCheck}
+              color={BLUE}
+              title="Nessun evento per oggi"
+              description="Pianifica attività, scadenze o promemoria dal Calendario."
+            />
+          ) : (
+            <div className="space-y-2.5">
+              {eventiOggi.slice(0, 5).map((ev: any, i: number) => (
+                <div key={ev.id ?? i} className="flex items-center gap-3">
+                  <div className="w-1.5 h-10 rounded-full shrink-0" style={{ background: BLUE }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate" style={{ color: "oklch(0.85 0.01 145)" }}>{ev.titolo ?? ev.descrizione ?? "Evento"}</p>
+                    <p className="text-xs truncate" style={{ color: "oklch(0.45 0.01 145)" }}>
+                      {ev.tipo ?? "attività"}{ev.ora ? ` · ${ev.ora}` : ""}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </FallinityInsightCard>
+
+        <FallinityInsightCard
+          title="Missione di oggi"
+          subtitle={missione.totale > 0 ? `${missione.completate}/${missione.totale} completate` : "Tutto sotto controllo"}
+        >
+          {/* Barra di avanzamento */}
+          {missione.totale > 0 && (
+            <div className="mb-4">
+              <div className="h-2 rounded-full overflow-hidden" style={{ background: "oklch(0.18 0.008 145)" }}>
+                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${missione.pct}%`, background: missione.pct === 100 ? GREEN : GOLD }} />
+              </div>
+            </div>
+          )}
+          <div className="space-y-2.5">
+            {(kpi?.interventiAperti ?? 0) > 0 && (
+              <FallinityMissionCard
+                icon={Wrench}
+                accent={GOLD}
+                title={`${kpi?.interventiAperti} interventi da gestire`}
+                detail="Officina · manutenzioni aperte"
+                onClick={() => setLocation("/officina")}
+              />
+            )}
+            {(kpi?.prodottiSottoScorta ?? 0) > 0 && (
+              <FallinityMissionCard
+                icon={Package}
+                accent={GOLD}
+                title={`${kpi?.prodottiSottoScorta} prodotti sotto scorta`}
+                detail="Magazzino · da riordinare"
+                onClick={() => setLocation("/magazzino")}
+              />
+            )}
+            {zoppieAttive > 0 && (
+              <FallinityMissionCard
+                icon={Activity}
+                accent={GOLD}
+                title={`${zoppieAttive} zoppie da trattare`}
+                detail="Stalla · benessere animale"
+                onClick={() => setLocation("/stalla")}
+              />
+            )}
+            {eventiOggi.length > 0 && (
+              <FallinityMissionCard
+                icon={CalendarCheck}
+                accent={BLUE}
+                title={`${eventiOggi.length} eventi in agenda`}
+                detail="Calendario · attività di oggi"
+                onClick={() => setLocation("/calendario")}
+              />
+            )}
+            {missione.totale === 0 && (
+              <FallinityEmptyState
+                icon={CheckCircle2}
+                color={GREEN}
+                title="Nessuna azione urgente"
+                description="Non ci sono attività prioritarie per oggi. Buon lavoro."
+              />
+            )}
+          </div>
+        </FallinityInsightCard>
+      </div>
+
+      {/* ── ALERT BANNER (Officina/Magazzino/Stalla/Finanza) ───────────────── */}
+      {alerts.length > 0 && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm" style={{ background: "oklch(0.72 0.15 75 / 0.07)", border: "1px solid oklch(0.72 0.15 75 / 0.25)" }}>
           <AlertTriangle size={15} style={{ color: GOLD, flexShrink: 0 }} />
           <div className="flex flex-wrap gap-4 text-xs" style={{ color: "oklch(0.7 0.01 145)" }}>
-            {kpi.interventiAperti > 0 && <span><span style={{ color: GOLD, fontWeight: 700 }}>{kpi.interventiAperti}</span> interventi aperti</span>}
-            {kpi.prodottiSottoScorta > 0 && <span><span style={{ color: GOLD, fontWeight: 700 }}>{kpi.prodottiSottoScorta}</span> prodotti sotto scorta</span>}
+            {alerts.map((a, i) => (
+              <span key={i}><span style={{ color: a.color, fontWeight: 700 }}>{a.value}</span> {a.label}</span>
+            ))}
           </div>
-          <button onClick={() => setLocation("/officina")} className="ml-auto text-xs font-medium flex items-center gap-1" style={{ color: GOLD }}>
+          <button onClick={() => setLocation(alerts[0].path)} className="ml-auto text-xs font-medium flex items-center gap-1" style={{ color: GOLD }}>
             Vedi <ChevronRight size={13} />
           </button>
         </div>
       )}
+
+      {/* ── INSIGHT AI ─────────────────────────────────────────────────────── */}
+      <button onClick={() => setLocation("/ai")} className="w-full text-left fal-card fal-card-hover fal-glow-gold p-5 flex items-start gap-4">
+        <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: "oklch(0.72 0.15 75 / 0.14)" }}>
+          <Bot size={20} style={{ color: GOLD }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="fal-eyebrow" style={{ color: GOLD }}>Insight AI · Copilot</p>
+          <p className="text-sm font-medium mt-1" style={{ color: "oklch(0.88 0.01 145)" }}>{aiInsight}</p>
+          <p className="text-xs mt-1.5 flex items-center gap-1" style={{ color: GOLD }}>Chiedi al Copilot <ChevronRight size={12} /></p>
+        </div>
+      </button>
 
       {/* ── AZIONI RAPIDE ──────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -275,9 +420,10 @@ export default function Home() {
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[220px] flex items-center justify-center flex-col gap-2" style={{ color: "oklch(0.4 0.01 145)" }}>
+            <div className="h-[220px] flex items-center justify-center flex-col gap-2 text-center px-6" style={{ color: "oklch(0.4 0.01 145)" }}>
               <BarChart3 size={32} className="opacity-20" />
-              <p className="text-sm">Nessun dato — aggiungi transazioni in Finanza</p>
+              <p className="text-sm font-medium" style={{ color: "oklch(0.6 0.01 145)" }}>Nessun andamento da mostrare</p>
+              <p className="text-xs">Aggiungi transazioni in Finanza per vedere il trend economico.</p>
             </div>
           )}
         </FallinityInsightCard>
@@ -286,7 +432,11 @@ export default function Home() {
         <FallinityInsightCard title="Attività Recenti">
           <div className="space-y-3">
             {allRecent.length === 0 ? (
-              <p className="text-xs text-center py-6" style={{ color: "oklch(0.4 0.01 145)" }}>Nessuna attività recente</p>
+              <div className="flex flex-col items-center justify-center py-8 gap-2 text-center" style={{ color: "oklch(0.4 0.01 145)" }}>
+                <Activity size={26} className="opacity-20" />
+                <p className="text-xs font-medium" style={{ color: "oklch(0.6 0.01 145)" }}>Nessuna attività recente</p>
+                <p className="text-xs">Le ultime operazioni registrate appariranno qui.</p>
+              </div>
             ) : allRecent.map((item: any, idx: number) => (
               <div key={idx} className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"

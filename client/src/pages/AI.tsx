@@ -2,8 +2,9 @@ import { useState, useRef, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Streamdown } from "streamdown";
-import { Send, Plus, Trash2, Bot, User, Zap, Brain, Eye, Shield, Lightbulb, MessageSquare, TrendingUp, Sprout, Tractor, Activity } from "lucide-react";
+import { Send, Plus, Trash2, Bot, User, Zap, Brain, Eye, Shield, Lightbulb, MessageSquare, TrendingUp, Sprout, Tractor, Activity, PanelLeft } from "lucide-react";
 import { toast } from "sonner";
 
 const GREEN = "oklch(0.65 0.18 142)";
@@ -29,6 +30,7 @@ export default function AI() {
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: kpi } = trpc.dashboard.kpi.useQuery();
@@ -42,6 +44,7 @@ export default function AI() {
     onSuccess: (data) => {
       refetchSessions();
       setSelectedSession(data.sessionId);
+      setDrawerOpen(false);
     },
     onError: () => toast.error("Errore nella creazione della sessione"),
   });
@@ -94,87 +97,110 @@ export default function AI() {
   const msgList = messages as any[];
   const sessionList = sessions as any[];
 
-  return (
-    <div className="flex h-[calc(100vh-8rem)] gap-4 animate-fade-in-up">
-      {/* Sidebar sessioni */}
-      <div className="w-64 shrink-0 flex flex-col gap-2">
-        <Button
-          onClick={() => { setSelectedSession(null); newSession.mutate({ titolo: "Nuova conversazione" }); }}
-          disabled={newSession.isPending}
-          className="w-full gap-2 justify-start"
-          style={{ background: GREEN, color: "oklch(0.08 0.005 145)" }}
-        >
-          <Plus size={15} /> Nuova chat
-        </Button>
+  // Pannello sessioni riusabile (sidebar desktop + drawer mobile)
+  const SessionsPanel = () => (
+    <div className="flex flex-col gap-2 h-full">
+      <Button
+        onClick={() => { setSelectedSession(null); newSession.mutate({ titolo: "Nuova conversazione" }); }}
+        disabled={newSession.isPending}
+        className="w-full gap-2 justify-start shrink-0"
+        style={{ background: GREEN, color: "oklch(0.08 0.005 145)" }}
+      >
+        <Plus size={15} /> Nuova chat
+      </Button>
 
-        <div className="flex-1 overflow-y-auto space-y-1">
-          {sessionList.length === 0 ? (
-            <div className="text-center py-6">
-              <MessageSquare size={24} className="mx-auto mb-2 opacity-20" style={{ color: GREEN }} />
-              <p className="text-xs" style={{ color: "oklch(0.4 0.01 145)" }}>Nessuna conversazione</p>
-            </div>
-          ) : (
-            sessionList.map((s: any) => (
-              <div
-                key={s.id}
-                onClick={() => setSelectedSession(s.id)}
-                className="group flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all"
-                style={{
-                  background: selectedSession === s.id ? `${GREEN}15` : "transparent",
-                  border: `1px solid ${selectedSession === s.id ? GREEN + "40" : "transparent"}`,
-                }}
+      <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
+        {sessionList.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
+            <MessageSquare size={24} className="opacity-20" style={{ color: GREEN }} />
+            <p className="text-xs font-medium" style={{ color: "oklch(0.6 0.01 145)" }}>Nessuna conversazione</p>
+            <p className="text-xs" style={{ color: "oklch(0.4 0.01 145)" }}>Avvia una nuova chat per iniziare.</p>
+          </div>
+        ) : (
+          sessionList.map((s: any) => (
+            <div
+              key={s.id}
+              onClick={() => { setSelectedSession(s.id); setDrawerOpen(false); }}
+              className="group flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all"
+              style={{
+                background: selectedSession === s.id ? `${GREEN}15` : "transparent",
+                border: `1px solid ${selectedSession === s.id ? GREEN + "40" : "transparent"}`,
+              }}
+            >
+              <MessageSquare size={13} style={{ color: selectedSession === s.id ? GREEN : "oklch(0.45 0.01 145)" }} className="shrink-0" />
+              <span className="flex-1 text-xs truncate" style={{ color: selectedSession === s.id ? "oklch(0.85 0.01 145)" : "oklch(0.6 0.01 145)" }}>
+                {s.titolo}
+              </span>
+              <button
+                onClick={(e) => { e.stopPropagation(); deleteSession.mutate({ id: s.id }); }}
+                className="opacity-60 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity p-1"
               >
-                <MessageSquare size={13} style={{ color: selectedSession === s.id ? GREEN : "oklch(0.45 0.01 145)" }} className="shrink-0" />
-                <span className="flex-1 text-xs truncate" style={{ color: selectedSession === s.id ? "oklch(0.85 0.01 145)" : "oklch(0.6 0.01 145)" }}>
-                  {s.titolo}
-                </span>
-                <button
-                  onClick={(e) => { e.stopPropagation(); deleteSession.mutate({ id: s.id }); }}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Trash2 size={11} style={{ color: "oklch(0.5 0.15 25)" }} />
-                </button>
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* XAI Principles */}
-        <div className="rounded-xl p-3 space-y-2" style={{ background: "oklch(0.11 0.006 145)", border: "1px solid oklch(0.18 0.008 145)" }}>
-          <p className="text-xs font-semibold" style={{ color: GOLD }}>Explainable AI™</p>
-          {XAI_PRINCIPLES.map(p => (
-            <div key={p.label} className="flex items-start gap-2">
-              <p.icon size={11} className="mt-0.5 shrink-0" style={{ color: GREEN }} />
-              <div>
-                <p className="text-xs font-medium" style={{ color: "oklch(0.7 0.01 145)" }}>{p.label}</p>
-              </div>
+                <Trash2 size={12} style={{ color: "oklch(0.5 0.15 25)" }} />
+              </button>
             </div>
-          ))}
-        </div>
+          ))
+        )}
+      </div>
+
+      {/* XAI Principles */}
+      <div className="rounded-xl p-3 space-y-2 shrink-0" style={{ background: "oklch(0.11 0.006 145)", border: "1px solid oklch(0.18 0.008 145)" }}>
+        <p className="text-xs font-semibold" style={{ color: GOLD }}>Explainable AI™</p>
+        {XAI_PRINCIPLES.map(p => (
+          <div key={p.label} className="flex items-start gap-2">
+            <p.icon size={11} className="mt-0.5 shrink-0" style={{ color: GREEN }} />
+            <p className="text-xs font-medium" style={{ color: "oklch(0.7 0.01 145)" }}>{p.label}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="flex h-[calc(100vh-9rem)] gap-4 animate-fade-in-up">
+      {/* Sidebar sessioni — solo desktop */}
+      <div className="hidden lg:flex w-64 shrink-0">
+        <SessionsPanel />
       </div>
 
       {/* Area chat principale */}
-      <div className="flex-1 flex flex-col rounded-xl overflow-hidden" style={{ background: "oklch(0.11 0.006 145)", border: "1px solid oklch(0.18 0.008 145)" }}>
+      <div className="flex-1 min-w-0 flex flex-col rounded-xl overflow-hidden" style={{ background: "oklch(0.11 0.006 145)", border: "1px solid oklch(0.18 0.008 145)" }}>
         {/* Header */}
-        <div className="flex items-center gap-3 px-5 py-3 border-b" style={{ borderColor: "oklch(0.18 0.008 145)" }}>
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${GREEN}20` }}>
+        <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: "oklch(0.18 0.008 145)" }}>
+          {/* Trigger drawer — solo mobile */}
+          <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
+            <SheetTrigger asChild>
+              <button className="lg:hidden w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "oklch(0.14 0.007 145)", border: "1px solid oklch(0.2 0.008 145)" }}>
+                <PanelLeft size={15} style={{ color: GREEN }} />
+              </button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[85vw] max-w-sm p-4" style={{ background: "oklch(0.09 0.005 145)", borderColor: "oklch(0.18 0.008 145)" }}>
+              <SheetHeader className="mb-3">
+                <SheetTitle style={{ color: "oklch(0.9 0.01 145)", fontFamily: "var(--font-display)" }}>Conversazioni</SheetTitle>
+              </SheetHeader>
+              <div className="h-[calc(100%-3rem)]">
+                <SessionsPanel />
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${GREEN}20` }}>
             <Bot size={16} style={{ color: GREEN }} />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-sm font-semibold" style={{ color: "oklch(0.9 0.01 145)" }}>Fallinity Copilot</h2>
               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ background: `${GOLD}20`, color: GOLD }}>Explainable AI™</span>
             </div>
-            <p className="text-xs" style={{ color: "oklch(0.45 0.01 145)" }}>Suggerimenti motivati sui dati reali della tua azienda</p>
+            <p className="text-xs truncate" style={{ color: "oklch(0.45 0.01 145)" }}>Suggerimenti motivati sui dati reali</p>
           </div>
-          <div className="ml-auto flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
             <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: GREEN }} />
-            <span className="text-xs" style={{ color: GREEN }}>Online</span>
+            <span className="text-xs hidden sm:inline" style={{ color: GREEN }}>Online</span>
           </div>
         </div>
 
         {/* Banner contesto live */}
-        <div className="flex items-center gap-4 px-5 py-2.5 border-b overflow-x-auto" style={{ borderColor: "oklch(0.16 0.007 145)", background: "oklch(0.09 0.005 145)" }}>
+        <div className="flex items-center gap-4 px-4 py-2.5 border-b overflow-x-auto" style={{ borderColor: "oklch(0.16 0.007 145)", background: "oklch(0.09 0.005 145)" }}>
           <span className="text-[10px] font-semibold uppercase tracking-wider shrink-0" style={{ color: "oklch(0.4 0.01 145)" }}>Contesto live</span>
           {[
             { icon: TrendingUp, label: "Utile", value: `€${Number(kpi?.utile ?? 0).toLocaleString("it-IT")}`, color: (kpi?.utile ?? 0) >= 0 ? GREEN : "oklch(0.6 0.2 25)" },
@@ -191,9 +217,9 @@ export default function AI() {
         </div>
 
         {/* Messaggi */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
           {!selectedSession || msgList.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full gap-6">
+            <div className="flex flex-col items-center justify-center h-full gap-6 py-6">
               <div className="text-center">
                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: `${GREEN}15`, border: `1px solid ${GREEN}30` }}>
                   <Zap size={28} style={{ color: GREEN }} />
@@ -201,17 +227,17 @@ export default function AI() {
                 <h3 className="text-lg font-semibold mb-1" style={{ fontFamily: "var(--font-display)", color: "oklch(0.85 0.01 145)" }}>
                   Ciao! Sono l'AI di Fallinity
                 </h3>
-                <p className="text-sm max-w-sm text-center" style={{ color: "oklch(0.5 0.01 145)" }}>
+                <p className="text-sm max-w-sm text-center mx-auto" style={{ color: "oklch(0.5 0.01 145)" }}>
                   Posso analizzare i dati della tua azienda e fornirti suggerimenti motivati con approccio <strong style={{ color: GOLD }}>Explainable AI™</strong>.
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 w-full max-w-lg">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
                 {SUGGESTED_QUESTIONS.map((q) => (
                   <button
                     key={q}
                     onClick={() => handleSend(q)}
-                    className="text-left px-3 py-2.5 rounded-lg text-xs transition-all hover:scale-[1.02]"
+                    className="text-left px-3 py-2.5 rounded-lg text-xs transition-all active:scale-[0.98]"
                     style={{
                       background: "oklch(0.09 0.005 145)",
                       border: "1px solid oklch(0.2 0.008 145)",
@@ -289,12 +315,12 @@ export default function AI() {
         {/* Input area */}
         <div className="px-4 py-3 border-t" style={{ borderColor: "oklch(0.18 0.008 145)" }}>
           <div className="flex gap-2 items-end">
-            <div className="flex-1 relative">
+            <div className="flex-1 relative min-w-0">
               <Input
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Chiedi all'AI Fallinity... (Invio per inviare)"
+                placeholder="Chiedi all'AI Fallinity..."
                 className="pr-4 py-3 text-sm bg-input border-border"
                 disabled={chat.isPending || isTyping}
               />
@@ -309,7 +335,7 @@ export default function AI() {
             </Button>
           </div>
           <p className="text-xs mt-1.5" style={{ color: "oklch(0.35 0.01 145)" }}>
-            Explainable AI™ — ogni suggerimento include il ragionamento basato sui dati reali della tua azienda.
+            Explainable AI™ — ogni suggerimento include il ragionamento basato sui dati reali.
           </p>
         </div>
       </div>
