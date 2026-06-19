@@ -25,12 +25,33 @@ import {
   RefreshCw,
   Grid3x3,
   X,
+  Users,
+  Building,
+  ShieldCheck,
+  DatabaseBackup,
+  LifeBuoy,
 } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { toast } from "sonner";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import { Button } from "./ui/button";
 import { FallinityHeader, FallinityBottomNavigation } from "./fallinity";
+
+// Funzioni di sistema dell'hub "Altro" (alcune in arrivo nelle prossime release)
+type SystemItem = { icon: typeof Home; label: string; path?: string; soon?: boolean };
+const systemItems: SystemItem[] = [
+  { icon: BarChart3,   label: "Report",            path: "/report" },
+  { icon: Bot,         label: "AI Copilot",        path: "/ai" },
+  { icon: Users,       label: "Gestione utenti",   soon: true },
+  { icon: Building,    label: "Gestione aziende",  soon: true },
+  { icon: Settings,    label: "Impostazioni",      soon: true },
+  { icon: ShieldCheck, label: "Audit log",         soon: true },
+  { icon: DatabaseBackup, label: "Backup",          soon: true },
+  { icon: LifeBuoy,    label: "Supporto",          soon: true },
+];
+// Moduli operativi accessibili anche dall'hub (oltre che da Azienda)
+const operativePaths = ["/campi", "/magazzino", "/officina", "/calendario", "/stalla"];
 
 const LOGO_URL = "/manus-storage/fallinity-logo_8c31d682.png";
 
@@ -39,6 +60,7 @@ const TEXT_DIM = "oklch(0.5 0.01 145)";
 const TEXT_BRIGHT = "oklch(0.9 0.01 145)";
 const PANEL = "oklch(0.09 0.006 145)";
 const BORDER = "oklch(0.18 0.008 145)";
+const GOLD = "oklch(0.72 0.15 75)";
 
 type MenuItem = { icon: typeof Home; label: string; path: string; desc: string };
 
@@ -60,10 +82,9 @@ const allItems: MenuItem[] = [
 // Reintegrazione NON e' una voce separata: vive dentro Finanza (tab dedicata).
 const primaryPaths = ["/", "/azienda", "/finanza"];
 const primaryItems = primaryPaths.map(p => allItems.find(i => i.path === p)!);
-// "Altro" raccoglie i moduli operativi non primari (Reintegrazione esclusa: e' dentro Finanza).
-const moreItems = allItems.filter(
-  i => !primaryPaths.includes(i.path) && i.path !== "/reintegrazione",
-);
+// Drawer "Altro": sezione moduli operativi (sotto-aree di Azienda) + sezione sistema/strumenti.
+const moreItems = allItems.filter(i => operativePaths.includes(i.path));
+const systemPaths = systemItems.filter(s => s.path).map(s => s.path!);
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { loading, user } = useAuth();
@@ -102,7 +123,7 @@ function FEOSLayout({ children }: { children: React.ReactNode }) {
   const [moreOpen, setMoreOpen] = useState(false);
 
   const activeItem = allItems.find(item => item.path === location);
-  const isMoreActive = moreItems.some(i => i.path === location);
+  const isMoreActive = moreItems.some(i => i.path === location) || systemPaths.includes(location);
 
   const navigate = (path: string) => {
     setLocation(path);
@@ -186,35 +207,69 @@ function FEOSLayout({ children }: { children: React.ReactNode }) {
           >
             <div className="flex items-center justify-between mb-4 px-1">
               <h3 className="font-semibold text-sm" style={{ color: TEXT_BRIGHT, fontFamily: "var(--font-display)" }}>
-                Tutti i moduli
+                Altro
               </h3>
               <button onClick={() => setMoreOpen(false)} className="p-1 rounded-md" style={{ color: TEXT_DIM }}>
                 <X size={18} />
               </button>
             </div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-w-2xl mx-auto">
-              {moreItems.map(item => {
-                const isActive = location === item.path;
-                return (
-                  <button
-                    key={item.path}
-                    onClick={() => navigate(item.path)}
-                    className="flex flex-col items-center gap-2 p-3 rounded-xl transition-all duration-150"
-                    style={{
-                      background: isActive ? "oklch(0.65 0.18 142 / 0.12)" : "oklch(0.12 0.008 145)",
-                      border: isActive ? `1px solid ${GREEN}` : "1px solid transparent",
-                    }}
-                  >
-                    <item.icon size={22} style={{ color: isActive ? GREEN : TEXT_DIM }} />
-                    <span
-                      className="text-xs font-medium text-center leading-tight"
-                      style={{ color: isActive ? GREEN : "oklch(0.7 0.01 145)" }}
-                    >
-                      {item.label}
-                    </span>
-                  </button>
-                );
-              })}
+
+            <div className="max-w-2xl mx-auto space-y-4">
+              {/* Sezione 1: moduli operativi (sotto-aree di Azienda, accesso rapido) */}
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider mb-2 px-1" style={{ color: GOLD }}>Moduli operativi</p>
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                  {moreItems.map(item => {
+                    const isActive = location === item.path;
+                    return (
+                      <button
+                        key={item.path}
+                        onClick={() => navigate(item.path)}
+                        className="flex flex-col items-center gap-2 p-3 rounded-xl transition-all duration-150 active:scale-[0.97]"
+                        style={{
+                          background: isActive ? "oklch(0.65 0.18 142 / 0.12)" : "oklch(0.12 0.008 145)",
+                          border: isActive ? `1px solid ${GREEN}` : "1px solid transparent",
+                        }}
+                      >
+                        <item.icon size={22} style={{ color: isActive ? GREEN : TEXT_DIM }} />
+                        <span className="text-xs font-medium text-center leading-tight" style={{ color: isActive ? GREEN : "oklch(0.7 0.01 145)" }}>
+                          {item.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Sezione 2: sistema & strumenti */}
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider mb-2 px-1" style={{ color: GOLD }}>Sistema & Strumenti</p>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {systemItems.map(item => {
+                    const isActive = !!item.path && location === item.path;
+                    return (
+                      <button
+                        key={item.label}
+                        onClick={() => item.path ? navigate(item.path) : toast.info(`${item.label} — disponibile in una prossima release`)}
+                        className="relative flex flex-col items-center gap-2 p-3 rounded-xl transition-all duration-150 active:scale-[0.97]"
+                        style={{
+                          background: isActive ? "oklch(0.65 0.18 142 / 0.12)" : "oklch(0.12 0.008 145)",
+                          border: isActive ? `1px solid ${GREEN}` : "1px solid transparent",
+                          opacity: item.soon ? 0.7 : 1,
+                        }}
+                      >
+                        {item.soon && (
+                          <span className="absolute top-1 right-1 text-[8px] px-1 rounded" style={{ background: "oklch(0.2 0.008 145)", color: GOLD }}>soon</span>
+                        )}
+                        <item.icon size={22} style={{ color: isActive ? GREEN : TEXT_DIM }} />
+                        <span className="text-xs font-medium text-center leading-tight" style={{ color: isActive ? GREEN : "oklch(0.7 0.01 145)" }}>
+                          {item.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
         </div>

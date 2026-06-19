@@ -251,8 +251,10 @@
 - [x] Reintegrazione spostata DENTRO Finanza (tab Economia|Reintegrazione, riuso modulo, route deep-link mantenuta)
 - [x] FallinityBottomNavigation a 4 voci realizzata nel DashboardLayout
 - [x] "Altro" hub raccoglie i moduli operativi non primari (Reintegrazione esclusa)
-- [ ] Altro = hub funzioni secondarie: Report, AI, Gestione utenti, Gestione aziende, Impostazioni, Backup, Audit, Supporto
-- [ ] Azienda = command center: Stalla, Campi, Magazzino, Officina, Calendario
+- [x] Altro = hub a due sezioni: "Moduli operativi" (Campi/Magazzino/Officina/Calendario/Stalla) + "Sistema & Strumenti" (Report, AI Copilot attivi; Gestione utenti/aziende, Impostazioni, Audit log, Backup, Supporto con badge "soon" + toast)
+- [x] Azienda = command center completo: Stalla, Dati Latte, Dati Vitelli, Magazzino, Officina, Campi, Calendario (tutti con KPI live + deep-link)
+- [x] isMoreActive riconosce anche i path di sistema (Report/AI evidenziano "Altro" in bottom nav)
+- [x] Fix refuso pluralizzazione anagrafica (singolare corretto: dipendente/fornitore/cliente)
 
 ### Home (centro di controllo)
 - [x] Hero Card Utile Netto + card Cashflow/Fondo Reintegrazione + KPI operativi

@@ -8,7 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Users, Truck, ShoppingCart, Plus, Trash2, Phone, Mail, MapPin, Search,
-  Beef, Milk, Baby, Warehouse, Wrench, ChevronRight, Building2,
+  Beef, Milk, Baby, Warehouse, Wrench, ChevronRight, Building2, Sprout, CalendarDays,
 } from "lucide-react";
 import { toast } from "sonner";
 import { FAL_IMAGES } from "@/lib/assets";
@@ -18,10 +18,10 @@ const GREEN = "oklch(0.65 0.18 142)";
 const GOLD  = "oklch(0.72 0.15 75)";
 const BLUE  = "oklch(0.6 0.15 220)";
 
-const tipoConfig: Record<string, { label: string; color: string; icon: any }> = {
-  dipendente: { label: "Dipendenti", color: GREEN, icon: Users },
-  fornitore:  { label: "Fornitori",  color: GOLD,  icon: Truck },
-  cliente:    { label: "Clienti",    color: BLUE,  icon: ShoppingCart },
+const tipoConfig: Record<string, { label: string; singolare: string; color: string; icon: any }> = {
+  dipendente: { label: "Dipendenti", singolare: "dipendente", color: GREEN, icon: Users },
+  fornitore:  { label: "Fornitori",  singolare: "fornitore",  color: GOLD,  icon: Truck },
+  cliente:    { label: "Clienti",    singolare: "cliente",    color: BLUE,  icon: ShoppingCart },
 };
 
 const EMPTY_FORM = {
@@ -86,6 +86,14 @@ export default function Azienda() {
     {
       key: "officina", label: "Officina", icon: Wrench, color: BLUE, img: FAL_IMAGES.officinaTractor,
       kpi: `${kpi?.macchine ?? 0} mezzi`, sub: `${kpi?.interventiAperti ?? 0} interventi aperti`, path: "/officina",
+    },
+    {
+      key: "campi", label: "Campi", icon: Sprout, color: GREEN, img: FAL_IMAGES.campiColture,
+      kpi: `${kpi?.campi ?? 0} appezzamenti`, sub: "Colture, lavorazioni e rese", path: "/campi",
+    },
+    {
+      key: "calendario", label: "Calendario", icon: CalendarDays, color: GOLD, img: FAL_IMAGES.heroFarm,
+      kpi: "Pianificazione", sub: "Attivit\u00e0, scadenze ed eventi", path: "/calendario",
     },
   ];
 
@@ -190,7 +198,7 @@ export default function Azienda() {
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <cfg.icon size={36} className="opacity-10" style={{ color: cfg.color }} />
-              <p className="text-sm" style={{ color: "oklch(0.45 0.01 145)" }}>Nessun {cfg.label.slice(0, -1).toLowerCase()} trovato</p>
+              <p className="text-sm" style={{ color: "oklch(0.45 0.01 145)" }}>Nessun {cfg.singolare} trovato</p>
               <Button size="sm" onClick={() => { setForm({ ...EMPTY_FORM, tipo: tab }); setOpen(true); }}
                 style={{ background: `${cfg.color}15`, color: cfg.color, border: `1px solid ${cfg.color}30` }}>
                 <Plus size={13} className="mr-1" /> Aggiungi
@@ -267,7 +275,7 @@ export default function Azienda() {
                       color: form.tipo === t ? tipoConfig[t].color : "oklch(0.5 0.01 145)",
                       border: `1px solid ${form.tipo === t ? tipoConfig[t].color + "40" : "transparent"}`,
                     }}>
-                    {tipoConfig[t].label.slice(0, -1)}
+                    {tipoConfig[t].label}
                   </button>
                 ))}
               </div>
