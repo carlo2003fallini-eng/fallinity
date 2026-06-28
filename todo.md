@@ -279,3 +279,49 @@
 ### Verifica
 - [x] AI riprogettata mobile-first: sidebar conversazioni in drawer su mobile, chat full-width, domande suggerite a colonna singola (era layout desktop a 2 colonne rotto su 390px)
 - [x] 0 errori TS, 15 test Vitest verdi, screenshot mobile 9:16 di tutte le schermate, checkpoint Alpha 0.3
+
+
+## Fase 16: Sprint Officina Pro
+
+### Schema DB (estensione, no break altri moduli)
+- [x] macchine: categoria, foto, oreMotore, chilometri, healthScore, ultimoTagliando, prossimaManutenzione, costoTotale + enum stato esteso ('riposo')
+- [x] interventi: categoria, dataPianificata, tempoStimato, oreLavoro, costoOrario, costoPrevisto, costoFinale, foto + enum tipo/priorita/stato estesi
+- [x] ricambi: codice, nome, categoria, compatibilita, quantitaDisponibile, sogliaMinima, posizione, costoMedio, fornitore, companyId + audit + soft delete
+- [x] interventoRicambi (join): interventoId, ricambioId, codiceRicambio, nomeRicambio, quantitaRichiesta, quantitaUtilizzata, costoUnitario, obbligatorio
+- [x] macchinaDocumenti: macchinaId, nome, tipo, url, fileKey + audit + soft delete
+- [x] Migrazione SQL applicata con ALTER isolati (un comando per volta) + verifica + 0 errori TS
+
+### Backend dominio fleet
+- [x] repository: query mezzi/interventi/ricambi/documenti/interventoRicambi con companyId + deletedAt
+- [x] service: KPI dashboard (mezzi operativi/fermi, interventi oggi/in ritardo, ricambi sotto scorta, costo manutenzione mese)
+- [x] service: confronto ricambi richiesti vs disponibili (statoDisponibilita), sempre mostrati
+- [x] service: workflow completamento (scala magazzino ricambi + registra costo finanza + aggiorna macchina + crea evento calendario)
+- [x] service: "Prepara ordine ricambi" genera lista sotto scorta + quantita consigliata
+- [x] service: calcolo Health Score deterministico
+- [x] validators zod per tutte le nuove procedure
+- [x] router fleet aggiornato: dashboard, preparaOrdine, macchine.*, interventi.*, ricambi.*
+
+### Integrazioni automatiche
+- [x] Magazzino officina: scala quantita ricambi utilizzati al completamento
+- [x] Finanza: crea transazione uscita (ricambi + manodopera) al completamento
+- [x] Calendario: crea evento manutenzione completata
+- [x] Macchina: aggiorna costo totale + ultimo tagliando + stato al completamento
+- [x] Dashboard Officina: alert attivita prioritarie (interventi in ritardo + mezzi fermi)
+
+### Immagini (no brand)
+- [x] Hero officina moderna neutra (banchi, utensili, ponte sollevamento, scaffalature)
+- [x] Copertine/categorie mezzi generiche senza loghi produttori (trattore neutro + scaffalatura ricambi)
+
+### Frontend Officina (mobile-first premium)
+- [x] Dashboard: Hero neutro + 6 KPI + alert attivita prioritarie
+- [x] Gestione Mezzi: card con foto, health ring, ore/km, stato, prossima manutenzione, costo; sheet dettaglio con storico + documenti; form create/edit
+- [x] Interventi a tab: Pianificati / In corso / Straordinari / Completati (con contatori)
+- [x] Card intervento: mezzo, priorita, operatore, tempo stimato, costo previsto/finale, badge in ritardo
+- [x] Workflow completamento: ricambi usati, ore lavoro, costo orario, note, anteprima costo finale auto
+- [x] Sezione Ricambi: stati scorta + stepper quantita (optimistic) + alert + "Prepara ordine ricambi" con copia lista
+- [x] Filtri interventi (stato a tab, mezzo, priorita)
+- [x] Filtri ricambi (tutti/disponibili/sotto scorta/esauriti/da ordinare + categoria + ricerca)
+- [x] Form a colonna singola in Sheet laterali, pulsanti grandi, niente overflow
+
+### Verifica
+- [x] 0 errori TS, 26/26 test Vitest verdi (11 nuovi fleet), screenshot mobile verificati, DB allineato

@@ -305,37 +305,102 @@ export const macchine = mysqlTable("macchine", {
   id: uuidPk(),
   companyId: companyRef(),
   nome: varchar("nome", { length: 255 }).notNull(),
+  categoria: varchar("categoria", { length: 100 }),
   marca: varchar("marca", { length: 100 }),
   modello: varchar("modello", { length: 100 }),
   targa: varchar("targa", { length: 20 }),
   telaio: varchar("telaio", { length: 100 }),
   anno: int("anno"),
+  foto: text("foto"),
   oreTotali: decimal("oreTotali", { precision: 10, scale: 1 }).default("0"),
-  stato: mysqlEnum("stato", ["operativo", "manutenzione", "fermo"]).default("operativo").notNull(),
+  oreMotore: decimal("oreMotore", { precision: 10, scale: 1 }).default("0"),
+  chilometri: decimal("chilometri", { precision: 12, scale: 1 }),
+  healthScore: int("healthScore").default(100),
+  ultimoTagliando: date("ultimoTagliando"),
+  prossimaManutenzione: date("prossimaManutenzione"),
+  costoTotale: decimal("costoTotale", { precision: 12, scale: 2 }).default("0"),
+  stato: mysqlEnum("stato", ["operativo", "manutenzione", "fermo", "riposo"]).default("operativo").notNull(),
   note: text("note"),
   ...auditColumns,
 });
 export type Macchina = typeof macchine.$inferSelect;
 export type InsertMacchina = typeof macchine.$inferInsert;
 
+export const macchinaDocumenti = mysqlTable("macchinaDocumenti", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  macchinaId: varchar("macchinaId", { length: 36 }).notNull(),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  tipo: varchar("tipo", { length: 50 }),
+  url: text("url").notNull(),
+  fileKey: varchar("fileKey", { length: 255 }),
+  ...auditColumns,
+});
+export type MacchinaDocumento = typeof macchinaDocumenti.$inferSelect;
+export type InsertMacchinaDocumento = typeof macchinaDocumenti.$inferInsert;
+
 export const interventi = mysqlTable("interventi", {
   id: uuidPk(),
   companyId: companyRef(),
   macchinaId: varchar("macchinaId", { length: 36 }).notNull(),
-  tipo: mysqlEnum("tipo", ["manutenzione", "riparazione", "revisione"]).notNull(),
+  tipo: mysqlEnum("tipo", ["manutenzione", "riparazione", "revisione", "tagliando", "straordinario"]).notNull(),
+  categoria: varchar("categoria", { length: 100 }),
   descrizione: text("descrizione").notNull(),
   data: date("data").notNull(),
+  dataPianificata: date("dataPianificata"),
   dataCompletamento: date("dataCompletamento"),
-  priorita: mysqlEnum("priorita", ["alta", "media", "bassa"]).default("media").notNull(),
-  stato: mysqlEnum("stato", ["pianificato", "in_corso", "completato"]).default("pianificato").notNull(),
+  priorita: mysqlEnum("priorita", ["urgente", "alta", "media", "bassa"]).default("media").notNull(),
+  stato: mysqlEnum("stato", ["pianificato", "in_corso", "straordinario", "completato"]).default("pianificato").notNull(),
+  operatore: varchar("operatore", { length: 255 }),
+  tempoStimato: decimal("tempoStimato", { precision: 6, scale: 1 }),
+  oreLavoro: decimal("oreLavoro", { precision: 6, scale: 1 }),
+  costoOrario: decimal("costoOrario", { precision: 8, scale: 2 }),
+  costoPrevisto: decimal("costoPrevisto", { precision: 10, scale: 2 }),
   costoManodopera: decimal("costoManodopera", { precision: 10, scale: 2 }),
   costoRicambi: decimal("costoRicambi", { precision: 10, scale: 2 }),
-  operatore: varchar("operatore", { length: 255 }),
+  costoFinale: decimal("costoFinale", { precision: 10, scale: 2 }),
+  foto: text("foto"),
   note: text("note"),
   ...auditColumns,
 });
 export type Intervento = typeof interventi.$inferSelect;
 export type InsertIntervento = typeof interventi.$inferInsert;
+
+// Magazzino ricambi dedicato all'officina.
+export const ricambi = mysqlTable("ricambi", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  codice: varchar("codice", { length: 100 }).notNull(),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  categoria: varchar("categoria", { length: 100 }),
+  compatibilita: text("compatibilita"),
+  quantitaDisponibile: decimal("quantitaDisponibile", { precision: 12, scale: 2 }).default("0").notNull(),
+  sogliaMinima: decimal("sogliaMinima", { precision: 12, scale: 2 }).default("0").notNull(),
+  posizione: varchar("posizione", { length: 100 }),
+  costoMedio: decimal("costoMedio", { precision: 10, scale: 2 }).default("0"),
+  fornitore: varchar("fornitore", { length: 255 }),
+  note: text("note"),
+  ...auditColumns,
+});
+export type Ricambio = typeof ricambi.$inferSelect;
+export type InsertRicambio = typeof ricambi.$inferInsert;
+
+// Join intervento <-> ricambio (richiesto vs utilizzato).
+export const interventoRicambi = mysqlTable("interventoRicambi", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  interventoId: varchar("interventoId", { length: 36 }).notNull(),
+  ricambioId: varchar("ricambioId", { length: 36 }),
+  codiceRicambio: varchar("codiceRicambio", { length: 100 }),
+  nomeRicambio: varchar("nomeRicambio", { length: 255 }),
+  quantitaRichiesta: decimal("quantitaRichiesta", { precision: 12, scale: 2 }).default("0").notNull(),
+  quantitaUtilizzata: decimal("quantitaUtilizzata", { precision: 12, scale: 2 }).default("0"),
+  costoUnitario: decimal("costoUnitario", { precision: 10, scale: 2 }),
+  obbligatorio: boolean("obbligatorio").default(true),
+  ...auditColumns,
+});
+export type InterventoRicambio = typeof interventoRicambi.$inferSelect;
+export type InsertInterventoRicambio = typeof interventoRicambi.$inferInsert;
 
 // ─── CALENDARIO ───────────────────────────────────────────────────────────────
 export const eventi = mysqlTable("eventi", {

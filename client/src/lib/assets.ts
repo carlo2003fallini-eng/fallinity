@@ -7,6 +7,10 @@ export const FAL_IMAGES = {
   datiVitelli: "https://d2xsxph8kpxj0f.cloudfront.net/310519663717327329/njFHjyr4pr7Y7NuhmNhJ78/dati-vitelli-HrQKCg8n7HYAhtLvnHstZz.webp",
   magazzinoSilos: "https://d2xsxph8kpxj0f.cloudfront.net/310519663717327329/njFHjyr4pr7Y7NuhmNhJ78/magazzino-silos-SyMq4u2VPLZ8tCk86qSMac.webp",
   campiColture: "https://d2xsxph8kpxj0f.cloudfront.net/310519663717327329/njFHjyr4pr7Y7NuhmNhJ78/campi-colture-AX558Lf3w3rDrrqD9HyU62.webp",
+  // Officina — immagini neutre senza brand
+  officinaHero: "https://d2xsxph8kpxj0f.cloudfront.net/310519663717327329/njFHjyr4pr7Y7NuhmNhJ78/officina-hero-neutral-4Bg7UXAWnQd2WomGpQ2Jqq.webp",
+  officinaMezzo: "https://d2xsxph8kpxj0f.cloudfront.net/310519663717327329/njFHjyr4pr7Y7NuhmNhJ78/officina-tractor-neutral-VxRhQJrMDYiM9SQEnfLgwq.webp",
+  officinaRicambi: "https://d2xsxph8kpxj0f.cloudfront.net/310519663717327329/njFHjyr4pr7Y7NuhmNhJ78/officina-parts-neutral-aNamzVudFo3SanUxvXrC25.webp",
 } as const;
 
 // Logo Fallinity (stored in webdev project)
