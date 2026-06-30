@@ -325,3 +325,34 @@
 
 ### Verifica
 - [x] 0 errori TS, 26/26 test Vitest verdi (11 nuovi fleet), screenshot mobile verificati, DB allineato
+
+
+## FASE 17 — Officina Pro: rifiniture (codici, stati ricambio, filtri, alert)
+
+### Verifica navigazione (gia conforme, solo controllo)
+- [x] Bottom nav a 4 voci (Home, Azienda, Finanza, Altro) — gia implementata
+- [x] Azienda hub con card moduli + KPI/alert — gia implementata
+- [x] Reintegrazione come tab interna di Finanza — gia implementata
+- [x] Altro con funzioni di sistema — gia implementata
+
+### Schema/Backend (estensione isolata)
+- [x] macchine: campo `codice` (MEZ-0001) generato + ALTER isolato
+- [x] interventi: campo `codice` (INT-2026-0001) + tempoEffettivo + ALTER isolati
+- [x] ricambi: campo `statoOrdine` (nessuno/da_ordinare/ordinato) + ALTER isolato
+- [x] interventoRicambi: campo `obbligatorio` gia presente — verificato
+- [x] Generazione automatica codici progressivi per company (count + pad)
+- [x] service: stati ricambio estesi (disponibile/sotto_scorta/non_disponibile/da_ordinare/ordinato)
+- [x] service: filtri interventi avanzati (operatore, categoria, costo min/max, ricerca)
+- [x] service: filtri ricambi avanzati (fornitore, posizione, prezzo min/max, ricerca)
+- [x] service: flag ricambiObbligatoriMancanti + prontoPerCompletamento nel dettaglio intervento
+- [x] router: ricambi.setStatoOrdine + 0 errori TS
+
+### UI Officina
+- [x] Codici visibili (CodicePill MEZ-/INT-/RIC-) in card mezzi, interventi, ricambi e dettagli
+- [x] Filtri interventi avanzati (operatore + ricerca per codice/descrizione)
+- [x] Filtri ricambi avanzati (categoria standard, fornitore, stato ordine)
+- [x] Alert "Ricambi obbligatori mancanti: intervento non pronto" + conferma su completamento
+- [x] Badge stato ricambio esteso (da_ordinare/ordinato) + azione segna ordinato
+
+### Verifica
+- [x] 0 errori TS, 32/32 test Vitest verdi (6 nuovi statoScortaRicambio), screenshot mobile, DB allineato, checkpoint

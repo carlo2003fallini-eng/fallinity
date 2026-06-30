@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
   macchine,
@@ -11,6 +11,26 @@ import { withCreate, withUpdate, softDeletePayload, type ActorContext } from "..
 
 /** FLEET (Officina) — Repository (query pure Drizzle, multi-tenant + soft-delete) */
 export const fleetRepository = {
+  // ── Conteggi per codici progressivi (per company) ────────────────────────────
+  async countMacchine(companyId: string) {
+    const db = await getDb();
+    if (!db) return 0;
+    const r = await db.select({ n: sql<number>`count(*)` }).from(macchine).where(eq(macchine.companyId, companyId));
+    return Number(r[0]?.n ?? 0);
+  },
+  async countInterventi(companyId: string) {
+    const db = await getDb();
+    if (!db) return 0;
+    const r = await db.select({ n: sql<number>`count(*)` }).from(interventi).where(eq(interventi.companyId, companyId));
+    return Number(r[0]?.n ?? 0);
+  },
+  async countRicambi(companyId: string) {
+    const db = await getDb();
+    if (!db) return 0;
+    const r = await db.select({ n: sql<number>`count(*)` }).from(ricambi).where(eq(ricambi.companyId, companyId));
+    return Number(r[0]?.n ?? 0);
+  },
+
   // ── Macchine ────────────────────────────────────────────────────────────────
   async listMacchine(companyId: string) {
     const db = await getDb();

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { statoDisponibilita, calcolaHealthScore } from "./domains/fleet/service";
+import { statoDisponibilita, calcolaHealthScore, statoScortaRicambio } from "./domains/fleet/service";
 
 describe("statoDisponibilita", () => {
   it("ritorna non_disponibile quando la scorta è zero o negativa", () => {
@@ -58,5 +58,33 @@ describe("calcolaHealthScore", () => {
 
   it("non supera mai 100", () => {
     expect(calcolaHealthScore({ stato: "operativo", healthScore: 100 }, [])).toBeLessThanOrEqual(100);
+  });
+});
+
+describe("statoScortaRicambio (stati estesi)", () => {
+  it("ritorna 'ordinato' quando statoOrdine è ordinato, a prescindere dalla scorta", () => {
+    expect(statoScortaRicambio(0, 2, "ordinato")).toBe("ordinato");
+    expect(statoScortaRicambio(100, 2, "ordinato")).toBe("ordinato");
+  });
+
+  it("ritorna 'non_disponibile' quando la scorta è zero senza stato ordine", () => {
+    expect(statoScortaRicambio(0, 2, null)).toBe("non_disponibile");
+  });
+
+  it("ritorna 'da_ordinare' quando esaurito e marcato da_ordinare", () => {
+    expect(statoScortaRicambio(0, 2, "da_ordinare")).toBe("da_ordinare");
+  });
+
+  it("ritorna 'sotto_scorta' quando disponibile <= soglia senza stato ordine", () => {
+    expect(statoScortaRicambio(2, 3, null)).toBe("sotto_scorta");
+  });
+
+  it("ritorna 'da_ordinare' quando sotto scorta e marcato da_ordinare", () => {
+    expect(statoScortaRicambio(2, 3, "da_ordinare")).toBe("da_ordinare");
+  });
+
+  it("ritorna 'disponibile' quando la scorta è sopra soglia", () => {
+    expect(statoScortaRicambio(10, 3, null)).toBe("disponibile");
+    expect(statoScortaRicambio(10, 3, "nessuno")).toBe("disponibile");
   });
 });

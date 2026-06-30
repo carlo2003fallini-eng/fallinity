@@ -10,7 +10,7 @@ import {
 import { toast } from "sonner";
 import { FAL_IMAGES } from "@/lib/assets";
 import {
-  C, STATO_MACCHINA, STATO_INTERVENTO, TIPO_INTERVENTO_LABEL, eur, dataIT, HealthRing,
+  C, STATO_MACCHINA, STATO_INTERVENTO, TIPO_INTERVENTO_LABEL, eur, dataIT, HealthRing, CodicePill,
 } from "./shared";
 
 const EMPTY_M = {
@@ -167,10 +167,13 @@ export default function MezziTab() {
                   <div className="flex items-start gap-3">
                     <HealthRing score={m.healthScore ?? 100} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold truncate" style={{ color: C.text, fontFamily: "var(--font-display)" }}>{m.nome}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-bold truncate" style={{ color: C.text, fontFamily: "var(--font-display)" }}>{m.nome}</p>
+                      </div>
                       <p className="text-xs mt-0.5 truncate" style={{ color: C.textDim }}>
                         {[m.marca, m.modello].filter(Boolean).join(" ") || m.categoria || "—"}
                       </p>
+                      {m.codice && <div className="mt-1.5"><CodicePill codice={m.codice} /></div>}
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 mt-3">

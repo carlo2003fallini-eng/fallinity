@@ -64,7 +64,26 @@ export const STATO_SCORTA: Record<string, { label: string; color: string }> = {
   sotto_scorta: { label: "Sotto scorta", color: C.gold },
   non_disponibile: { label: "Esaurito", color: C.red },
   insufficiente: { label: "Insufficiente", color: C.orange },
+  da_ordinare: { label: "Da ordinare", color: C.orange },
+  ordinato: { label: "Ordinato", color: C.blue },
 };
+
+/** Pill compatta per i codici tracciabili (MEZ-/INT-/RIC-/OPR-). */
+export function CodicePill({ codice }: { codice?: string | null }) {
+  if (!codice) return null;
+  return (
+    <span
+      className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider"
+      style={{
+        background: "oklch(0.16 0.008 145)",
+        color: C.textDim,
+        fontFamily: "var(--font-mono, ui-monospace, monospace)",
+      }}
+    >
+      {codice}
+    </span>
+  );
+}
 
 export function eur(n: number | string | null | undefined) {
   return `€${Number(n ?? 0).toLocaleString("it-IT", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;

@@ -304,6 +304,7 @@ export type InsertMovimentoMagazzino = typeof movimentiMagazzino.$inferInsert;
 export const macchine = mysqlTable("macchine", {
   id: uuidPk(),
   companyId: companyRef(),
+  codice: varchar("codice", { length: 50 }),
   nome: varchar("nome", { length: 255 }).notNull(),
   categoria: varchar("categoria", { length: 100 }),
   marca: varchar("marca", { length: 100 }),
@@ -343,6 +344,7 @@ export const interventi = mysqlTable("interventi", {
   id: uuidPk(),
   companyId: companyRef(),
   macchinaId: varchar("macchinaId", { length: 36 }).notNull(),
+  codice: varchar("codice", { length: 50 }),
   tipo: mysqlEnum("tipo", ["manutenzione", "riparazione", "revisione", "tagliando", "straordinario"]).notNull(),
   categoria: varchar("categoria", { length: 100 }),
   descrizione: text("descrizione").notNull(),
@@ -353,6 +355,7 @@ export const interventi = mysqlTable("interventi", {
   stato: mysqlEnum("stato", ["pianificato", "in_corso", "straordinario", "completato"]).default("pianificato").notNull(),
   operatore: varchar("operatore", { length: 255 }),
   tempoStimato: decimal("tempoStimato", { precision: 6, scale: 1 }),
+  tempoEffettivo: decimal("tempoEffettivo", { precision: 6, scale: 1 }),
   oreLavoro: decimal("oreLavoro", { precision: 6, scale: 1 }),
   costoOrario: decimal("costoOrario", { precision: 8, scale: 2 }),
   costoPrevisto: decimal("costoPrevisto", { precision: 10, scale: 2 }),
@@ -379,6 +382,7 @@ export const ricambi = mysqlTable("ricambi", {
   posizione: varchar("posizione", { length: 100 }),
   costoMedio: decimal("costoMedio", { precision: 10, scale: 2 }).default("0"),
   fornitore: varchar("fornitore", { length: 255 }),
+  statoOrdine: varchar("statoOrdine", { length: 20 }).default("nessuno"),
   note: text("note"),
   ...auditColumns,
 });

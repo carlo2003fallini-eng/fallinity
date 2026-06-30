@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  C, STATO_INTERVENTO, PRIORITA, TIPO_INTERVENTO_LABEL, STATO_SCORTA, eur, dataIT,
+  C, STATO_INTERVENTO, PRIORITA, TIPO_INTERVENTO_LABEL, STATO_SCORTA, eur, dataIT, CodicePill,
 } from "./shared";
 
 const TIPI = ["manutenzione", "riparazione", "revisione", "tagliando", "straordinario"] as const;
@@ -40,6 +40,8 @@ export default function InterventiTab() {
   const [tab, setTab] = useState("pianificato");
   const [filtroMezzo, setFiltroMezzo] = useState("tutti");
   const [filtroPriorita, setFiltroPriorita] = useState("tutte");
+  const [filtroOperatore, setFiltroOperatore] = useState("tutti");
+  const [ricerca, setRicerca] = useState("");
   const [openForm, setOpenForm] = useState(false);
   const [openCompleta, setOpenCompleta] = useState(false);
   const [completaId, setCompletaId] = useState<string | null>(null);
@@ -88,12 +90,21 @@ export default function InterventiTab() {
     return map;
   }, [mezzi]);
 
+  const operatori = useMemo(() => {
+    const set = new Set<string>();
+    (interventi as any[]).forEach((i) => { if (i.operatore) set.add(i.operatore); });
+    return Array.from(set).sort();
+  }, [interventi]);
+
   const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
+  const q = ricerca.trim().toLowerCase();
   const list = (interventi as any[]).filter((i) => {
     const okTab = i.stato === tab;
     const okMezzo = filtroMezzo === "tutti" || i.macchinaId === filtroMezzo;
     const okPri = filtroPriorita === "tutte" || i.priorita === filtroPriorita;
-    return okTab && okMezzo && okPri;
+    const okOp = filtroOperatore === "tutti" || i.operatore === filtroOperatore;
+    const okQ = !q || (i.codice ?? "").toLowerCase().includes(q) || (i.descrizione ?? "").toLowerCase().includes(q) || (i.operatore ?? "").toLowerCase().includes(q);
+    return okTab && okMezzo && okPri && okOp && okQ;
   });
 
   const counts = useMemo(() => {
@@ -186,6 +197,15 @@ export default function InterventiTab() {
             <option value="tutte">Tutte le priorità</option>
             {PRIORITA_KEYS.map((p) => <option key={p} value={p}>{PRIORITA[p].label}</option>)}
           </select>
+          {operatori.length > 0 && (
+            <select value={filtroOperatore} onChange={(e) => setFiltroOperatore(e.target.value)} className="px-3 py-2 rounded-lg text-xs font-medium shrink-0"
+              style={{ background: C.inner, color: C.textDim, border: `1px solid ${C.border}` }}>
+              <option value="tutti">Tutti gli operatori</option>
+              {operatori.map((o) => <option key={o} value={o}>{o}</option>)}
+            </select>
+          )}
+          <Input value={ricerca} onChange={(e) => setRicerca(e.target.value)} placeholder="Cerca codice o descrizione…"
+            className="bg-input border-border text-xs h-auto py-2 shrink-0 w-44" />
         </div>
         <Button onClick={() => { setForm({ ...EMPTY_I }); setRighe([]); setOpenForm(true); }} className="gap-2 shrink-0" style={{ background: C.green, color: C.bgDeep }}>
           <Plus size={15} /> Nuovo intervento
@@ -231,6 +251,7 @@ export default function InterventiTab() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-semibold" style={{ color: C.text }}>{TIPO_INTERVENTO_LABEL[i.tipo] ?? i.tipo}</p>
+                      {i.codice && <CodicePill codice={i.codice} />}
                       <Badge style={{ background: `${pri.color}18`, color: pri.color, border: "none", fontSize: 10 }}>{pri.label}</Badge>
                       {ritardo && <Badge className="gap-1" style={{ background: `${C.red}18`, color: C.red, border: "none", fontSize: 10 }}><AlertTriangle size={9} /> In ritardo</Badge>}
                     </div>
@@ -367,9 +388,26 @@ export default function InterventiTab() {
             <>
               <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
                 <div className="p-3 rounded-lg" style={{ background: C.inner, border: `1px solid ${C.borderSoft}` }}>
-                  <p className="text-sm font-medium" style={{ color: C.text }}>{TIPO_INTERVENTO_LABEL[completaDetail.tipo] ?? completaDetail.tipo}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium" style={{ color: C.text }}>{TIPO_INTERVENTO_LABEL[completaDetail.tipo] ?? completaDetail.tipo}</p>
+                    {completaDetail.codice && <CodicePill codice={completaDetail.codice} />}
+                  </div>
                   <p className="text-xs mt-0.5" style={{ color: C.textDim }}>{completaDetail.descrizione}</p>
                 </div>
+
+                {/* Alert ricambi obbligatori mancanti */}
+                {(completaDetail.ricambiObbligatoriMancanti?.length ?? 0) > 0 && (
+                  <div className="p-3 rounded-lg flex gap-2.5" style={{ background: `${C.red}10`, border: `1px solid ${C.red}30` }}>
+                    <AlertTriangle size={16} style={{ color: C.red }} className="shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold" style={{ color: C.red }}>Ricambi obbligatori mancanti: intervento non pronto</p>
+                      <p className="text-[11px] mt-1" style={{ color: C.textDim }}>
+                        {completaDetail.ricambiObbligatoriMancanti.map((r: any) => r.nomeRicambio || r.codice || "ricambio").join(", ")}
+                      </p>
+                      <p className="text-[10px] mt-1" style={{ color: C.textFaint }}>Puoi completare comunque, ma verra' richiesta conferma.</p>
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Ore lavoro"><Input type="number" step="0.5" value={oreLavoro} onChange={(e) => setOreLavoro(e.target.value)} className="bg-input border-border text-sm" /></Field>
                   <Field label="Costo orario (€)"><Input type="number" value={costoOrarioFin} onChange={(e) => setCostoOrarioFin(e.target.value)} className="bg-input border-border text-sm" /></Field>
@@ -388,8 +426,12 @@ export default function InterventiTab() {
                           <div key={r.id} className="p-2.5 rounded-lg" style={{ background: C.inner, border: `1px solid ${C.borderSoft}` }}>
                             <div className="flex items-center justify-between gap-2">
                               <div className="min-w-0">
-                                <p className="text-xs font-medium truncate" style={{ color: C.text }}>{r.nomeRicambio || "Ricambio"}</p>
-                                <p className="text-[11px]" style={{ color: sc.color }}>{sc.label} · disp. {r.disponibile} · rich. {Number(r.quantitaRichiesta)}</p>
+                                <div className="flex items-center gap-1.5">
+                                  <p className="text-xs font-medium truncate" style={{ color: C.text }}>{r.nomeRicambio || "Ricambio"}</p>
+                                  {r.obbligatorio && <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: `${C.red}18`, color: C.red }}>OBBL.</span>}
+                                </div>
+                                {r.codice && <CodicePill codice={r.codice} />}
+                                <p className="text-[11px] mt-0.5" style={{ color: sc.color }}>{sc.label} · disp. {r.disponibile} · rich. {Number(r.quantitaRichiesta)}</p>
                               </div>
                               <Input type="number" value={usati[r.id] ?? ""} placeholder="0" onChange={(e) => setUsati((u) => ({ ...u, [r.id]: Number(e.target.value) }))} className="w-16 bg-input border-border text-sm shrink-0" />
                             </div>
@@ -414,7 +456,11 @@ export default function InterventiTab() {
                 </div>
               </div>
               <div className="px-6 py-4 border-t" style={{ borderColor: C.border }}>
-                <Button onClick={submitCompleta} disabled={completaI.isPending} className="w-full gap-2" style={{ background: C.green, color: C.bgDeep }}>
+                <Button onClick={() => {
+                  const mancanti = completaDetail.ricambiObbligatoriMancanti?.length ?? 0;
+                  if (mancanti > 0 && !window.confirm(`Mancano ${mancanti} ricambi obbligatori. Completare comunque l'intervento?`)) return;
+                  submitCompleta();
+                }} disabled={completaI.isPending} className="w-full gap-2" style={{ background: C.green, color: C.bgDeep }}>
                   <CheckCircle2 size={15} /> {completaI.isPending ? "Completamento…" : "Conferma completamento"}
                 </Button>
               </div>

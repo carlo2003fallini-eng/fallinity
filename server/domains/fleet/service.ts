@@ -15,6 +15,22 @@ import type {
 
 const COSTO_ORARIO_DEFAULT = 35; // €/h manodopera di default
 
+function pad(n: number, len: number) {
+  return String(n).padStart(len, "0");
+}
+
+/** Stato esteso di un ricambio nel magazzino officina. */
+export function statoScortaRicambio(
+  disponibile: number,
+  soglia: number,
+  statoOrdine?: string | null,
+): "disponibile" | "sotto_scorta" | "non_disponibile" | "da_ordinare" | "ordinato" {
+  if (statoOrdine === "ordinato") return "ordinato";
+  if (disponibile <= 0) return statoOrdine === "da_ordinare" ? "da_ordinare" : "non_disponibile";
+  if (soglia > 0 && disponibile <= soglia) return statoOrdine === "da_ordinare" ? "da_ordinare" : "sotto_scorta";
+  return "disponibile";
+}
+
 function toDateOrNull(v?: string | null): Date | null {
   if (!v) return null;
   const d = new Date(v);
@@ -85,8 +101,11 @@ export const fleetService = {
     };
   },
 
-  createMacchina(actor: ActorContext, input: CreateMacchinaInput) {
+  async createMacchina(actor: ActorContext, input: CreateMacchinaInput) {
+    const n = (await repo.countMacchine(actor.companyId)) + 1;
+    const codice = `MEZ-${pad(n, 4)}`;
     return repo.insertMacchina(actor, {
+      codice,
       nome: input.nome,
       categoria: input.categoria ?? null,
       marca: input.marca ?? null,
@@ -150,11 +169,42 @@ export const fleetService = {
   },
 
   // ── Interventi ──────────────────────────────────────────────────────────────
-  listInterventi(
+  async listInterventi(
     companyId: string,
-    filters?: { macchinaId?: string; stato?: string; priorita?: string; tipo?: string },
+    filters?: {
+      macchinaId?: string;
+      stato?: string;
+      priorita?: string;
+      tipo?: string;
+      operatore?: string;
+      categoria?: string;
+      costoMin?: number;
+      costoMax?: number;
+      conRicambi?: boolean;
+      ricerca?: string;
+    },
   ) {
-    return repo.listInterventi(companyId, filters);
+    const rows = await repo.listInterventi(companyId, {
+      macchinaId: filters?.macchinaId,
+      stato: filters?.stato,
+      priorita: filters?.priorita,
+      tipo: filters?.tipo,
+    });
+    let out = rows as any[];
+    if (filters?.operatore) out = out.filter((i) => (i.operatore ?? "") === filters.operatore);
+    if (filters?.categoria) out = out.filter((i) => (i.categoria ?? "") === filters.categoria);
+    if (filters?.costoMin != null) out = out.filter((i) => Number(i.costoPrevisto ?? i.costoFinale ?? 0) >= filters.costoMin!);
+    if (filters?.costoMax != null) out = out.filter((i) => Number(i.costoFinale ?? i.costoPrevisto ?? 0) <= filters.costoMax!);
+    if (filters?.ricerca) {
+      const q = filters.ricerca.toLowerCase();
+      out = out.filter(
+        (i) =>
+          (i.codice ?? "").toLowerCase().includes(q) ||
+          (i.descrizione ?? "").toLowerCase().includes(q) ||
+          (i.operatore ?? "").toLowerCase().includes(q),
+      );
+    }
+    return out;
   },
 
   /** Dettaglio intervento con i ricambi necessari (sempre mostrati). */
@@ -170,17 +220,33 @@ export const fleetService = {
       const disponibile = cat ? Number(cat.quantitaDisponibile) : 0;
       const soglia = cat ? Number(cat.sogliaMinima) : 0;
       const richiesta = Number(r.quantitaRichiesta);
+      const stato = statoDisponibilita(disponibile, richiesta, soglia);
       return {
         ...r,
+        codice: r.codiceRicambio ?? cat?.codice ?? null,
+        fornitore: cat?.fornitore ?? null,
+        categoria: cat?.categoria ?? null,
+        costoUnitario: r.costoUnitario ?? cat?.costoMedio ?? null,
         disponibile,
         soglia,
-        statoDisponibilita: statoDisponibilita(disponibile, richiesta, soglia),
+        statoDisponibilita: stato,
       };
     });
-    return { ...intervento, ricambiNecessari };
+    // Un intervento non e' pronto se manca anche solo un ricambio obbligatorio.
+    const ricambiObbligatoriMancanti = ricambiNecessari.filter(
+      (r) => r.obbligatorio && (r.statoDisponibilita === "non_disponibile" || r.statoDisponibilita === "insufficiente"),
+    );
+    return {
+      ...intervento,
+      ricambiNecessari,
+      ricambiObbligatoriMancanti,
+      prontoPerCompletamento: ricambiObbligatoriMancanti.length === 0,
+    };
   },
 
   async createIntervento(actor: ActorContext, input: CreateInterventoInput) {
+    const n = (await repo.countInterventi(actor.companyId)) + 1;
+    const codice = `INT-${new Date().getFullYear()}-${pad(n, 4)}`;
     const costoOrario = input.costoOrario ?? COSTO_ORARIO_DEFAULT;
     const tempoStimato = input.tempoStimato ?? null;
     const costoPrevisto =
@@ -191,6 +257,7 @@ export const fleetService = {
           : null;
     const { id } = await repo.insertIntervento(actor, {
       macchinaId: input.macchinaId,
+      codice,
       tipo: input.tipo,
       categoria: input.categoria ?? null,
       descrizione: input.descrizione,
@@ -286,6 +353,7 @@ export const fleetService = {
       stato: "completato",
       dataCompletamento: oggi,
       oreLavoro: String(input.oreLavoro),
+      tempoEffettivo: String(input.oreLavoro),
       costoOrario: String(costoOrario),
       costoManodopera: String(costoManodopera),
       costoRicambi: String(costoRicambi),
@@ -346,20 +414,37 @@ export const fleetService = {
   // ── Ricambi (magazzino officina) ────────────────────────────────────────────────
   async listRicambi(
     companyId: string,
-    opts?: { categoria?: string; filtro?: string },
+    opts?: {
+      categoria?: string;
+      filtro?: string;
+      fornitore?: string;
+      posizione?: string;
+      prezzoMin?: number;
+      prezzoMax?: number;
+      ricerca?: string;
+    },
   ) {
     const rows = await repo.listRicambi(companyId);
     const arricchiti = rows.map((r) => {
       const disp = Number(r.quantitaDisponibile);
       const soglia = Number(r.sogliaMinima);
-      let stato: "disponibile" | "sotto_scorta" | "non_disponibile";
-      if (disp <= 0) stato = "non_disponibile";
-      else if (soglia > 0 && disp <= soglia) stato = "sotto_scorta";
-      else stato = "disponibile";
-      return { ...r, statoScorta: stato };
+      return { ...r, statoScorta: statoScortaRicambio(disp, soglia, r.statoOrdine) };
     });
     let filtrati = arricchiti;
     if (opts?.categoria) filtrati = filtrati.filter((r) => r.categoria === opts.categoria);
+    if (opts?.fornitore) filtrati = filtrati.filter((r) => r.fornitore === opts.fornitore);
+    if (opts?.posizione) filtrati = filtrati.filter((r) => r.posizione === opts.posizione);
+    if (opts?.prezzoMin != null) filtrati = filtrati.filter((r) => Number(r.costoMedio ?? 0) >= opts.prezzoMin!);
+    if (opts?.prezzoMax != null) filtrati = filtrati.filter((r) => Number(r.costoMedio ?? 0) <= opts.prezzoMax!);
+    if (opts?.ricerca) {
+      const q = opts.ricerca.toLowerCase();
+      filtrati = filtrati.filter(
+        (r) =>
+          r.nome.toLowerCase().includes(q) ||
+          (r.codice ?? "").toLowerCase().includes(q) ||
+          (r.compatibilita ?? "").toLowerCase().includes(q),
+      );
+    }
     switch (opts?.filtro) {
       case "disponibili":
         filtrati = filtrati.filter((r) => r.statoScorta === "disponibile");
@@ -370,8 +455,11 @@ export const fleetService = {
       case "non_disponibili":
         filtrati = filtrati.filter((r) => r.statoScorta === "non_disponibile");
         break;
+      case "ordinati":
+        filtrati = filtrati.filter((r) => r.statoScorta === "ordinato");
+        break;
       case "da_ordinare":
-        filtrati = filtrati.filter((r) => r.statoScorta !== "disponibile");
+        filtrati = filtrati.filter((r) => r.statoScorta === "sotto_scorta" || r.statoScorta === "non_disponibile" || r.statoScorta === "da_ordinare");
         break;
       default:
         break;
@@ -406,9 +494,14 @@ export const fleetService = {
       });
   },
 
-  createRicambio(actor: ActorContext, input: CreateRicambioInput) {
+  async createRicambio(actor: ActorContext, input: CreateRicambioInput) {
+    let codice = input.codice ?? null;
+    if (!codice) {
+      const n = (await repo.countRicambi(actor.companyId)) + 1;
+      codice = `RIC-${pad(n, 6)}`;
+    }
     return repo.insertRicambio(actor, {
-      codice: input.codice ?? null,
+      codice,
       nome: input.nome,
       categoria: input.categoria,
       compatibilita: input.compatibilita ?? null,
@@ -435,6 +528,10 @@ export const fleetService = {
     if (rest.fornitore !== undefined) data.fornitore = rest.fornitore;
     if (rest.note !== undefined) data.note = rest.note;
     return repo.updateRicambio(actor, id, data);
+  },
+
+  setStatoOrdineRicambio(actor: ActorContext, id: string, statoOrdine: string) {
+    return repo.updateRicambio(actor, id, { statoOrdine });
   },
 
   async adjustRicambio(actor: ActorContext, id: string, delta: number) {

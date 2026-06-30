@@ -8,7 +8,7 @@ import {
   Package, Plus, Trash2, Search, Minus, AlertTriangle, ClipboardList, MapPin, Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
-import { C, STATO_SCORTA, CATEGORIE_RICAMBIO, eur } from "./shared";
+import { C, STATO_SCORTA, CATEGORIE_RICAMBIO, eur, CodicePill } from "./shared";
 
 const EMPTY_R = {
   id: "", codice: "", nome: "", categoria: "Altro", compatibilita: "",
@@ -21,6 +21,7 @@ const FILTRI: [string, string][] = [
   ["sotto_scorta", "Sotto scorta"],
   ["non_disponibili", "Esauriti"],
   ["da_ordinare", "Da ordinare"],
+  ["ordinati", "Ordinati"],
 ];
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
@@ -34,6 +35,7 @@ export default function RicambiTab() {
   const [search, setSearch] = useState("");
   const [filtro, setFiltro] = useState("tutti");
   const [categoria, setCategoria] = useState("tutte");
+  const [fornitore, setFornitore] = useState("tutti");
   const [openForm, setOpenForm] = useState(false);
   const [openOrdine, setOpenOrdine] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -71,17 +73,25 @@ export default function RicambiTab() {
   const deleteR = trpc.officina.ricambi.delete.useMutation({
     onSuccess: () => { invalidate(); toast.success("Ricambio eliminato"); },
   });
+  const setOrdine = trpc.officina.ricambi.setStatoOrdine.useMutation({
+    onSuccess: () => { invalidate(); toast.success("Stato ordine aggiornato"); },
+    onError: () => toast.error("Errore"),
+  });
+
+  const fornitori = Array.from(new Set((ricambi as any[]).map((r) => r.fornitore).filter(Boolean))).sort();
 
   const list = (ricambi as any[]).filter((r) => {
     const q = search.toLowerCase().trim();
     const okSearch = !q || [r.nome, r.codice, r.fornitore, r.compatibilita].filter(Boolean).join(" ").toLowerCase().includes(q);
     const okCat = categoria === "tutte" || r.categoria === categoria;
+    const okForn = fornitore === "tutti" || r.fornitore === fornitore;
     let okFiltro = true;
     if (filtro === "disponibili") okFiltro = r.statoScorta === "disponibile";
     else if (filtro === "sotto_scorta") okFiltro = r.statoScorta === "sotto_scorta";
     else if (filtro === "non_disponibili") okFiltro = r.statoScorta === "non_disponibile";
-    else if (filtro === "da_ordinare") okFiltro = r.statoScorta !== "disponibile";
-    return okSearch && okCat && okFiltro;
+    else if (filtro === "da_ordinare") okFiltro = r.statoScorta !== "disponibile" && r.statoOrdine !== "ordinato";
+    else if (filtro === "ordinati") okFiltro = r.statoOrdine === "ordinato";
+    return okSearch && okCat && okForn && okFiltro;
   });
 
   const sottoScorta = (ricambi as any[]).filter((r) => r.statoScorta !== "disponibile").length;
@@ -156,6 +166,13 @@ export default function RicambiTab() {
           <option value="tutte">Tutte le categorie</option>
           {CATEGORIE_RICAMBIO.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
+        {fornitori.length > 0 && (
+          <select value={fornitore} onChange={(e) => setFornitore(e.target.value)} className="px-3 py-2 rounded-lg text-xs font-medium shrink-0"
+            style={{ background: C.inner, color: C.textDim, border: `1px solid ${C.border}` }}>
+            <option value="tutti">Tutti i fornitori</option>
+            {fornitori.map((f) => <option key={f as string} value={f as string}>{f as string}</option>)}
+          </select>
+        )}
       </div>
 
       {/* Lista ricambi */}
@@ -177,10 +194,12 @@ export default function RicambiTab() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-semibold truncate" style={{ color: C.text }}>{r.nome}</p>
                       <Badge style={{ background: `${sc.color}18`, color: sc.color, border: "none", fontSize: 10 }}>{sc.label}</Badge>
+                      {r.statoOrdine === "ordinato" && <Badge style={{ background: `${C.blue}18`, color: C.blue, border: "none", fontSize: 10 }}>Ordinato</Badge>}
                     </div>
-                    <p className="text-xs mt-0.5" style={{ color: C.textFaint }}>
-                      {[r.codice, r.categoria].filter(Boolean).join(" · ")}
-                    </p>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      {r.codice && <CodicePill codice={r.codice} />}
+                      <span className="text-xs" style={{ color: C.textFaint }}>{r.categoria}</span>
+                    </div>
                     {r.compatibilita && <p className="text-[11px] mt-1" style={{ color: C.textDim }}>Compatibile: {r.compatibilita}</p>}
                     <div className="flex items-center gap-3 mt-2 text-[11px]" style={{ color: C.textFaint }}>
                       {r.posizione && <span className="flex items-center gap-1"><MapPin size={11} />{r.posizione}</span>}
@@ -189,6 +208,11 @@ export default function RicambiTab() {
                     </div>
                   </div>
                   <div className="flex gap-1 shrink-0">
+                    {r.statoScorta !== "disponibile" && (
+                      <button onClick={() => setOrdine.mutate({ id: r.id, statoOrdine: r.statoOrdine === "ordinato" ? "nessuno" : "ordinato" })}
+                        title={r.statoOrdine === "ordinato" ? "Segna come non ordinato" : "Segna come ordinato"}
+                        className="p-1.5 rounded-lg" style={{ color: r.statoOrdine === "ordinato" ? C.blue : C.textDim }}><ClipboardList size={13} /></button>
+                    )}
                     <button onClick={() => openEdit(r)} className="p-1.5 rounded-lg" style={{ color: C.gold }}><Pencil size={13} /></button>
                     <button onClick={() => deleteR.mutate({ id: r.id })} className="p-1.5 rounded-lg" style={{ color: C.red }}><Trash2 size={13} /></button>
                   </div>

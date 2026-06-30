@@ -18,6 +18,7 @@ import {
   updateRicambioInput,
   deleteRicambioInput,
   adjustRicambioInput,
+  setStatoOrdineRicambioInput,
 } from "./validators";
 import { z } from "zod";
 
@@ -111,6 +112,10 @@ export const officinaRouter = router({
     adjust: protectedProcedure.input(adjustRicambioInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);
       return fleetService.adjustRicambio(actor, input.id, input.delta);
+    }),
+    setStatoOrdine: protectedProcedure.input(setStatoOrdineRicambioInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return fleetService.setStatoOrdineRicambio(actor, input.id, input.statoOrdine);
     }),
     delete: protectedProcedure.input(deleteRicambioInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);

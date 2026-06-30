@@ -62,6 +62,12 @@ export const listInterventiInput = z
     stato: z.enum(STATI_INTERVENTO).optional(),
     priorita: z.enum(PRIORITA_INTERVENTO).optional(),
     tipo: z.enum(TIPI_INTERVENTO).optional(),
+    operatore: z.string().optional(),
+    categoria: z.string().optional(),
+    costoMin: z.number().optional(),
+    costoMax: z.number().optional(),
+    conRicambi: z.boolean().optional(),
+    ricerca: z.string().optional(),
   })
   .optional();
 
@@ -125,10 +131,20 @@ export const listRicambiInput = z
   .object({
     categoria: z.string().optional(),
     filtro: z
-      .enum(["tutti", "disponibili", "sotto_scorta", "non_disponibili", "da_ordinare"])
+      .enum(["tutti", "disponibili", "sotto_scorta", "non_disponibili", "da_ordinare", "ordinati"])
       .optional(),
+    fornitore: z.string().optional(),
+    posizione: z.string().optional(),
+    prezzoMin: z.number().optional(),
+    prezzoMax: z.number().optional(),
+    ricerca: z.string().optional(),
   })
   .optional();
+
+export const setStatoOrdineRicambioInput = z.object({
+  id: z.string(),
+  statoOrdine: z.enum(["nessuno", "da_ordinare", "ordinato"]),
+});
 
 export const createRicambioInput = z.object({
   codice: z.string().optional(),
