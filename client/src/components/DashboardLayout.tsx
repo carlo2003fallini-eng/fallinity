@@ -12,23 +12,15 @@ import {
   BarChart3,
   Bot,
   Building2,
-  CalendarDays,
   Home,
   LogOut,
-  Package,
   Settings,
-  Sprout,
-  Tractor,
   Wallet,
   Bell,
-  Activity,
-  RefreshCw,
   Grid3x3,
   X,
   Users,
   Building,
-  ShieldCheck,
-  DatabaseBackup,
   LifeBuoy,
 } from "lucide-react";
 import { useState } from "react";
@@ -38,20 +30,16 @@ import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import { Button } from "./ui/button";
 import { FallinityHeader, FallinityBottomNavigation } from "./fallinity";
 
-// Funzioni di sistema dell'hub "Altro" (alcune in arrivo nelle prossime release)
+// Funzioni di sistema dell'hub "Altro"
 type SystemItem = { icon: typeof Home; label: string; path?: string; soon?: boolean };
 const systemItems: SystemItem[] = [
   { icon: BarChart3,   label: "Report",            path: "/report" },
-  { icon: Bot,         label: "AI Copilot",        path: "/ai" },
-  { icon: Users,       label: "Gestione utenti",   soon: true },
-  { icon: Building,    label: "Gestione aziende",  soon: true },
+  { icon: Bot,         label: "AI",               path: "/ai" },
+  { icon: Users,       label: "Utenti",           soon: true },
+  { icon: Building,    label: "Aziende",          soon: true },
   { icon: Settings,    label: "Impostazioni",      soon: true },
-  { icon: ShieldCheck, label: "Audit log",         soon: true },
-  { icon: DatabaseBackup, label: "Backup",          soon: true },
   { icon: LifeBuoy,    label: "Supporto",          soon: true },
 ];
-// Moduli operativi accessibili anche dall'hub (oltre che da Azienda)
-const operativePaths = ["/campi", "/magazzino", "/officina", "/calendario", "/stalla"];
 
 const LOGO_URL = "/manus-storage/fallinity-logo_8c31d682.png";
 
@@ -66,24 +54,14 @@ type MenuItem = { icon: typeof Home; label: string; path: string; desc: string }
 
 const allItems: MenuItem[] = [
   { icon: Home,        label: "Home",       path: "/",           desc: "Dashboard principale" },
-  { icon: Building2,   label: "Azienda",    path: "/azienda",    desc: "Anagrafica e contatti" },
+  { icon: Building2,   label: "Azienda",    path: "/azienda",    desc: "Hub operativo" },
   { icon: Wallet,      label: "Finanza",    path: "/finanza",    desc: "Entrate, uscite, budget" },
-  { icon: Sprout,      label: "Campi",      path: "/campi",      desc: "Appezzamenti e colture" },
-  { icon: Package,     label: "Magazzino",  path: "/magazzino",  desc: "Scorte e movimenti" },
-  { icon: Tractor,     label: "Officina",   path: "/officina",   desc: "Macchine e manutenzioni" },
-  { icon: CalendarDays,label: "Calendario", path: "/calendario", desc: "Pianificazione attività" },
-  { icon: BarChart3,   label: "Report",     path: "/report",     desc: "Enterprise Metrics" },
-  { icon: Bot,         label: "AI",         path: "/ai",         desc: "Assistente Explainable AI" },
-  { icon: Activity,    label: "Stalla",     path: "/stalla",     desc: "Gestione animali" },
-  { icon: RefreshCw,   label: "Reintegrazione", path: "/reintegrazione", desc: "Fondi macchine" },
 ];
 
 // Bottom bar definitiva a 4 voci: Home, Azienda, Finanza, Altro.
-// Reintegrazione NON e' una voce separata: vive dentro Finanza (tab dedicata).
-const primaryPaths = ["/", "/azienda", "/finanza"];
-const primaryItems = primaryPaths.map(p => allItems.find(i => i.path === p)!);
-// Drawer "Altro": sezione moduli operativi (sotto-aree di Azienda) + sezione sistema/strumenti.
-const moreItems = allItems.filter(i => operativePaths.includes(i.path));
+const primaryPaths = ["/", "/azienda", "/finanza", "/altro"];
+const primaryItems = primaryPaths.slice(0, 3).map(p => allItems.find(i => i.path === p)!);
+// Drawer "Altro": solo funzioni di sistema (Report, AI, Utenti, Aziende, Impostazioni, Supporto).
 const systemPaths = systemItems.filter(s => s.path).map(s => s.path!);
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -123,7 +101,7 @@ function FEOSLayout({ children }: { children: React.ReactNode }) {
   const [moreOpen, setMoreOpen] = useState(false);
 
   const activeItem = allItems.find(item => item.path === location);
-  const isMoreActive = moreItems.some(i => i.path === location) || systemPaths.includes(location);
+  const isMoreActive = systemPaths.includes(location);
 
   const navigate = (path: string) => {
     setLocation(path);
@@ -215,33 +193,7 @@ function FEOSLayout({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="max-w-2xl mx-auto space-y-4">
-              {/* Sezione 1: moduli operativi (sotto-aree di Azienda, accesso rapido) */}
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider mb-2 px-1" style={{ color: GOLD }}>Moduli operativi</p>
-                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                  {moreItems.map(item => {
-                    const isActive = location === item.path;
-                    return (
-                      <button
-                        key={item.path}
-                        onClick={() => navigate(item.path)}
-                        className="flex flex-col items-center gap-2 p-3 rounded-xl transition-all duration-150 active:scale-[0.97]"
-                        style={{
-                          background: isActive ? "oklch(0.65 0.18 142 / 0.12)" : "oklch(0.12 0.008 145)",
-                          border: isActive ? `1px solid ${GREEN}` : "1px solid transparent",
-                        }}
-                      >
-                        <item.icon size={22} style={{ color: isActive ? GREEN : TEXT_DIM }} />
-                        <span className="text-xs font-medium text-center leading-tight" style={{ color: isActive ? GREEN : "oklch(0.7 0.01 145)" }}>
-                          {item.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Sezione 2: sistema & strumenti */}
+              {/* Sistema & Strumenti */}
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wider mb-2 px-1" style={{ color: GOLD }}>Sistema & Strumenti</p>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">

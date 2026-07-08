@@ -356,3 +356,12 @@
 
 ### Verifica
 - [x] 0 errori TS, 32/32 test Vitest verdi (6 nuovi statoScortaRicambio), screenshot mobile, DB allineato, checkpoint
+
+## FIX — Navigazione principale definitiva
+
+- [x] Bottom nav: solo Home, Azienda, Finanza, Altro (rimossi Campi/Stalla/Officina/Magazzino/Calendario/Reintegrazione)
+- [x] primaryPaths = ["/", "/azienda", "/finanza", "/altro"]
+- [x] Azienda: card/accessi per Stalla, Campi, Magazzino, Officina, Calendario
+- [x] Finanza: contiene Reintegrazione (tab interna)
+- [x] Altro: Report, AI, Utenti, Aziende, Impostazioni, Supporto (solo sistema)
+- [x] 0 errori TS, 32/32 test verdi, screenshot mobile verificato
