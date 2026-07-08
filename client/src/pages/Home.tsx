@@ -35,7 +35,7 @@ import {
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { FAL_IMAGES } from "@/lib/assets";
-import { FallinityKpiCard, FallinityInsightCard, FallinitySection, FallinityMissionCard, FallinityEmptyState } from "@/components/fallinity";
+import { FallinityInsightCard, FallinityMissionCard, FallinityEmptyState } from "@/components/fallinity";
 import { CalendarCheck, CheckCircle2 } from "lucide-react";
 
 const GREEN = "oklch(0.65 0.18 142)";
@@ -49,18 +49,7 @@ const BLUE_HEX = "#60a5fa";
 const fmt = (n: number) =>
   new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
 
-const moduleCards = [
-  { icon: Building2,   label: "Azienda",    path: "/azienda",    color: GREEN },
-  { icon: Wallet,      label: "Finanza",    path: "/finanza",    color: GOLD },
-  { icon: Sprout,      label: "Campi",      path: "/campi",      color: GREEN },
-  { icon: Package,     label: "Magazzino",  path: "/magazzino",  color: GOLD },
-  { icon: Tractor,     label: "Officina",   path: "/officina",   color: RED },
-  { icon: Activity,    label: "Stalla",     path: "/stalla",     color: GREEN },
-  { icon: CalendarDays,label: "Calendario", path: "/calendario", color: BLUE },
-  { icon: BarChart3,   label: "Report",     path: "/report",     color: GREEN },
-  { icon: RefreshCw,   label: "Reintegr.",  path: "/reintegrazione", color: GOLD },
-  { icon: Bot,         label: "AI Copilot", path: "/ai",         color: GOLD },
-];
+
 
 const quickActions = [
   { icon: Plus,    label: "Nuova Entrata",   path: "/finanza",  color: GREEN },
@@ -93,9 +82,7 @@ export default function Home() {
     now.getHours() < 12 ? "Buongiorno" : now.getHours() < 18 ? "Buon pomeriggio" : "Buonasera";
   const userName = user?.name?.split(" ")[0] ?? "Utente";
 
-  const recentTx = (recent && "transazioni" in recent ? (recent.transazioni as any[]) : []).slice(0, 4);
-  const recentIv = (recent && "interventi" in recent ? (recent.interventi as any[]) : []).slice(0, 2);
-  const allRecent = [...recentTx.map((t: any) => ({ ...t, _type: "tx" })), ...recentIv.map((i: any) => ({ ...i, _type: "iv" }))];
+
 
   const utile = kpi?.utile ?? 0;
   const entrate = kpi?.entrate ?? 0;
@@ -128,14 +115,7 @@ export default function Home() {
   if (utile < 0) alerts.push({ value: fmt(utile), label: "utile negativo nel mese", color: RED, path: "/finanza" });
 
   // ── Insight AI contestuale ──
-  const aiInsight = (() => {
-    if (utile < 0) return "L'utile del mese è negativo: rivedi le uscite principali e valuta priorità di spesa.";
-    if (zoppieAttive > 0) return `Ci sono ${zoppieAttive} casi di zoppia attivi: pianifica i trattamenti per ridurre l'impatto sulla produzione.`;
-    if ((kpi?.prodottiSottoScorta ?? 0) > 0) return `${kpi?.prodottiSottoScorta} prodotti sono sotto scorta: valuta un riordino per evitare fermi operativi.`;
-    if ((kpi?.interventiAperti ?? 0) > 0) return `Hai ${kpi?.interventiAperti} interventi di manutenzione aperti: completarli protegge il valore del parco mezzi.`;
-    if (fondo > 0) return "I fondi di reintegrazione stanno crescendo: continua i versamenti per coprire il rinnovo macchine.";
-    return "Tutto sotto controllo. Chiedi al Copilot un'analisi su finanza, stalla o campi.";
-  })();
+
 
   return (
     <div className="space-y-6 animate-fade-in-up pb-4">
@@ -225,25 +205,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ── KPI OPERATIVI SECONDARI ────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: "CAMPI ATTIVI", value: kpi ? String(kpi.campi) : "—", sub: "appezzamenti", color: GREEN, icon: Sprout, path: "/campi" },
-          { label: "MACCHINE",     value: kpi ? String(kpi.macchine ?? 0) : "—", sub: `parco mezzi`, color: GREEN, icon: Tractor, path: "/officina" },
-          { label: "INTERVENTI",   value: kpi ? String(kpi.interventiAperti ?? 0) : "—", sub: "aperti", color: kpi && (kpi.interventiAperti ?? 0) > 0 ? GOLD : GREEN, icon: Wrench, path: "/officina" },
-          { label: "SOTTO SCORTA", value: kpi ? String(kpi.prodottiSottoScorta ?? 0) : "—", sub: "prodotti", color: kpi && (kpi.prodottiSottoScorta ?? 0) > 0 ? GOLD : GREEN, icon: Package, path: "/magazzino" },
-        ].map(k => (
-          <FallinityKpiCard
-            key={k.label}
-            label={k.label}
-            value={k.value}
-            sub={k.sub}
-            icon={k.icon}
-            color={k.color}
-            onClick={() => setLocation(k.path)}
-          />
-        ))}
-      </div>
+
 
       {/* ── CALENDARIO OGGI + MISSIONE DI OGGI ─────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -356,17 +318,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* ── INSIGHT AI ─────────────────────────────────────────────────────── */}
-      <button onClick={() => setLocation("/ai")} className="w-full text-left fal-card fal-card-hover fal-glow-gold p-5 flex items-start gap-4">
-        <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: "oklch(0.72 0.15 75 / 0.14)" }}>
-          <Bot size={20} style={{ color: GOLD }} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="fal-eyebrow" style={{ color: GOLD }}>Insight AI · Copilot</p>
-          <p className="text-sm font-medium mt-1" style={{ color: "oklch(0.88 0.01 145)" }}>{aiInsight}</p>
-          <p className="text-xs mt-1.5 flex items-center gap-1" style={{ color: GOLD }}>Chiedi al Copilot <ChevronRight size={12} /></p>
-        </div>
-      </button>
+
 
       {/* ── AZIONI RAPIDE ──────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -428,61 +380,10 @@ export default function Home() {
           )}
         </FallinityInsightCard>
 
-        {/* Attività recenti */}
-        <FallinityInsightCard title="Attività Recenti">
-          <div className="space-y-3">
-            {allRecent.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 gap-2 text-center" style={{ color: "oklch(0.4 0.01 145)" }}>
-                <Activity size={26} className="opacity-20" />
-                <p className="text-xs font-medium" style={{ color: "oklch(0.6 0.01 145)" }}>Nessuna attività recente</p>
-                <p className="text-xs">Le ultime operazioni registrate appariranno qui.</p>
-              </div>
-            ) : allRecent.map((item: any, idx: number) => (
-              <div key={idx} className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ background: item._type === "tx" ? (item.tipo === "entrata" ? "oklch(0.65 0.18 142 / 0.12)" : "oklch(0.55 0.22 25 / 0.12)") : "oklch(0.72 0.15 75 / 0.12)" }}>
-                  {item._type === "tx"
-                    ? (item.tipo === "entrata" ? <ArrowDownRight size={13} style={{ color: GREEN }} /> : <ArrowUpRight size={13} style={{ color: RED }} />)
-                    : <Wrench size={13} style={{ color: GOLD }} />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate" style={{ color: "oklch(0.75 0.01 145)" }}>
-                    {item._type === "tx" ? item.categoria : item.descrizione?.slice(0, 28)}
-                  </p>
-                  <p className="text-xs truncate" style={{ color: "oklch(0.45 0.01 145)" }}>
-                    {item._type === "tx"
-                      ? new Date(item.data).toLocaleDateString("it-IT")
-                      : `${item.tipo} · ${item.stato}`}
-                  </p>
-                </div>
-                {item._type === "tx" && (
-                  <span className="text-xs font-semibold shrink-0" style={{ color: item.tipo === "entrata" ? GREEN : RED }}>
-                    {item.tipo === "entrata" ? "+" : "-"}{fmt(Number(item.importo))}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </FallinityInsightCard>
+
       </div>
 
-      {/* ── MODULI RAPIDI ──────────────────────────────────────────────────── */}
-      <FallinitySection eyebrow="Aree principali">
-        <div className="grid grid-cols-5 sm:grid-cols-10 gap-3">
-          {moduleCards.map(mod => (
-            <button
-              key={mod.path}
-              onClick={() => setLocation(mod.path)}
-              className="fal-card fal-card-hover flex flex-col items-center gap-2 p-4"
-            >
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${mod.color}1a` }}>
-                <mod.icon size={18} style={{ color: mod.color }} />
-              </div>
-              <span className="text-[11px] font-medium text-center leading-tight" style={{ color: "oklch(0.7 0.01 145)" }}>{mod.label}</span>
-            </button>
-          ))}
-        </div>
-      </FallinitySection>
+
 
     </div>
   );
