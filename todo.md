@@ -365,3 +365,34 @@
 - [x] Finanza: contiene Reintegrazione (tab interna)
 - [x] Altro: Report, AI, Utenti, Aziende, Impostazioni, Supporto (solo sistema)
 - [x] 0 errori TS, 32/32 test verdi, screenshot mobile verificato
+
+## FASE 18 — Sprint Stalla completa + Officina rifiniture + AI
+
+### Schema DB Stalla
+- [x] Tabella `gruppi`: nome, codice auto (GRP-), tipologia (enum), colore, descrizione, capacitaMax, note, stato, companyId + audit + soft delete
+- [x] Tabella `eventiAnimale`: animaleId, tipo (enum), data, descrizione, operatore, note, companyId + audit + soft delete
+- [x] Estensione `animali`: numeroAziendale, rfid, gruppoId, statoProduttivo, statoRiproduttivo, foto, healthScore, produzioneOggi, giorniLattazione, giorniGravidanza, dataPartoPrevisto
+- [x] Logica riproduttiva separata: statoProduttivo ≠ statoRiproduttivo (implementata)
+
+### Backend Stalla
+- [x] repository: CRUD gruppi, animali, eventiAnimale con companyId + deletedAt
+- [x] service: dashboard stalla, gruppi CRUD, animali CRUD, ricerca universale, scheda animale con timeline, spostamento gruppo, filtri
+- [x] validators: zod per tutti i nuovi schemi
+- [x] router: stalla.gruppi.*, stalla.animali.*, stalla.ricerca (retrocompatibile)
+
+### UI Stalla
+- [x] Dashboard Stalla: Hero + 4 KPI (In lattazione, Gravide, Infermeria, Parti mese)
+- [x] Tab Gruppi: lista card con contatori, dettaglio con membri, form crea/modifica, codice GRP- auto
+- [x] Tab Animali: ricerca universale (matricola/nome/rfid/numero), scheda animale con timeline, stati separati
+- [x] Tab Salute: zoppie + trattamenti (legacy preservata)
+- [x] Filtri: tipologia gruppo, ricerca, stato produttivo/riproduttivo
+
+### Officina rifiniture
+- [x] Verificato: dashboard KPI completa (mezzi operativi/fermi, interventi oggi, in ritardo, ricambi sotto scorta, costo mese)
+- [x] Verificato: card mezzo con Health Score, codice MEZ-, filtri stato, workflow completamento
+
+### AI Copilot
+- [x] Verificato: chat streaming Markdown, sidebar sessioni, contesto live KPI, XAI — completo
+
+### Verifica
+- [x] 0 errori TS, 32/32 test Vitest verdi, screenshot desktop verificati, checkpoint

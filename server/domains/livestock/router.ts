@@ -1,10 +1,17 @@
 import { protectedProcedure, router } from "../../_core/trpc";
 import { getActor } from "../_core";
 import { livestockService } from "./service";
-import { addAnimaleInput, eseguiTrattamentoInput, addZoppiaInput } from "./validators";
+import {
+  addAnimaleInput, updateAnimaleInput, spostaGruppoInput,
+  ricercaAnimaliInput, getAnimaleInput,
+  createGruppoInput, updateGruppoInput, archiveGruppoInput,
+  addZoppiaInput, eseguiTrattamentoInput, addEventoAnimaleInput,
+  filtriGruppiInput,
+} from "./validators";
 
 /** LIVESTOCK (Stalla) — Router */
 export const stallaRouter = router({
+  // ── Legacy (retrocompatibilità) ──
   list: protectedProcedure.query(async ({ ctx }) => {
     const actor = await getActor(ctx);
     return livestockService.list(actor.companyId);
@@ -28,5 +35,61 @@ export const stallaRouter = router({
   eseguiTrattamento: protectedProcedure.input(eseguiTrattamentoInput).mutation(async ({ ctx, input }) => {
     const actor = await getActor(ctx);
     return livestockService.eseguiTrattamento(actor, input.animaleId);
+  }),
+
+  // ── Gruppi ──
+  gruppi: router({
+    list: protectedProcedure.input(filtriGruppiInput).query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return livestockService.listGruppi(actor.companyId, input ?? undefined);
+    }),
+    detail: protectedProcedure.input(getAnimaleInput).query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return livestockService.getGruppoDetail(actor.companyId, input.id);
+    }),
+    create: protectedProcedure.input(createGruppoInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return livestockService.createGruppo(actor, input);
+    }),
+    update: protectedProcedure.input(updateGruppoInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return livestockService.updateGruppo(actor, input);
+    }),
+    archive: protectedProcedure.input(archiveGruppoInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return livestockService.archiveGruppo(actor, input.id);
+    }),
+  }),
+
+  // ── Animali ──
+  animali: router({
+    create: protectedProcedure.input(addAnimaleInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return livestockService.createAnimale(actor, input);
+    }),
+    update: protectedProcedure.input(updateAnimaleInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return livestockService.updateAnimale(actor, input);
+    }),
+    spostaGruppo: protectedProcedure.input(spostaGruppoInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return livestockService.spostaGruppo(actor, input.animaleId, input.nuovoGruppoId);
+    }),
+    scheda: protectedProcedure.input(getAnimaleInput).query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return livestockService.schedaAnimale(actor.companyId, input.id);
+    }),
+  }),
+
+  // ── Ricerca universale ──
+  ricerca: protectedProcedure.input(ricercaAnimaliInput).query(async ({ ctx, input }) => {
+    const actor = await getActor(ctx);
+    return livestockService.ricerca(actor.companyId, input.query);
+  }),
+
+  // ── Eventi ──
+  addEvento: protectedProcedure.input(addEventoAnimaleInput).mutation(async ({ ctx, input }) => {
+    const actor = await getActor(ctx);
+    return livestockService.addEvento(actor, input);
   }),
 });

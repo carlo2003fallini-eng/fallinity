@@ -426,17 +426,44 @@ export type Evento = typeof eventi.$inferSelect;
 export type InsertEvento = typeof eventi.$inferInsert;
 
 // ─── STALLA / LIVESTOCK ─────────────────────────────────────────────────────────
+export const gruppi = mysqlTable("gruppi", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  nome: varchar("nome", { length: 100 }).notNull(),
+  codice: varchar("codice", { length: 20 }),
+  tipologia: mysqlEnum("tipologia", ["lattazione", "asciutta", "rimonta", "infermeria", "vitelli", "manze", "pre_parto", "post_parto", "personalizzato"]).default("personalizzato").notNull(),
+  colore: varchar("colore", { length: 20 }).default("#4ade80"),
+  descrizione: text("descrizione"),
+  capacitaMax: int("capacitaMax"),
+  note: text("note"),
+  stato: mysqlEnum("stato", ["attivo", "archiviato"]).default("attivo").notNull(),
+  ...auditColumns,
+});
+export type Gruppo = typeof gruppi.$inferSelect;
+export type InsertGruppo = typeof gruppi.$inferInsert;
+
 export const animali = mysqlTable("animali", {
   id: uuidPk(),
   companyId: companyRef(),
   matricola: varchar("matricola", { length: 50 }).notNull(),
+  numeroAziendale: varchar("numeroAziendale", { length: 50 }),
   nome: varchar("nome", { length: 100 }),
+  rfid: varchar("rfid", { length: 100 }),
   gruppo: varchar("gruppo", { length: 100 }),
+  gruppoId: varchar("gruppoId", { length: 36 }),
   razza: varchar("razza", { length: 100 }),
   dataNascita: date("dataNascita"),
   sesso: mysqlEnum("sesso", ["femmina", "maschio"]).default("femmina").notNull(),
   stato: mysqlEnum("stato", ["attiva", "asciutta", "gravida", "infermeria", "venduta", "morta"]).default("attiva").notNull(),
+  statoProduttivo: mysqlEnum("statoProduttivo", ["in_lattazione", "asciutta", "rimonta", "vitello", "manza", "riformata", "venduta", "deceduta"]).default("in_lattazione"),
+  statoRiproduttivo: mysqlEnum("statoRiproduttivo", ["vuota", "inseminata", "gravida", "da_controllare", "persa", "non_idonea"]).default("vuota"),
+  foto: varchar("foto", { length: 500 }),
+  healthScore: int("healthScore").default(100),
   produzioneMedia: decimal("produzioneMedia", { precision: 8, scale: 2 }),
+  produzioneOggi: decimal("produzioneOggi", { precision: 8, scale: 2 }),
+  giorniLattazione: int("giorniLattazione").default(0),
+  giorniGravidanza: int("giorniGravidanza").default(0),
+  dataPartoPrevisto: date("dataPartoPrevisto"),
   note: text("note"),
   ...auditColumns,
 });
@@ -488,6 +515,20 @@ export const zoppie = mysqlTable("zoppie", {
 });
 export type Zoppia = typeof zoppie.$inferSelect;
 export type InsertZoppia = typeof zoppie.$inferInsert;
+
+export const eventiAnimale = mysqlTable("eventiAnimale", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  animaleId: varchar("animaleId", { length: 36 }).notNull(),
+  tipo: mysqlEnum("tipo", ["inseminazione", "diagnosi_gravidanza", "parto", "trattamento", "zoppia", "mastite", "spostamento_gruppo", "asciugatura", "riforma", "vendita", "decesso", "visita", "altro"]).default("altro").notNull(),
+  data: timestamp("data").notNull(),
+  descrizione: text("descrizione"),
+  operatore: varchar("operatore", { length: 255 }),
+  note: text("note"),
+  ...auditColumns,
+});
+export type EventoAnimale = typeof eventiAnimale.$inferSelect;
+export type InsertEventoAnimale = typeof eventiAnimale.$inferInsert;
 
 // ─── REINTEGRAZIONE / REINVESTMENT ──────────────────────────────────────────────
 export const fondiReintegrazione = mysqlTable("fondiReintegrazione", {
