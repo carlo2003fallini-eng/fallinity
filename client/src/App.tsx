@@ -16,6 +16,7 @@ import Report from "./pages/Report";
 import AI from "./pages/AI";
 import Stalla from "./pages/Stalla";
 import Reintegrazione from "./pages/Reintegrazione";
+import ScenarioFuturo from "./pages/ScenarioFuturo";
 import SelezionaAzienda from "./pages/SelezionaAzienda";
 
 function Router() {
@@ -33,6 +34,7 @@ function Router() {
         <Route path="/ai" component={AI} />
         <Route path="/stalla" component={Stalla} />
         <Route path="/reintegrazione">{() => <Reintegrazione />}</Route>
+        <Route path="/scenario-futuro" component={ScenarioFuturo} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

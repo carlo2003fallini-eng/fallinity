@@ -583,3 +583,45 @@ export const chatMessages = mysqlTable("chatMessages", {
 });
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = typeof chatMessages.$inferInsert;
+
+// ─── SCENARIO FUTURO (simulazione what-if) ──────────────────────────────────
+export const scenari = mysqlTable("scenari", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  descrizione: text("descrizione"),
+  stato: mysqlEnum("stato", ["bozza", "calcolato", "archiviato"]).default("bozza").notNull(),
+  modello: mysqlEnum("modello", ["personalizzato", "espansione", "riduzione_costi", "nuovo_investimento", "cambio_produzione"]).default("personalizzato").notNull(),
+  risultatoJson: text("risultatoJson"),
+  calcolatoIl: timestamp("calcolatoIl"),
+  ...auditColumns,
+});
+export type Scenario = typeof scenari.$inferSelect;
+export type InsertScenario = typeof scenari.$inferInsert;
+
+export const ipotesiScenario = mysqlTable("ipotesiScenario", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  scenarioId: varchar("scenarioId", { length: 36 }).notNull(),
+  variabile: mysqlEnum("variabile", [
+    "investimento_iniziale",
+    "costo_manodopera",
+    "costo_mangimi",
+    "costo_energia",
+    "costo_manutenzione",
+    "prezzo_latte",
+    "prezzo_carne",
+    "produzione_latte_giorno",
+    "numero_capi",
+    "ettari_coltivati",
+    "resa_ettaro",
+    "prezzo_vendita_colture",
+  ]).notNull(),
+  valoreAttuale: decimal("valoreAttuale", { precision: 14, scale: 2 }).notNull(),
+  valoreIpotesi: decimal("valoreIpotesi", { precision: 14, scale: 2 }).notNull(),
+  unita: varchar("unita", { length: 50 }).default("€").notNull(),
+  note: text("note"),
+  ...auditColumns,
+});
+export type IpotesiScenario = typeof ipotesiScenario.$inferSelect;
+export type InsertIpotesiScenario = typeof ipotesiScenario.$inferInsert;

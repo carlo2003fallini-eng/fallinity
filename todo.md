@@ -396,3 +396,30 @@
 
 ### Verifica
 - [x] 0 errori TS, 32/32 test Vitest verdi, screenshot desktop verificati, checkpoint
+
+## FASE 19 — Scenario Futuro (simulazione what-if)
+
+### Schema DB
+- [ ] Tabella `scenari`: id, companyId, nome, descrizione, stato (bozza/calcolato/archiviato), modello, risultatoJson, creatoIl + audit + soft delete
+- [ ] Tabella `ipotesiScenario`: id, scenarioId, variabile, valoreAttuale, valoreIpotesi, unita, companyId + audit
+
+### Backend
+- [ ] repository: CRUD scenari + ipotesi
+- [ ] service: crea scenario, aggiungi ipotesi, calcola impatto (simulazione), confronta scenari
+- [ ] validators: zod per scenari e ipotesi
+- [ ] router: scenario.* (list, create, detail, addIpotesi, calcola, confronta, delete)
+
+### UI Scenario Futuro
+- [ ] Pagina con workflow visuale 5 step (come da mockup)
+- [ ] Step 1: Lista scenari + crea nuovo (scegli modello o da zero)
+- [ ] Step 2: Form ipotesi (variabili: investimenti, costi, prezzi, produzione)
+- [ ] Step 3: Calcolo impatto (animazione + risultato)
+- [ ] Step 4: Analizza risultati (KPI chiave, grafici)
+- [ ] Step 5: Confronta scenari (side-by-side)
+
+### Navigazione
+- [ ] Aggiungere "Scenario Futuro" nel drawer Altro (sezione Sistema & Strumenti)
+- [ ] Route /scenario-futuro
+
+### Verifica
+- [ ] 0 errori TS, test Vitest, screenshot, checkpoint

@@ -22,6 +22,7 @@ import {
   Users,
   Building,
   LifeBuoy,
+  TrendingUp,
 } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
@@ -35,6 +36,7 @@ type SystemItem = { icon: typeof Home; label: string; path?: string; soon?: bool
 const systemItems: SystemItem[] = [
   { icon: BarChart3,   label: "Report",            path: "/report" },
   { icon: Bot,         label: "AI",               path: "/ai" },
+  { icon: TrendingUp,  label: "Scenario Futuro",   path: "/scenario-futuro" },
   { icon: Users,       label: "Utenti",           soon: true },
   { icon: Building,    label: "Aziende",          soon: true },
   { icon: Settings,    label: "Impostazioni",      soon: true },

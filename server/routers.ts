@@ -14,6 +14,7 @@ import { reintegrazioneRouter } from "./domains/reinvestment/router";
 import { calendarioRouter } from "./domains/calendar/router";
 import { reportRouter } from "./domains/report/router";
 import { aiRouter } from "./domains/ai/router";
+import { scenarioRouter } from "./domains/scenario/router";
 
 /**
  * ──────────────────────────────────────────────────────────────────────────────
@@ -51,6 +52,7 @@ export const appRouter = router({
   calendario: calendarioRouter,
   report: reportRouter,
   ai: aiRouter,
+  scenario: scenarioRouter,
 });
 
 export type AppRouter = typeof appRouter;
