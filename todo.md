@@ -463,3 +463,58 @@
 
 ### Verifica
 - [x] 0 errori TS, 51/51 test Vitest verdi (19 nuovi livestock.fattori), build OK, screenshot mobile 390x844 verificati
+
+## FASE 21 — Sprint Finanza: Fondamenta Finanziarie + Inserimento Entrate e Uscite
+
+### Schema DB (nuove tabelle, non toccare transazioni legacy)
+- [x] Tabella `categorieFinanziarie`: id, companyId, codice, nome, tipo (entrata/uscita/entrambi), colore, icona, attivo, ordine, parentId (sottocategorie) + audit + soft delete
+- [x] Tabella `centriDiCosto`: id, companyId, codice, nome, descrizione, colore, attivo + audit + soft delete
+- [x] Tabella `soggetti`: id, companyId, tipologia (cliente/fornitore/entrambi), ragioneSociale, nomeBreve, partitaIva, codiceFiscale, email, telefono, indirizzo, iban, note, attivo + audit + soft delete
+- [x] Tabella `contiFin`: id, companyId, nome, tipo (bancario/cassa/carta/deposito/altro), banca, ibanMascherato, saldoIniziale, saldoAttuale, valuta, attivo + audit
+- [x] Tabella `metodiPagamento`: id, companyId, nome, attivo + audit
+- [x] Tabella `documentiFinanziari`: id, companyId, tipo (entrata/uscita), tipoDocumento, numero, dataDocumento, soggettoId, categoriaId, centroCostoId, imponibile, aliquotaIva, importoIva, totale, dataCompetenza, descrizione, note, stato, riferimentoEsterno, originModule, originEntityType, originEntityId, generatedAutomatically + audit + soft delete
+- [x] Tabella `scadenzeFinanziarie`: id, companyId, documentoId, importo, dataScadenza, stato + audit
+- [x] Tabella `pagamentiIncassi`: id, companyId, documentoId, scadenzaId, contoId, metodoId, importo, data, note, stato + audit
+- [x] Tabella `movimentiCassa`: id, companyId, contoId, tipo (entrata/uscita), importo, data, saldoPrecedente, saldoDopo, descrizione, documentoId, pagamentoId, stato + audit
+- [x] Tabella `registrazioniEconomiche`: id, companyId, documentoId, categoriaId, centroCostoId, tipo (costo/ricavo), importo, dataCompetenza, descrizione + audit
+- [x] Tabella `allegatiFinanziari`: id, companyId, documentoId, nomeFile, mimeType, dimensione, url, fileKey + audit + soft delete
+- [x] Migrazione SQL applicata
+
+### Backend finance (riscrittura dominio)
+- [x] validators.ts: zod per tutte le nuove entità
+- [x] types.ts: tipi e enum condivisi
+- [x] repository.ts: CRUD per tutte le 11 tabelle
+- [x] service.ts: logica IVA (arrotondamenti centesimi), saldo conti, stati documento/scadenza, workflow pagato subito vs documento da pagare
+- [x] router.ts: procedure tRPC per movimenti, documenti, categorie, centri di costo, soggetti, conti, metodi pagamento
+- [x] Seed categorie e centri di costo iniziali (on-demand)
+
+### Frontend Finanza
+- [x] Pagina NuovoMovimento: selettore Entrata/Uscita grande, importo grande, tipo registrazione, form campi obbligatori + sezione espandibile "Altri dettagli"
+- [x] Workflow "Pagato subito": conto + metodo + conferma saldo
+- [x] Workflow "Documento da pagare/incassare": tipo doc + numero + scadenza + conferma
+- [x] Lista movimenti: tab (Tutti/Entrate/Uscite/Scadenze), card con colori, filtri, ricerca
+- [x] Pulsante "+ Nuovo movimento" raggiungibile da dashboard Finanza e route /finanza/nuovo
+- [x] Creazione rapida soggetto inline (sheet bottom)
+- [x] Route /finanza/nuovo registrata in App.tsx
+
+### Test obbligatori (17)
+- [x] Creazione entrata già incassata
+- [x] Creazione uscita già pagata
+- [x] Creazione documento da pagare
+- [x] Creazione documento da incassare
+- [x] Mancata variazione saldo per documenti non pagati
+- [x] Variazione corretta saldo per movimenti di cassa
+- [x] Calcolo IVA corretto
+- [x] Calcolo totale corretto
+- [x] Isolamento multi-azienda
+- [x] Categoria compatibile con tipo
+- [x] Centro di costo valido (test validazione)
+- [x] Conto valido (test validazione)
+- [x] Annullamento tracciato (storno saldo)
+- [x] Impossibilità eliminare fisicamente movimento confermato
+- [x] Validazione importo > 0
+- [x] Gestione arrotondamenti (centesimi)
+- [x] Allegato collegato correttamente
+
+### Verifica
+- [x] 0 errori TS, 72/72 test Vitest verdi (21 nuovi finance.movimenti), server running, screenshot mobile 390x844

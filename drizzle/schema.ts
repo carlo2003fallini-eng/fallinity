@@ -653,3 +653,179 @@ export const ipotesiScenario = mysqlTable("ipotesiScenario", {
 });
 export type IpotesiScenario = typeof ipotesiScenario.$inferSelect;
 export type InsertIpotesiScenario = typeof ipotesiScenario.$inferInsert;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FINANZA — FONDAMENTA (Sprint Finanza Fase 1)
+// ══════════════════════════════════════════════════════════════════════════════
+
+export const categorieFinanziarie = mysqlTable("categorieFinanziarie", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  codice: varchar("codice", { length: 20 }).notNull(),
+  nome: varchar("nome", { length: 100 }).notNull(),
+  tipo: mysqlEnum("tipo", ["entrata", "uscita", "entrambi"]).notNull(),
+  colore: varchar("colore", { length: 20 }).default("#4ade80"),
+  icona: varchar("icona", { length: 50 }),
+  attivo: boolean("attivo").default(true).notNull(),
+  ordine: int("ordine").default(0).notNull(),
+  parentId: varchar("parentId", { length: 36 }),
+  ...auditColumns,
+});
+export type CategoriaFinanziaria = typeof categorieFinanziarie.$inferSelect;
+
+export const centriDiCosto = mysqlTable("centriDiCosto", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  codice: varchar("codice", { length: 20 }).notNull(),
+  nome: varchar("nome", { length: 100 }).notNull(),
+  descrizione: text("descrizione"),
+  colore: varchar("colore", { length: 20 }).default("#60a5fa"),
+  attivo: boolean("attivo").default(true).notNull(),
+  ...auditColumns,
+});
+export type CentroDiCosto = typeof centriDiCosto.$inferSelect;
+
+export const soggetti = mysqlTable("soggetti", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  tipologia: mysqlEnum("tipologia", ["cliente", "fornitore", "entrambi"]).notNull(),
+  ragioneSociale: varchar("ragioneSociale", { length: 200 }).notNull(),
+  nomeBreve: varchar("nomeBreve", { length: 100 }),
+  partitaIva: varchar("partitaIva", { length: 20 }),
+  codiceFiscale: varchar("codiceFiscale", { length: 20 }),
+  email: varchar("email", { length: 200 }),
+  telefono: varchar("telefono", { length: 30 }),
+  indirizzo: text("indirizzo"),
+  iban: varchar("iban", { length: 34 }),
+  note: text("note"),
+  attivo: boolean("attivo").default(true).notNull(),
+  ...auditColumns,
+});
+export type Soggetto = typeof soggetti.$inferSelect;
+
+export const contiFin = mysqlTable("contiFin", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  nome: varchar("nome", { length: 100 }).notNull(),
+  tipo: mysqlEnum("tipo", ["bancario", "cassa", "carta", "deposito", "altro"]).notNull(),
+  banca: varchar("banca", { length: 100 }),
+  ibanMascherato: varchar("ibanMascherato", { length: 34 }),
+  saldoIniziale: int("saldoIniziale").default(0).notNull(), // centesimi
+  saldoAttuale: int("saldoAttuale").default(0).notNull(), // centesimi
+  valuta: varchar("valuta", { length: 3 }).default("EUR").notNull(),
+  attivo: boolean("attivo").default(true).notNull(),
+  ...auditColumns,
+});
+export type ContoFin = typeof contiFin.$inferSelect;
+
+export const metodiPagamento = mysqlTable("metodiPagamento", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  nome: varchar("nome", { length: 100 }).notNull(),
+  attivo: boolean("attivo").default(true).notNull(),
+  ...auditColumns,
+});
+export type MetodoPagamento = typeof metodiPagamento.$inferSelect;
+
+export const documentiFinanziari = mysqlTable("documentiFinanziari", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  tipo: mysqlEnum("tipo", ["entrata", "uscita"]).notNull(),
+  tipoRegistrazione: mysqlEnum("tipoRegistrazione", ["pagato_subito", "documento", "ricorrente", "trasferimento", "investimento"]).notNull(),
+  tipoDocumento: varchar("tipoDocumento", { length: 50 }), // fattura, ricevuta, nota_credito, generico
+  numero: varchar("numero", { length: 50 }),
+  dataDocumento: date("dataDocumento").notNull(),
+  soggettoId: varchar("soggettoId", { length: 36 }),
+  categoriaId: varchar("categoriaId", { length: 36 }).notNull(),
+  centroCostoId: varchar("centroCostoId", { length: 36 }),
+  imponibile: int("imponibile").notNull(), // centesimi
+  aliquotaIva: int("aliquotaIva").default(2200).notNull(), // centesimi (2200 = 22%)
+  importoIva: int("importoIva").notNull(), // centesimi
+  totale: int("totale").notNull(), // centesimi
+  dataCompetenza: date("dataCompetenza"),
+  descrizione: text("descrizione"),
+  note: text("note"),
+  stato: mysqlEnum("stato", ["bozza", "registrato", "parzialmente_regolato", "pagato", "incassato", "scaduto", "annullato"]).default("registrato").notNull(),
+  riferimentoEsterno: varchar("riferimentoEsterno", { length: 100 }),
+  // Collegamenti futuri
+  originModule: varchar("originModule", { length: 50 }),
+  originEntityType: varchar("originEntityType", { length: 50 }),
+  originEntityId: varchar("originEntityId", { length: 36 }),
+  originReference: varchar("originReference", { length: 100 }),
+  generatedAutomatically: boolean("generatedAutomatically").default(false).notNull(),
+  // Metodo e conto (per pagato_subito)
+  contoId: varchar("contoId", { length: 36 }),
+  metodoId: varchar("metodoId", { length: 36 }),
+  ...auditColumns,
+});
+export type DocumentoFinanziario = typeof documentiFinanziari.$inferSelect;
+
+export const scadenzeFinanziarie = mysqlTable("scadenzeFinanziarie", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  documentoId: varchar("documentoId", { length: 36 }).notNull(),
+  importo: int("importo").notNull(), // centesimi
+  dataScadenza: date("dataScadenza").notNull(),
+  stato: mysqlEnum("stato", ["aperta", "parzialmente_pagata", "pagata", "incassata", "scaduta", "annullata"]).default("aperta").notNull(),
+  ...auditColumns,
+});
+export type ScadenzaFinanziaria = typeof scadenzeFinanziarie.$inferSelect;
+
+export const pagamentiIncassi = mysqlTable("pagamentiIncassi", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  documentoId: varchar("documentoId", { length: 36 }).notNull(),
+  scadenzaId: varchar("scadenzaId", { length: 36 }),
+  contoId: varchar("contoId", { length: 36 }).notNull(),
+  metodoId: varchar("metodoId", { length: 36 }),
+  importo: int("importo").notNull(), // centesimi
+  data: date("data").notNull(),
+  note: text("note"),
+  stato: mysqlEnum("stato", ["confermato", "annullato", "rettificato"]).default("confermato").notNull(),
+  ...auditColumns,
+});
+export type PagamentoIncasso = typeof pagamentiIncassi.$inferSelect;
+
+export const movimentiCassa = mysqlTable("movimentiCassa", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  contoId: varchar("contoId", { length: 36 }).notNull(),
+  tipo: mysqlEnum("tipo", ["entrata", "uscita"]).notNull(),
+  importo: int("importo").notNull(), // centesimi
+  data: date("data").notNull(),
+  saldoPrecedente: int("saldoPrecedente").notNull(), // centesimi
+  saldoDopo: int("saldoDopo").notNull(), // centesimi
+  descrizione: text("descrizione"),
+  documentoId: varchar("documentoId", { length: 36 }),
+  pagamentoId: varchar("pagamentoId", { length: 36 }),
+  stato: mysqlEnum("stato", ["confermato", "annullato", "rettificato"]).default("confermato").notNull(),
+  ...auditColumns,
+});
+export type MovimentoCassa = typeof movimentiCassa.$inferSelect;
+
+export const registrazioniEconomiche = mysqlTable("registrazioniEconomiche", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  documentoId: varchar("documentoId", { length: 36 }).notNull(),
+  categoriaId: varchar("categoriaId", { length: 36 }),
+  centroCostoId: varchar("centroCostoId", { length: 36 }),
+  tipo: mysqlEnum("tipo", ["costo", "ricavo"]).notNull(),
+  importo: int("importo").notNull(), // centesimi
+  dataCompetenza: date("dataCompetenza").notNull(),
+  descrizione: text("descrizione"),
+  ...auditColumns,
+});
+export type RegistrazioneEconomica = typeof registrazioniEconomiche.$inferSelect;
+
+export const allegatiFinanziari = mysqlTable("allegatiFinanziari", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  documentoId: varchar("documentoId", { length: 36 }).notNull(),
+  nomeFile: varchar("nomeFile", { length: 255 }).notNull(),
+  mimeType: varchar("mimeType", { length: 100 }).notNull(),
+  dimensione: int("dimensione").notNull(), // bytes
+  url: text("url").notNull(),
+  fileKey: varchar("fileKey", { length: 255 }).notNull(),
+  ...auditColumns,
+});
+export type AllegatoFinanziario = typeof allegatiFinanziari.$inferSelect;

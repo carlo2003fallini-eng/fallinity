@@ -17,6 +17,7 @@ import AI from "./pages/AI";
 import Stalla from "./pages/Stalla";
 import Reintegrazione from "./pages/Reintegrazione";
 import ScenarioFuturo from "./pages/ScenarioFuturo";
+import NuovoMovimento from "./pages/finanza/NuovoMovimento";
 import SelezionaAzienda from "./pages/SelezionaAzienda";
 
 function Router() {
@@ -26,6 +27,7 @@ function Router() {
         <Route path="/" component={Home} />
         <Route path="/azienda" component={Azienda} />
         <Route path="/finanza" component={Finanza} />
+        <Route path="/finanza/nuovo" component={NuovoMovimento} />
         <Route path="/campi" component={Campi} />
         <Route path="/magazzino" component={Magazzino} />
         <Route path="/officina" component={Officina} />
