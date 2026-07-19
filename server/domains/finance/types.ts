@@ -8,7 +8,18 @@ export type TipoMovimento = (typeof TIPO_MOVIMENTO)[number];
 export const TIPO_REGISTRAZIONE = ["pagato_subito", "documento", "ricorrente", "trasferimento", "investimento"] as const;
 export type TipoRegistrazione = (typeof TIPO_REGISTRAZIONE)[number];
 
-export const TIPO_DOCUMENTO = ["fattura", "ricevuta", "nota_credito", "generico"] as const;
+export const TIPO_DOCUMENTO = [
+  "fattura_acquisto",
+  "fattura_vendita",
+  "ricevuta",
+  "nota_credito_ricevuta",
+  "nota_credito_emessa",
+  "parcella",
+  "contratto",
+  "avviso_pagamento",
+  "generico",
+  "altro",
+] as const;
 export type TipoDocumento = (typeof TIPO_DOCUMENTO)[number];
 
 export const STATO_DOCUMENTO = ["bozza", "registrato", "parzialmente_regolato", "pagato", "incassato", "scaduto", "annullato"] as const;
@@ -16,6 +27,9 @@ export type StatoDocumento = (typeof STATO_DOCUMENTO)[number];
 
 export const STATO_SCADENZA = ["aperta", "parzialmente_pagata", "pagata", "incassata", "scaduta", "annullata"] as const;
 export type StatoScadenza = (typeof STATO_SCADENZA)[number];
+
+export const STATO_PAGAMENTO = ["confermato", "annullato", "rettificato"] as const;
+export type StatoPagamento = (typeof STATO_PAGAMENTO)[number];
 
 export const STATO_MOVIMENTO_CASSA = ["confermato", "annullato", "rettificato"] as const;
 export type StatoMovimentoCassa = (typeof STATO_MOVIMENTO_CASSA)[number];
@@ -32,8 +46,20 @@ export type TipoCategoria = (typeof TIPO_CATEGORIA)[number];
 export const METODO_IVA = ["totale_iva_inclusa", "imponibile_piu_iva", "importo_senza_iva", "iva_non_applicabile"] as const;
 export type MetodoIva = (typeof METODO_IVA)[number];
 
+export const FREQUENZA_RICORRENZA = ["mensile", "bimestrale", "trimestrale", "semestrale", "annuale"] as const;
+export type FrequenzaRicorrenza = (typeof FREQUENZA_RICORRENZA)[number];
+
 // Aliquote IVA comuni (in centesimi: 2200 = 22%)
 export const ALIQUOTE_IVA = [0, 400, 500, 1000, 2200] as const;
+
+// Mappa frequenza → mesi di offset
+export const FREQUENZA_MESI: Record<FrequenzaRicorrenza, number> = {
+  mensile: 1,
+  bimestrale: 2,
+  trimestrale: 3,
+  semestrale: 6,
+  annuale: 12,
+};
 
 /** Categorie iniziali uscite */
 export const CATEGORIE_USCITE_DEFAULT = [

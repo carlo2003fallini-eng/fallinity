@@ -13,6 +13,7 @@ import {
   movimentiCassa,
   registrazioniEconomiche,
   allegatiFinanziari,
+  ricorrenzeFinanziarie,
 } from "../../../drizzle/schema";
 import { withCreate, withUpdate, softDeletePayload, tenantScope, newId, type ActorContext } from "../_core";
 
@@ -420,5 +421,138 @@ export const financeRepository = {
     await db.update(allegatiFinanziari).set(softDeletePayload(actor) as any)
       .where(and(eq(allegatiFinanziari.id, id), eq(allegatiFinanziari.companyId, actor.companyId)));
     return { success: true };
+  },
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // FASE 2 — Ricorrenze
+  // ══════════════════════════════════════════════════════════════════════════════
+  async listRicorrenze(companyId: string, attiva?: boolean) {
+    const db = await getDb();
+    if (!db) return [];
+    const conds: any[] = [eq(ricorrenzeFinanziarie.companyId, companyId), isNull(ricorrenzeFinanziarie.deletedAt)];
+    if (attiva !== undefined) conds.push(eq(ricorrenzeFinanziarie.attiva, attiva));
+    return db.select().from(ricorrenzeFinanziarie).where(and(...conds)).orderBy(asc(ricorrenzeFinanziarie.prossimaEmissione));
+  },
+  async getRicorrenza(companyId: string, id: string) {
+    const db = await getDb();
+    if (!db) return null;
+    const rows = await db.select().from(ricorrenzeFinanziarie)
+      .where(and(eq(ricorrenzeFinanziarie.id, id), eq(ricorrenzeFinanziarie.companyId, companyId), isNull(ricorrenzeFinanziarie.deletedAt)));
+    return rows[0] ?? null;
+  },
+  async insertRicorrenza(actor: ActorContext, data: Record<string, unknown>) {
+    const db = await getDb();
+    if (!db) throw new Error("DB not available");
+    const id = newId();
+    await db.insert(ricorrenzeFinanziarie).values(withCreate(actor, { ...data, id }) as any);
+    return { id };
+  },
+  async updateRicorrenza(actor: ActorContext, id: string, data: Record<string, unknown>) {
+    const db = await getDb();
+    if (!db) throw new Error("DB not available");
+    await db.update(ricorrenzeFinanziarie).set(withUpdate(actor, data) as any)
+      .where(and(eq(ricorrenzeFinanziarie.id, id), eq(ricorrenzeFinanziarie.companyId, actor.companyId)));
+    return { success: true };
+  },
+  async softDeleteRicorrenza(actor: ActorContext, id: string) {
+    const db = await getDb();
+    if (!db) throw new Error("DB not available");
+    await db.update(ricorrenzeFinanziarie).set(softDeletePayload(actor) as any)
+      .where(and(eq(ricorrenzeFinanziarie.id, id), eq(ricorrenzeFinanziarie.companyId, actor.companyId)));
+    return { success: true };
+  },
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // FASE 2 — Query avanzate
+  // ══════════════════════════════════════════════════════════════════════════════
+  /** Conta documenti per generare codice sequenziale DOC-ENT-000001 */
+  async countDocumenti(companyId: string, tipo: "entrata" | "uscita") {
+    const db = await getDb();
+    if (!db) return 0;
+    const rows = (await db.execute(
+      sql`SELECT COUNT(*) as cnt FROM documentiFinanziari WHERE companyId=${companyId} AND tipo=${tipo}`,
+    ) as any[]);
+    return Number((rows as any[])[0]?.[0]?.cnt ?? 0);
+  },
+  /** Ottieni scadenza singola */
+  async getScadenza(companyId: string, id: string) {
+    const db = await getDb();
+    if (!db) return null;
+    const rows = await db.select().from(scadenzeFinanziarie)
+      .where(and(eq(scadenzeFinanziarie.id, id), eq(scadenzeFinanziarie.companyId, companyId), isNull(scadenzeFinanziarie.deletedAt)));
+    return rows[0] ?? null;
+  },
+  /** Ottieni pagamento singolo */
+  async getPagamento(companyId: string, id: string) {
+    const db = await getDb();
+    if (!db) return null;
+    const rows = await db.select().from(pagamentiIncassi)
+      .where(and(eq(pagamentiIncassi.id, id), eq(pagamentiIncassi.companyId, companyId), isNull(pagamentiIncassi.deletedAt)));
+    return rows[0] ?? null;
+  },
+  /** Lista scadenze con filtri avanzati */
+  async listScadenzeAvanzate(companyId: string, filters?: {
+    stato?: string; documentoId?: string; dataInizio?: string; dataFine?: string; limit?: number;
+  }) {
+    const db = await getDb();
+    if (!db) return [];
+    const conds: any[] = [eq(scadenzeFinanziarie.companyId, companyId), isNull(scadenzeFinanziarie.deletedAt)];
+    if (filters?.stato) conds.push(eq(scadenzeFinanziarie.stato, filters.stato as any));
+    if (filters?.documentoId) conds.push(eq(scadenzeFinanziarie.documentoId, filters.documentoId));
+    if (filters?.dataInizio) conds.push(sql`dataScadenza >= ${filters.dataInizio}`);
+    if (filters?.dataFine) conds.push(sql`dataScadenza <= ${filters.dataFine}`);
+    return db.select().from(scadenzeFinanziarie).where(and(...conds))
+      .orderBy(asc(scadenzeFinanziarie.dataScadenza)).limit(filters?.limit ?? 50);
+  },
+  /** Lista crediti (documenti entrata con residuo > 0) */
+  async listCrediti(companyId: string, limit = 50) {
+    const db = await getDb();
+    if (!db) return [];
+    const conds: any[] = [
+      eq(documentiFinanziari.companyId, companyId),
+      eq(documentiFinanziari.tipo, "entrata"),
+      isNull(documentiFinanziari.deletedAt),
+      sql`residuo > 0`,
+      sql`stato != 'annullato'`,
+    ];
+    return db.select().from(documentiFinanziari).where(and(...conds))
+      .orderBy(desc(documentiFinanziari.dataDocumento)).limit(limit);
+  },
+  /** Lista debiti (documenti uscita con residuo > 0) */
+  async listDebiti(companyId: string, limit = 50) {
+    const db = await getDb();
+    if (!db) return [];
+    const conds: any[] = [
+      eq(documentiFinanziari.companyId, companyId),
+      eq(documentiFinanziari.tipo, "uscita"),
+      isNull(documentiFinanziari.deletedAt),
+      sql`residuo > 0`,
+      sql`stato != 'annullato'`,
+    ];
+    return db.select().from(documentiFinanziari).where(and(...conds))
+      .orderBy(desc(documentiFinanziari.dataDocumento)).limit(limit);
+  },
+  /** Somma residui per tipo */
+  async sumResidui(companyId: string) {
+    const db = await getDb();
+    if (!db) return { crediti: 0, debiti: 0 };
+    const rows = (await db.execute(
+      sql`SELECT
+        COALESCE(SUM(CASE WHEN tipo='entrata' AND stato!='annullato' THEN residuo ELSE 0 END),0) as crediti,
+        COALESCE(SUM(CASE WHEN tipo='uscita' AND stato!='annullato' THEN residuo ELSE 0 END),0) as debiti
+        FROM documentiFinanziari WHERE companyId=${companyId} AND deletedAt IS NULL`,
+    ) as any[]);
+    const r = (rows as any[])[0]?.[0] ?? {};
+    return { crediti: Number(r.crediti ?? 0), debiti: Number(r.debiti ?? 0) };
+  },
+  /** Annulla tutte le scadenze di un documento */
+  async annullaScadenzeDocumento(actor: ActorContext, documentoId: string) {
+    const db = await getDb();
+    if (!db) throw new Error("DB not available");
+    await db.update(scadenzeFinanziarie).set(withUpdate(actor, { stato: "annullata" }) as any)
+      .where(and(
+        eq(scadenzeFinanziarie.documentoId, documentoId),
+        eq(scadenzeFinanziarie.companyId, actor.companyId),
+      ));
   },
 };

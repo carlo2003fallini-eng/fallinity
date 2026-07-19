@@ -730,9 +730,10 @@ export type MetodoPagamento = typeof metodiPagamento.$inferSelect;
 export const documentiFinanziari = mysqlTable("documentiFinanziari", {
   id: uuidPk(),
   companyId: companyRef(),
+  codiceInterno: varchar("codiceInterno", { length: 20 }), // DOC-ENT-000001 / DOC-USC-000001
   tipo: mysqlEnum("tipo", ["entrata", "uscita"]).notNull(),
   tipoRegistrazione: mysqlEnum("tipoRegistrazione", ["pagato_subito", "documento", "ricorrente", "trasferimento", "investimento"]).notNull(),
-  tipoDocumento: varchar("tipoDocumento", { length: 50 }), // fattura, ricevuta, nota_credito, generico
+  tipoDocumento: varchar("tipoDocumento", { length: 50 }), // fattura_acquisto, fattura_vendita, ricevuta, nota_credito_ricevuta, nota_credito_emessa, parcella, contratto, avviso_pagamento, generico, altro
   numero: varchar("numero", { length: 50 }),
   dataDocumento: date("dataDocumento").notNull(),
   soggettoId: varchar("soggettoId", { length: 36 }),
@@ -742,17 +743,21 @@ export const documentiFinanziari = mysqlTable("documentiFinanziari", {
   aliquotaIva: int("aliquotaIva").default(2200).notNull(), // centesimi (2200 = 22%)
   importoIva: int("importoIva").notNull(), // centesimi
   totale: int("totale").notNull(), // centesimi
+  totalePagato: int("totalePagato").default(0).notNull(), // centesimi — somma pagamenti confermati
+  residuo: int("residuo").notNull(), // centesimi — totale - totalePagato
+  valuta: varchar("valuta", { length: 3 }).default("EUR").notNull(),
   dataCompetenza: date("dataCompetenza"),
   descrizione: text("descrizione"),
   note: text("note"),
   stato: mysqlEnum("stato", ["bozza", "registrato", "parzialmente_regolato", "pagato", "incassato", "scaduto", "annullato"]).default("registrato").notNull(),
   riferimentoEsterno: varchar("riferimentoEsterno", { length: 100 }),
-  // Collegamenti futuri
+  // Collegamenti
   originModule: varchar("originModule", { length: 50 }),
   originEntityType: varchar("originEntityType", { length: 50 }),
   originEntityId: varchar("originEntityId", { length: 36 }),
   originReference: varchar("originReference", { length: 100 }),
   generatedAutomatically: boolean("generatedAutomatically").default(false).notNull(),
+  ricorrenzaId: varchar("ricorrenzaId", { length: 36 }),
   // Metodo e conto (per pagato_subito)
   contoId: varchar("contoId", { length: 36 }),
   metodoId: varchar("metodoId", { length: 36 }),
@@ -765,7 +770,12 @@ export const scadenzeFinanziarie = mysqlTable("scadenzeFinanziarie", {
   companyId: companyRef(),
   documentoId: varchar("documentoId", { length: 36 }).notNull(),
   importo: int("importo").notNull(), // centesimi
+  importoPagato: int("importoPagato").default(0).notNull(), // centesimi
+  residuo: int("residuo").notNull(), // centesimi — importo - importoPagato
   dataScadenza: date("dataScadenza").notNull(),
+  numero: int("numero").default(1).notNull(), // rata N di M
+  totaleRate: int("totaleRate").default(1).notNull(), // M
+  note: text("note"),
   stato: mysqlEnum("stato", ["aperta", "parzialmente_pagata", "pagata", "incassata", "scaduta", "annullata"]).default("aperta").notNull(),
   ...auditColumns,
 });
@@ -780,6 +790,8 @@ export const pagamentiIncassi = mysqlTable("pagamentiIncassi", {
   metodoId: varchar("metodoId", { length: 36 }),
   importo: int("importo").notNull(), // centesimi
   data: date("data").notNull(),
+  riferimento: varchar("riferimento", { length: 100 }), // CRO, numero assegno, ecc.
+  ricevutaUrl: text("ricevutaUrl"),
   note: text("note"),
   stato: mysqlEnum("stato", ["confermato", "annullato", "rettificato"]).default("confermato").notNull(),
   ...auditColumns,
@@ -829,3 +841,34 @@ export const allegatiFinanziari = mysqlTable("allegatiFinanziari", {
   ...auditColumns,
 });
 export type AllegatoFinanziario = typeof allegatiFinanziari.$inferSelect;
+
+// ── Ricorrenze finanziarie ──
+export const ricorrenzeFinanziarie = mysqlTable("ricorrenzeFinanziarie", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  nome: varchar("nome", { length: 100 }).notNull(),
+  // Documento modello (template)
+  tipo: mysqlEnum("tipo", ["entrata", "uscita"]).notNull(),
+  tipoDocumento: varchar("tipoDocumento", { length: 50 }),
+  soggettoId: varchar("soggettoId", { length: 36 }),
+  categoriaId: varchar("categoriaId", { length: 36 }).notNull(),
+  centroCostoId: varchar("centroCostoId", { length: 36 }),
+  imponibile: int("imponibile").notNull(),
+  aliquotaIva: int("aliquotaIva").default(2200).notNull(),
+  importoIva: int("importoIva").notNull(),
+  totale: int("totale").notNull(),
+  descrizione: text("descrizione"),
+  // Configurazione ricorrenza
+  frequenza: mysqlEnum("frequenza", ["mensile", "bimestrale", "trimestrale", "semestrale", "annuale"]).notNull(),
+  giorno: int("giorno").default(1).notNull(), // giorno del mese
+  prossimaEmissione: date("prossimaEmissione").notNull(),
+  ultimaEmissione: date("ultimaEmissione"),
+  dataFine: date("dataFine"), // null = infinita
+  attiva: boolean("attiva").default(true).notNull(),
+  creaScadenza: boolean("creaScadenza").default(true).notNull(),
+  creaPagamento: boolean("creaPagamento").default(false).notNull(), // se true, segna come pagato subito
+  contoId: varchar("contoId", { length: 36 }),
+  metodoId: varchar("metodoId", { length: 36 }),
+  ...auditColumns,
+});
+export type RicorrenzaFinanziaria = typeof ricorrenzeFinanziarie.$inferSelect;

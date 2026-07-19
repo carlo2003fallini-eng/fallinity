@@ -22,6 +22,13 @@ import {
   annullaMovimentoInput,
   deleteMovimentoInput,
   seedInput,
+  registraPagamentoInput,
+  annullaPagamentoInput,
+  creaRateInput,
+  creaScadenzePersonalizzateInput,
+  creaRicorrenzaInput,
+  listScadenzeInput,
+  listRicorrenzeInput,
 } from "./validators";
 import { z } from "zod";
 
@@ -166,6 +173,89 @@ export const finanzaRouter = router({
     delete: protectedProcedure.input(deleteMovimentoInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);
       return financeService.deleteMovimento(actor, input.id);
+    }),
+  }),
+
+  // ── Pagamenti (Fase 2) ──
+  pagamenti: router({
+    registra: protectedProcedure.input(registraPagamentoInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return financeService.registraPagamento(actor, input);
+    }),
+    annulla: protectedProcedure.input(annullaPagamentoInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return financeService.annullaPagamento(actor, input.id, input.motivo);
+    }),
+  }),
+
+  // ── Scadenze (Fase 2) ──
+  scadenze: router({
+    list: protectedProcedure.input(listScadenzeInput).query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return financeService.listScadenze(actor.companyId, input as any);
+    }),
+    creaRate: protectedProcedure.input(creaRateInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return financeService.creaRate(actor, input);
+    }),
+    creaPersonalizzate: protectedProcedure.input(creaScadenzePersonalizzateInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return financeService.creaScadenzePersonalizzate(actor, input.documentoId, input.scadenze);
+    }),
+    creaSingola: protectedProcedure.input(z.object({
+      documentoId: z.string(),
+      importo: z.number().positive(),
+      dataScadenza: z.string(),
+      note: z.string().optional(),
+    })).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return financeService.creaScadenza(actor, input.documentoId, input.importo, input.dataScadenza, input.note);
+    }),
+  }),
+
+  // ── Crediti / Debiti (Fase 2) ──
+  crediti: router({
+    list: protectedProcedure.input(z.object({ limit: z.number().optional() }).optional()).query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return financeService.listCrediti(actor.companyId, input?.limit);
+    }),
+  }),
+  debiti: router({
+    list: protectedProcedure.input(z.object({ limit: z.number().optional() }).optional()).query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return financeService.listDebiti(actor.companyId, input?.limit);
+    }),
+  }),
+  residui: protectedProcedure.query(async ({ ctx }) => {
+    const actor = await getActor(ctx);
+    return financeService.sumResidui(actor.companyId);
+  }),
+
+  // ── Ricorrenze (Fase 2) ──
+  ricorrenze: router({
+    list: protectedProcedure.input(listRicorrenzeInput).query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return financeService.listRicorrenze(actor.companyId, input?.attiva);
+    }),
+    create: protectedProcedure.input(creaRicorrenzaInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return financeService.creaRicorrenza(actor, input);
+    }),
+    update: protectedProcedure.input(z.object({ id: z.string(), data: z.record(z.string(), z.unknown()) })).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return financeService.updateRicorrenza(actor, input.id, input.data);
+    }),
+    disattiva: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return financeService.disattivaRicorrenza(actor, input.id);
+    }),
+    delete: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return financeService.deleteRicorrenza(actor, input.id);
+    }),
+    emetti: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return financeService.emettiDaRicorrenza(actor, input.id);
     }),
   }),
 

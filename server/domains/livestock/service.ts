@@ -5,7 +5,7 @@ import type {
   AddZoppiaInput, AddEventoAnimaleInput, FiltriGruppiInput,
   SpostaGruppoInput, SpostaMultiploInput, AnteprimaFattoriInput, CreateTrattamentoInput,
 } from "./validators";
-import { v4 as uuid } from "uuid";
+import { randomUUID as uuid } from "crypto";
 
 /** Calcola i fattori che verranno applicati dato un gruppo destinazione e un animale */
 function calcolaEffettiFattori(gruppo: Record<string, unknown>, animale: Record<string, unknown>) {

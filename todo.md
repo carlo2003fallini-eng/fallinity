@@ -518,3 +518,45 @@
 
 ### Verifica
 - [x] 0 errori TS, 72/72 test Vitest verdi (21 nuovi finance.movimenti), server running, screenshot mobile 390x844
+
+## FASE 22 — Sprint Finanza Fase 2: Documenti, Scadenze, Pagamenti Parziali e Crediti/Debiti
+
+### Schema DB (estensione, non ricostruzione)
+- [x] documentiFinanziari: aggiungere colonne codiceInterno (DOC-ENT-000001/DOC-USC-000001), residuo, totalePagato, valuta, ricorrenzaId
+- [x] documentiFinanziari: estendere enum tipoDocumento (fattura_acquisto, fattura_vendita, ricevuta, nota_credito_ricevuta, nota_credito_emessa, parcella, contratto, avviso_pagamento, generico, altro)
+- [x] scadenzeFinanziarie: aggiungere colonne importoPagato, residuo, numero (rata N di M), note
+- [x] pagamentiIncassi: aggiungere colonne riferimento, ricevutaUrl
+- [x] Nuova tabella `ricorrenzeFinanziarie`: id, companyId, nome, tipo, frequenza, giorno, prossimaEmissione, attiva, creaScadenza, creaPagamento + audit
+- [x] Migrazione SQL applicata (ALTER isolati)
+
+### Backend finance (estensione)
+- [x] types.ts: enum tipoDocumento esteso, enum frequenzaRicorrenza, tipo StatoDocumento aggiornato
+- [x] validators.ts: registraPagamentoInput, creaScadenzeInput (singola/rate/personalizzata), creaRicorrenzaInput
+- [x] repository.ts: registraPagamento, calcolaResiduo, listScadenzeAperte, listScadute, generaCodiceInterno, CRUD ricorrenze
+- [x] service.ts: registraPagamento (parziale/totale), aggiornaStatoDocumento (logica residuo→stato), creaRate (split importo in N scadenze), creaRicorrenza, emettiDaRicorrenza
+- [x] service.ts: calcolaScaduti, listCrediti (entrata con residuo > 0), listDebiti (uscita con residuo > 0), sumResidui
+- [x] router.ts: finanza.pagamenti.registra/annulla, finanza.scadenze.list/creaRate/creaPersonalizzate/creaSingola, finanza.ricorrenze.*, finanza.crediti.list, finanza.debiti.list, finanza.residui
+
+### Frontend Finanza
+- [x] Pagina DettaglioMovimento: header documento + lista scadenze con stato + lista pagamenti + barra progresso residuo + azioni (Registra pagamento, Crea rate, Annulla)
+- [x] Form Registra Pagamento/Incasso: importo (precompilato residuo), conto, metodo, data, note (Sheet bottom)
+- [x] Form Crea Rate: N rate, frequenza (mensile/bimestrale/trimestrale/semestrale/annuale), data inizio, anteprima (Sheet bottom)
+- [x] Indicatori crediti/debiti: procedure tRPC crediti.list, debiti.list, residui (frontend pronto per integrazione)
+- [x] Navigazione al dettaglio dalla ListaMovimenti (click su card → /finanza/movimento/:id)
+
+### Test obbligatori
+- [x] Pagamento totale: residuo → 0, stato → pagato/incassato
+- [x] Pagamento parziale: residuo decresce, stato → parzialmente_regolato
+- [x] Pagamenti multipli: somma pagamenti = totale → stato finale corretto
+- [x] Scadenza singola creata correttamente
+- [x] Rate: split corretto (importo/N, ultimo con resto)
+- [x] Scaduto: documento con scadenza passata → stato scaduto
+- [x] Annullamento pagamento: storno saldo + ripristino residuo
+- [x] Codice interno DOC-ENT/DOC-USC progressivo per company
+- [x] Ricorrenza: genera documento + scadenza alla data prevista
+- [x] Crediti: lista documenti entrata con residuo > 0
+- [x] Debiti: lista documenti uscita con residuo > 0con residuo > 0
+- [x] Isolamento multi-azienda su pagamenti e scadenze (companyId su tutte le query)
+
+### Verifica
+- [x] 0 errori TS, 94/94 test Vitest verdi (22 nuovi finance.fase2), server running, screenshot mobile 390x844 verificati
