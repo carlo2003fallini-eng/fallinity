@@ -400,26 +400,66 @@
 ## FASE 19 — Scenario Futuro (simulazione what-if)
 
 ### Schema DB
-- [ ] Tabella `scenari`: id, companyId, nome, descrizione, stato (bozza/calcolato/archiviato), modello, risultatoJson, creatoIl + audit + soft delete
-- [ ] Tabella `ipotesiScenario`: id, scenarioId, variabile, valoreAttuale, valoreIpotesi, unita, companyId + audit
+- [x] Tabella `scenari`: id, companyId, nome, descrizione, stato (bozza/calcolato/archiviato), modello, risultatoJson, creatoIl + audit + soft delete
+- [x] Tabella `ipotesiScenario`: id, scenarioId, variabile, valoreAttuale, valoreIpotesi, unita, companyId + audit
 
 ### Backend
-- [ ] repository: CRUD scenari + ipotesi
-- [ ] service: crea scenario, aggiungi ipotesi, calcola impatto (simulazione), confronta scenari
-- [ ] validators: zod per scenari e ipotesi
-- [ ] router: scenario.* (list, create, detail, addIpotesi, calcola, confronta, delete)
+- [x] repository: CRUD scenari + ipotesi
+- [x] service: crea scenario, aggiungi ipotesi, calcola impatto (simulazione), confronta scenari
+- [x] validators: zod per scenari e ipotesi
+- [x] router: scenario.* (list, create, detail, addIpotesi, calcola, confronta, delete)
 
 ### UI Scenario Futuro
-- [ ] Pagina con workflow visuale 5 step (come da mockup)
-- [ ] Step 1: Lista scenari + crea nuovo (scegli modello o da zero)
-- [ ] Step 2: Form ipotesi (variabili: investimenti, costi, prezzi, produzione)
-- [ ] Step 3: Calcolo impatto (animazione + risultato)
-- [ ] Step 4: Analizza risultati (KPI chiave, grafici)
-- [ ] Step 5: Confronta scenari (side-by-side)
+- [x] Pagina con workflow visuale 5 step (come da mockup)
+- [x] Step 1: Lista scenari + crea nuovo (scegli modello o da zero)
+- [x] Step 2: Form ipotesi (variabili: investimenti, costi, prezzi, produzione)
+- [x] Step 3: Calcolo impatto (animazione + risultato)
+- [x] Step 4: Analizza risultati (KPI chiave, grafici)
+- [x] Step 5: Confronta scenari (side-by-side)
 
 ### Navigazione
-- [ ] Aggiungere "Scenario Futuro" nel drawer Altro (sezione Sistema & Strumenti)
-- [ ] Route /scenario-futuro
+- [x] Aggiungere "Scenario Futuro" nel drawer Altro (sezione Sistema & Strumenti)
+- [x] Route /scenario-futuro
 
 ### Verifica
-- [ ] 0 errori TS, test Vitest, screenshot, checkpoint
+- [x] 0 errori TS, 32/32 test Vitest verdi, screenshot desktop+mobile verificati, checkpoint b4d46412
+
+## FASE 20 — Stalla: Flusso Centrato sull'Animale + Fattori Predefiniti Gruppi
+
+### Schema DB
+- [x] Colonne fattori predefiniti su tabella `gruppi`: applicaFattoriPredefiniti, statoProduttivoPredefinito, modalitaStatoProduttivo, statoRiproduttivoPredefinito, modalitaStatoRiproduttivo, categoriaSanitariaPredefinita, modalitaCategoriaSanitaria, percorsoOperativoPredefinito
+- [x] Tabella `trattamentiAnimali` estesa: tipologia, motivo, prodotto, dose, unitaMisura, viaSomministrazione, dataInizio, dataFine, tempiSospensione, operatore, veterinario, note
+- [x] Tabella `eventiAnimale` estesa: gruppoPrecedente, gruppoNuovo, statoProduttivoPrecedente, statoProduttivoNuovo, statoRiproduttivoPrecedente, statoRiproduttivoNuovo, fattoriApplicati (JSON), modalitaApplicazione, motivo, operazioneMultiplaId
+- [x] Migrazione SQL applicata (ALTER isolati)
+
+### Backend livestock
+- [x] Validators: createAnimaleInput con gruppoId obbligatorio, createTrattamentoInput centrato su animalId, spostaGruppoInput con confermaFattori, spostaMultiploInput
+- [x] Repository: CRUD trattamenti collegati via animalId, spostamento con applicazione fattori, operazioni multiple
+- [x] Service: logica applicazione fattori predefiniti (automatico/conferma/suggerimento/non_applicare), spostamento singolo e multiplo con timeline completa
+- [x] Service: anteprima fattori (dato un animale e un gruppo destinazione, restituisce cosa cambierà)
+- [x] Router: stalla.animali.create (gruppo obbligatorio), stalla.trattamenti.create, stalla.animali.spostaGruppo, stalla.animali.spostaMultiplo, stalla.anteprimaFattori
+
+### Frontend Stalla
+- [x] Form creazione animale: gruppo obbligatorio, preview fattori predefiniti quando si seleziona il gruppo
+- [x] Menu azioni animale: sheet con 11 azioni (Trattamento, Sincronizzazione, Inseminazione, Controllo gravidanza, Sposta gruppo, Zoppia, Infermeria, Asciutta, Parto, Nota, Scheda completa)
+- [x] Form trattamento centrato su animale: card riepilogativa non modificabile + solo campi specifici trattamento
+- [x] Spostamento gruppo con conferma fattori: mostra valori attuali vs nuovi, stato riproduttivo invariato se configurato
+- [x] Selezione multipla da dettaglio gruppo: checkbox, seleziona tutti, barra azioni bulk (Sposta gruppo)
+- [x] Spostamento multiplo: riepilogo (N animali, destinazione, fattori predefiniti applicati)
+- [x] Form modifica gruppo: interruttore fattori predefiniti + configurazione per fattore + modalità per fattore
+- [x] Modifica fattori gruppo esistente: applicazione solo ai futuri spostamenti (design corretto — no retroattivo)
+
+### Test obbligatori
+- [x] Test: creazione animale con gruppo obbligatorio
+- [x] Test: gruppo senza fattori predefiniti (solo cambio gruppo)
+- [x] Test: gruppo con fattore produttivo automatico
+- [x] Test: gruppo con modalità "con conferma" (anteprima)
+- [x] Test: valore "Nessuna modifica" conserva stato precedente
+- [x] Test: vacca gravida spostata in Asciutta mantiene statoRiproduttivo
+- [x] Test: spostamento multiplo applica fattori correttamente
+- [x] Test: trattamento collegato via animalId
+- [x] Test: timeline registra spostamento con stati precedenti/nuovi
+- [x] Test: isolamento multi-azienda
+
+### Verifica
+- [x] 0 errori TS, 51/51 test Vitest verdi (19 nuovi livestock.fattori), build OK, screenshot mobile 390x844 verificati

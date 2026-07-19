@@ -201,4 +201,25 @@ export const livestockRepository = {
       .where(and(eq(trattamentiAnimali.animaleId, animaleId), eq(trattamentiAnimali.stato, "pianificato"), eq(trattamentiAnimali.companyId, actor.companyId)));
     return { success: true };
   },
+
+  // ── Trattamenti CRUD ──
+  async insertTrattamento(actor: ActorContext, data: Record<string, unknown>) {
+    const db = await getDb();
+    if (!db) throw new Error("DB not available");
+    const row = withCreate(actor, data);
+    await db.insert(trattamentiAnimali).values(row as any);
+    return row;
+  },
+
+  async listTrattamenti(companyId: string, animaleId: string) {
+    const db = await getDb();
+    if (!db) return [];
+    return db.select().from(trattamentiAnimali)
+      .where(and(
+        eq(trattamentiAnimali.companyId, companyId),
+        eq(trattamentiAnimali.animaleId, animaleId),
+        isNull(trattamentiAnimali.deletedAt)
+      ))
+      .orderBy(desc(trattamentiAnimali.dataTrattamento));
+  },
 };

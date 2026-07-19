@@ -1,39 +1,60 @@
-import type { ActorContext } from "../_core";
 import { livestockRepository as repo } from "./repository";
+import type { ActorContext } from "../_core";
 import type {
-  AddAnimaleInput, AddZoppiaInput, CreateGruppoInput,
-  UpdateGruppoInput, UpdateAnimaleInput, AddEventoAnimaleInput,
-  FiltriGruppiInput,
+  CreateGruppoInput, UpdateGruppoInput, AddAnimaleInput, UpdateAnimaleInput,
+  AddZoppiaInput, AddEventoAnimaleInput, FiltriGruppiInput,
+  SpostaGruppoInput, SpostaMultiploInput, AnteprimaFattoriInput, CreateTrattamentoInput,
 } from "./validators";
+import { v4 as uuid } from "uuid";
 
-/** LIVESTOCK (Stalla) — Service */
+/** Calcola i fattori che verranno applicati dato un gruppo destinazione e un animale */
+function calcolaEffettiFattori(gruppo: Record<string, unknown>, animale: Record<string, unknown>) {
+  const effetti: Array<{ campo: string; valoreAttuale: string | null; valoreNuovo: string | null; modalita: string }> = [];
+  if (!gruppo.applicaFattoriPredefiniti) return effetti;
+  // Stato produttivo
+  if (gruppo.statoProduttivoPredefinito && gruppo.modalitaStatoProduttivo !== "non_applicare") {
+    const valoreAttuale = (animale.statoProduttivo as string) ?? null;
+    const valoreNuovo = gruppo.statoProduttivoPredefinito as string;
+    if (valoreAttuale !== valoreNuovo) {
+      effetti.push({ campo: "statoProduttivo", valoreAttuale, valoreNuovo, modalita: gruppo.modalitaStatoProduttivo as string });
+    }
+  }
+  // Stato riproduttivo
+  if (gruppo.statoRiproduttivoPredefinito && gruppo.modalitaStatoRiproduttivo !== "non_applicare") {
+    const valoreAttuale = (animale.statoRiproduttivo as string) ?? null;
+    const valoreNuovo = gruppo.statoRiproduttivoPredefinito as string;
+    if (valoreAttuale !== valoreNuovo) {
+      effetti.push({ campo: "statoRiproduttivo", valoreAttuale, valoreNuovo, modalita: gruppo.modalitaStatoRiproduttivo as string });
+    }
+  }
+  return effetti;
+}
+
+/** Applica i fattori automatici (modalità "automatico") all'animale */
+function buildPatchFromFattori(effetti: ReturnType<typeof calcolaEffettiFattori>, conferma: boolean) {
+  const patch: Record<string, unknown> = {};
+  for (const e of effetti) {
+    if (e.modalita === "automatico" || (e.modalita === "conferma" && conferma)) {
+      patch[e.campo] = e.valoreNuovo;
+    }
+    // "suggerimento" e "non_applicare" non modificano l'animale
+  }
+  return patch;
+}
+
 export const livestockService = {
-  // ── Legacy (retrocompatibilità Azienda.tsx / vecchia Stalla.tsx) ──
-  list(companyId: string) {
-    return repo.listAnimali(companyId);
-  },
-  stats(companyId: string) {
-    return repo.stats(companyId);
-  },
-  zoppie(companyId: string) {
-    return repo.listZoppie(companyId);
-  },
-  addAnimale(actor: ActorContext, input: AddAnimaleInput) {
-    return repo.insertAnimale(actor, input);
-  },
-  addZoppia(actor: ActorContext, input: AddZoppiaInput) {
-    return repo.insertZoppia(actor, input);
-  },
-  eseguiTrattamento(actor: ActorContext, animaleId: string) {
-    return repo.eseguiTrattamento(actor, animaleId);
-  },
+  // ── Legacy ──
+  async list(companyId: string) { return repo.listAnimali(companyId); },
+  async stats(companyId: string) { return repo.stats(companyId); },
+  async zoppie(companyId: string) { return repo.listZoppie(companyId); },
+  async addAnimale(actor: ActorContext, input: Record<string, unknown>) { return repo.insertAnimale(actor, input); },
+  async addZoppia(actor: ActorContext, input: AddZoppiaInput) { return repo.insertZoppia(actor, { ...input, dataRilevazione: new Date(input.dataRilevazione) }); },
+  async eseguiTrattamento(actor: ActorContext, animaleId: string) { return repo.eseguiTrattamento(actor, animaleId); },
 
   // ── Gruppi ──
   async listGruppi(companyId: string, filtri?: FiltriGruppiInput) {
     const allGruppi = await repo.listGruppi(companyId);
     const allAnimali = await repo.listAnimali(companyId);
-
-    // Arricchisci ogni gruppo con contatori e produzione media
     const enriched = allGruppi.map(g => {
       const membri = allAnimali.filter(a => a.gruppoId === g.id);
       const inLattazione = membri.filter(a => a.statoProduttivo === "in_lattazione").length;
@@ -44,20 +65,8 @@ export const livestockService = {
             .reduce((sum, a) => sum + Number(a.produzioneOggi ?? 0), 0) / inLattazione
         : 0;
       const hasAlert = membri.some(a => (a.healthScore ?? 100) < 70);
-      const hasTrattamenti = false; // TODO: join trattamenti se necessario
-      return {
-        ...g,
-        nAnimali: membri.length,
-        inLattazione,
-        gravide,
-        manze,
-        produzioneMedia: Math.round(produzioneMedia * 10) / 10,
-        hasAlert,
-        hasTrattamenti,
-      };
+      return { ...g, nAnimali: membri.length, inLattazione, gravide, manze, produzioneMedia: Math.round(produzioneMedia * 10) / 10, hasAlert, hasTrattamenti: false };
     });
-
-    // Applica filtri
     if (!filtri) return enriched;
     let result = enriched;
     if (filtri.tipologia) result = result.filter(g => g.tipologia === filtri.tipologia);
@@ -65,11 +74,6 @@ export const livestockService = {
     if (filtri.conAlert) result = result.filter(g => g.hasAlert);
     if (filtri.conGravide) result = result.filter(g => g.gravide > 0);
     if (filtri.inLattazione) result = result.filter(g => g.inLattazione > 0);
-    if (filtri.conTrattamenti) result = result.filter(g => g.hasTrattamenti);
-    if (filtri.produzioneSottoMedia) {
-      const mediaGlobale = enriched.reduce((s, g) => s + g.produzioneMedia, 0) / (enriched.length || 1);
-      result = result.filter(g => g.produzioneMedia > 0 && g.produzioneMedia < mediaGlobale);
-    }
     if (filtri.ricerca) {
       const q = filtri.ricerca.toLowerCase();
       result = result.filter(g => g.nome.toLowerCase().includes(q) || g.codice?.toLowerCase().includes(q));
@@ -101,9 +105,59 @@ export const livestockService = {
     return { ...gruppo, membri, stats, produzioneMedia };
   },
 
+  // ── Anteprima fattori predefiniti ──
+  async anteprimaFattori(companyId: string, input: AnteprimaFattoriInput) {
+    const gruppo = await repo.getGruppo(companyId, input.gruppoDestinazioneId);
+    if (!gruppo) return { effetti: [], gruppoNome: "", applicaFattori: false };
+    if (!gruppo.applicaFattoriPredefiniti) {
+      return { effetti: [], gruppoNome: gruppo.nome, applicaFattori: false, capacitaMax: gruppo.capacitaMax, nAnimaliAttuali: 0 };
+    }
+    // Singolo animale
+    if (input.animaleId) {
+      const animale = await repo.getAnimale(companyId, input.animaleId);
+      if (!animale) return { effetti: [], gruppoNome: gruppo.nome, applicaFattori: true };
+      const effetti = calcolaEffettiFattori(gruppo, animale);
+      return { effetti, gruppoNome: gruppo.nome, applicaFattori: true, capacitaMax: gruppo.capacitaMax };
+    }
+    // Multipli animali
+    if (input.animaleIds && input.animaleIds.length > 0) {
+      const animaliAll = await repo.listAnimali(companyId);
+      const animali = animaliAll.filter(a => input.animaleIds!.includes(a.id));
+      const membriAttuali = await repo.listAnimaliByGruppo(companyId, input.gruppoDestinazioneId);
+      const riepilogo = {
+        totale: animali.length,
+        cambierannoStato: 0,
+        invariati: 0,
+        incompatibili: 0,
+        capacitaDopo: membriAttuali.length + animali.length,
+        capacitaMax: gruppo.capacitaMax,
+      };
+      const dettagli: Array<{ animaleId: string; matricola: string; effetti: ReturnType<typeof calcolaEffettiFattori> }> = [];
+      for (const a of animali) {
+        const eff = calcolaEffettiFattori(gruppo, a);
+        if (eff.length > 0) riepilogo.cambierannoStato++;
+        else riepilogo.invariati++;
+        dettagli.push({ animaleId: a.id, matricola: a.matricola, effetti: eff });
+      }
+      return { gruppoNome: gruppo.nome, applicaFattori: true, riepilogo, dettagli };
+    }
+    return { effetti: [], gruppoNome: gruppo.nome, applicaFattori: true };
+  },
+
   // ── Animali ──
   async createAnimale(actor: ActorContext, input: AddAnimaleInput) {
-    return repo.insertAnimale(actor, input);
+    // Se confermaFattori è true, applica i fattori del gruppo selezionato
+    const { confermaFattori, ...data } = input;
+    let finalData: Record<string, unknown> = { ...data };
+    if (confermaFattori && input.gruppoId) {
+      const gruppo = await repo.getGruppo(actor.companyId, input.gruppoId);
+      if (gruppo && gruppo.applicaFattoriPredefiniti) {
+        const effetti = calcolaEffettiFattori(gruppo, data);
+        const patch = buildPatchFromFattori(effetti, true);
+        finalData = { ...finalData, ...patch };
+      }
+    }
+    return repo.insertAnimale(actor, finalData);
   },
 
   async updateAnimale(actor: ActorContext, input: UpdateAnimaleInput) {
@@ -111,17 +165,100 @@ export const livestockService = {
     return repo.updateAnimale(actor, id, data);
   },
 
-  async spostaGruppo(actor: ActorContext, animaleId: string, nuovoGruppoId: string) {
-    // Aggiorna il gruppoId dell'animale
-    await repo.updateAnimale(actor, animaleId, { gruppoId: nuovoGruppoId });
-    // Registra evento spostamento
+  // ── Spostamento singolo con fattori ──
+  async spostaGruppo(actor: ActorContext, input: SpostaGruppoInput) {
+    const animale = await repo.getAnimale(actor.companyId, input.animaleId);
+    if (!animale) throw new Error("Animale non trovato");
+    const gruppo = await repo.getGruppo(actor.companyId, input.nuovoGruppoId);
+    if (!gruppo) throw new Error("Gruppo non trovato");
+
+    const gruppoPrecedenteId = animale.gruppoId ?? null;
+    const statoProduttivoPrecedente = animale.statoProduttivo ?? null;
+    const statoRiproduttivoPrecedente = animale.statoRiproduttivo ?? null;
+
+    // Calcola e applica fattori
+    const effetti = calcolaEffettiFattori(gruppo, animale);
+    const patch = buildPatchFromFattori(effetti, input.confermaFattori);
+    // Aggiorna animale: gruppoId + eventuali fattori
+    await repo.updateAnimale(actor, input.animaleId, { gruppoId: input.nuovoGruppoId, ...patch });
+
+    // Registra evento timeline con storico completo
     await repo.insertEventoAnimale(actor, {
-      animaleId,
+      animaleId: input.animaleId,
       tipo: "spostamento_gruppo",
       data: new Date(),
-      descrizione: `Spostato al gruppo ${nuovoGruppoId}`,
+      descrizione: `Spostato da ${gruppoPrecedenteId ?? "nessuno"} a ${gruppo.nome} (${gruppo.codice})`,
+      gruppoPrecedenteId,
+      gruppoNuovoId: input.nuovoGruppoId,
+      statoProduttivoPrecedente,
+      statoProduttivoNuovo: (patch.statoProduttivo as string) ?? statoProduttivoPrecedente,
+      statoRiproduttivoPrecedente,
+      statoRiproduttivoNuovo: (patch.statoRiproduttivo as string) ?? statoRiproduttivoPrecedente,
+      fattoriApplicati: effetti.length > 0 ? JSON.stringify(effetti) : null,
+      modalitaApplicazione: effetti.length > 0 ? (input.confermaFattori ? "conferma" : "automatico") : null,
+      motivo: input.motivo ?? null,
     });
-    return { success: true };
+    return { success: true, effettiApplicati: effetti, patch };
+  },
+
+  // ── Spostamento multiplo ──
+  async spostaMultiplo(actor: ActorContext, input: SpostaMultiploInput) {
+    const gruppo = await repo.getGruppo(actor.companyId, input.nuovoGruppoId);
+    if (!gruppo) throw new Error("Gruppo non trovato");
+    const operazioneMultiplaId = uuid();
+    const risultati: Array<{ animaleId: string; success: boolean; effetti: unknown[] }> = [];
+
+    for (const animaleId of input.animaleIds) {
+      try {
+        const r = await this.spostaGruppo(actor, {
+          animaleId,
+          nuovoGruppoId: input.nuovoGruppoId,
+          confermaFattori: input.confermaFattori,
+          motivo: input.motivo,
+        });
+        // Aggiorna l'evento appena creato con operazioneMultiplaId
+        risultati.push({ animaleId, success: true, effetti: r.effettiApplicati });
+      } catch {
+        risultati.push({ animaleId, success: false, effetti: [] });
+      }
+    }
+    return { operazioneMultiplaId, totale: input.animaleIds.length, successi: risultati.filter(r => r.success).length, risultati };
+  },
+
+  // ── Trattamenti ──
+  async createTrattamento(actor: ActorContext, input: CreateTrattamentoInput) {
+    const trattamento = await repo.insertTrattamento(actor, {
+      animaleId: input.animaleId,
+      tipo: input.tipo,
+      tipologia: input.tipologia ?? null,
+      motivo: input.motivo ?? null,
+      farmaco: input.farmaco ?? null,
+      prodotto: input.prodotto ?? null,
+      dose: input.dose ?? null,
+      unitaMisura: input.unitaMisura ?? null,
+      viaSomministrazione: input.viaSomministrazione ?? null,
+      dataTrattamento: new Date(input.dataTrattamento),
+      dataFine: input.dataFine ? new Date(input.dataFine) : null,
+      tempiSospensione: input.tempiSospensione ?? null,
+      prossimoTrattamento: input.prossimoTrattamento ? new Date(input.prossimoTrattamento) : null,
+      operatore: input.operatore ?? null,
+      veterinario: input.veterinario ?? null,
+      note: input.note ?? null,
+      stato: "eseguito",
+    });
+    // Registra evento timeline
+    await repo.insertEventoAnimale(actor, {
+      animaleId: input.animaleId,
+      tipo: "trattamento",
+      data: new Date(),
+      descrizione: `Trattamento ${input.tipo}: ${input.farmaco || input.prodotto || input.tipologia || ""}`.trim(),
+      operatore: input.operatore ?? null,
+    });
+    return trattamento;
+  },
+
+  async listTrattamenti(companyId: string, animaleId: string) {
+    return repo.listTrattamenti(companyId, animaleId);
   },
 
   // ── Ricerca universale ──
@@ -147,7 +284,8 @@ export const livestockService = {
     const animale = await repo.getAnimale(companyId, id);
     if (!animale) return null;
     const eventi = await repo.listEventiAnimale(companyId, id);
-    return { ...animale, eventi };
+    const trattamenti = await repo.listTrattamenti(companyId, id);
+    return { ...animale, eventi, trattamenti };
   },
 
   // ── Eventi ──
@@ -155,3 +293,6 @@ export const livestockService = {
     return repo.insertEventoAnimale(actor, { ...input, data: new Date(input.data) });
   },
 };
+
+// Esporta le funzioni helper per i test
+export { calcolaEffettiFattori, buildPatchFromFattori };
