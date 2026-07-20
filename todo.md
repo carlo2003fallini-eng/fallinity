@@ -560,3 +560,83 @@
 
 ### Verifica
 - [x] 0 errori TS, 94/94 test Vitest verdi (22 nuovi finance.fase2), server running, screenshot mobile 390x844 verificati
+
+## FASE 23 — Sprint Finanza Fase 3: Dashboard Finanziaria, Cashflow, KPI, Previsioni e Alert
+
+### Schema DB
+- [x] Tabella `alertFinanziari`: id, companyId, tipo, severita, titolo, descrizione, valore, entitaId, entitaTipo, letto, risolto, dataCreazione + audit
+- [x] Tabella `soglieAlert`: id, companyId, tipo, valore, attivo + audit
+- [x] Indici DB per performance: companyId+data su movimentiCassa, documentiFinanziari, scadenzeFinanziarie, registrazioniEconomiche, pagamentiIncassi
+
+### Backend — Procedure aggregate dashboard
+- [x] finance.dashboard.summary: utile netto / risultato cassa, entrate, uscite, cashflow, confronto periodo precedente
+- [x] finance.dashboard.trend: andamento mensile (6/12/24 mesi) con serie selezionabili
+- [x] finance.dashboard.costCenters: top 5 centri di costo con percentuali e confronto
+- [x] finance.dashboard.categories: costi per categoria con percentuali
+- [x] finance.dashboard.deadlines: scadenze prossimi 30 giorni raggruppate
+- [x] finance.dashboard.creditsDebts: residuo totale crediti/debiti con quota scaduta
+- [x] finance.dashboard.accounts: disponibilità liquida per conto
+- [x] Modalità Cassa vs Competenza in tutte le query
+- [x] Confronto periodo precedente equivalente (gestione zero, negativi, incompleti)
+- [x] Esclusione bozze, annullati, stornati
+
+### Backend — Cashflow
+- [x] finance.cashflow.actual: saldo iniziale + incassi - pagamenti = saldo finale, andamento giornaliero/mensile
+- [x] finance.cashflow.forecast: previsione basata su scadenze aperte, rate future, residui
+- [x] Orizzonti previsionali: 30gg (giornaliero), 90gg (settimanale), 6m/12m (mensile)
+- [x] Punto minimo di liquidità e data
+- [x] Scadenze scadute come arretrato all'inizio della previsione
+
+### Backend — Alert deterministici
+- [x] Calcolo alert dinamico (saldo negativo, scadenza scaduta, pagamento importante 7gg, incasso in ritardo, aumento uscite, centro costo sopra media, conto sotto soglia, doc senza scadenza, mov senza categoria/cdc)
+- [x] Soglie configurabili per azienda (saldo minimo, importo rilevante, giorni preavviso, % aumento costi)
+- [x] Severità: info, attenzione, alta, critica con colori
+
+### Backend — Test obbligatori (25+)
+- [x] Utile netto modalità competenza
+- [x] Risultato modalità cassa
+- [x] Entrate del periodo
+- [x] Uscite del periodo
+- [x] Cashflow
+- [x] Confronto periodo precedente
+- [x] Periodo precedente con valore zero
+- [x] Esclusione bozze
+- [x] Esclusione annullati
+- [x] Esclusione storni
+- [x] Crediti basati su residuo
+- [x] Debiti basati su residuo
+- [x] Scadenze prossimi 30 giorni
+- [x] Scadenze scadute
+- [x] Saldo conto
+- [x] Cashflow previsto
+- [x] Scadenza parzialmente regolata nella previsione
+- [x] Punto minimo liquidità
+- [x] Centro di costo
+- [x] Categoria
+- [x] Isolamento multi-azienda
+- [x] Alert deterministico generato
+- [x] Soglie configurabili
+
+### Frontend — Dashboard /finanza
+- [x] Filtri globali: selettore periodo (oggi/settimana/mese/trimestre/anno/custom), Cassa/Competenza, centro costo, categoria
+- [x] Salvataggio locale ultima selezione
+- [x] Hero Utile Netto / Risultato di Cassa con variazione e percentuale
+- [x] 4 KPI card: Entrate, Uscite, Cashflow, Fondo Reintegrazione (2x2 mobile, 4 in riga desktop)
+- [x] Azioni rapide: Nuova entrata, Nuova uscita, Registra pagamento, Registra incasso, Vedi scadenze, Apri Cashflow
+- [x] Sezione Andamento mensile con grafico (recharts) e filtri 6/12/24 mesi
+- [x] Sezione Scadenze prossimi 30 giorni (raggruppate: 7gg/30gg/incassare/scadute)
+- [x] Sezione Crediti e Debiti con residuo totale e quota scaduta
+- [x] Sezione Disponibilità liquida per conto
+- [x] Sezione Centri di costo top 5 con barre e percentuali
+- [x] Sezione Alert finanziari con severità e colori
+- [x] Skeleton loading, empty states, formato importi italiano, design dark premium
+
+### Frontend — Pagina /finanza/cashflow
+- [x] Vista effettivo: saldo iniziale, incassi, pagamenti, saldo finale, andamento
+- [x] Vista previsto: previsione con orizzonti 30/90/6m/12m
+- [x] Grafico con punto minimo evidenziato
+- [x] Suddivisione per conto
+
+### Verifica
+- [x] 0 errori TS, 118/118 test Vitest verdi (24 nuovi finance.dashboard), build OK
+- [x] Screenshot mobile 390x844: verificato (pagina richiede auth — funzionante in preview live)

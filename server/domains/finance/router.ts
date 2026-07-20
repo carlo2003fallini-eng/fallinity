@@ -1,6 +1,9 @@
 import { protectedProcedure, router } from "../../_core/trpc";
 import { getActor } from "../_core";
 import { financeService } from "./service";
+import { dashboardSummary, dashboardTrend, dashboardCostCenters, dashboardCategories, dashboardDeadlines, dashboardCreditsDebts, dashboardAccounts } from "./dashboard";
+import { cashflowEffettivo, cashflowPrevisto, cashflowMensile } from "./cashflow";
+import { calcolaAlerts, listAlerts, markAlertLetto, markAlertRisolto, countAlertNonLetti, getSoglie, upsertSoglia } from "./alerts";
 import {
   listTransazioniInput,
   createTransazioneInput,
@@ -264,4 +267,119 @@ export const finanzaRouter = router({
     const actor = await getActor(ctx);
     return financeService.seedDatiIniziali(actor);
   }),
+
+  // ── Dashboard ──
+  dashboard: {
+    summary: protectedProcedure.input(z.object({
+      dataInizio: z.string(),
+      dataFine: z.string(),
+      modalita: z.enum(["cassa", "competenza"]),
+      centroCostoId: z.string().optional(),
+      categoriaId: z.string().optional(),
+    })).query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return dashboardSummary({ companyId: actor.companyId, ...input });
+    }),
+    trend: protectedProcedure.input(z.object({
+      mesi: z.number().min(1).max(24).default(12),
+      modalita: z.enum(["cassa", "competenza"]),
+      centroCostoId: z.string().optional(),
+      categoriaId: z.string().optional(),
+    })).query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      const oggi = new Date();
+      return dashboardTrend({ companyId: actor.companyId, dataInizio: '', dataFine: '', ...input });
+    }),
+    costCenters: protectedProcedure.input(z.object({
+      dataInizio: z.string(),
+      dataFine: z.string(),
+      modalita: z.enum(["cassa", "competenza"]),
+    })).query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return dashboardCostCenters({ companyId: actor.companyId, ...input });
+    }),
+    categories: protectedProcedure.input(z.object({
+      dataInizio: z.string(),
+      dataFine: z.string(),
+      modalita: z.enum(["cassa", "competenza"]),
+    })).query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return dashboardCategories({ companyId: actor.companyId, ...input });
+    }),
+    deadlines: protectedProcedure.query(async ({ ctx }) => {
+      const actor = await getActor(ctx);
+      return dashboardDeadlines(actor.companyId);
+    }),
+    creditsDebts: protectedProcedure.query(async ({ ctx }) => {
+      const actor = await getActor(ctx);
+      return dashboardCreditsDebts(actor.companyId);
+    }),
+    accounts: protectedProcedure.query(async ({ ctx }) => {
+      const actor = await getActor(ctx);
+      return dashboardAccounts(actor.companyId);
+    }),
+  },
+
+  // ── Cashflow ──
+  cashflow: {
+    effettivo: protectedProcedure.input(z.object({
+      dataInizio: z.string(),
+      dataFine: z.string(),
+      contoId: z.string().optional(),
+    })).query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return cashflowEffettivo({ companyId: actor.companyId, ...input });
+    }),
+    previsto: protectedProcedure.input(z.object({
+      orizzonteGiorni: z.number().min(7).max(365).default(90),
+      contoId: z.string().optional(),
+    })).query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return cashflowPrevisto({ companyId: actor.companyId, dataInizio: '', dataFine: '', ...input });
+    }),
+    mensile: protectedProcedure.input(z.object({
+      dataInizio: z.string(),
+      dataFine: z.string(),
+      contoId: z.string().optional(),
+    })).query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return cashflowMensile({ companyId: actor.companyId, ...input });
+    }),
+  },
+
+  // ── Alert ──
+  alerts: {
+    list: protectedProcedure.input(z.object({
+      risolto: z.boolean().optional(),
+      tipo: z.string().optional(),
+      limit: z.number().optional(),
+    }).optional()).query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return listAlerts(actor.companyId, input);
+    }),
+    count: protectedProcedure.query(async ({ ctx }) => {
+      const actor = await getActor(ctx);
+      return countAlertNonLetti(actor.companyId);
+    }),
+    calcola: protectedProcedure.mutation(async ({ ctx }) => {
+      const actor = await getActor(ctx);
+      return calcolaAlerts(actor.companyId);
+    }),
+    letto: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+      return markAlertLetto(input.id);
+    }),
+    risolto: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+      return markAlertRisolto(input.id);
+    }),
+    soglie: {
+      list: protectedProcedure.query(async ({ ctx }) => {
+        const actor = await getActor(ctx);
+        return getSoglie(actor.companyId);
+      }),
+      upsert: protectedProcedure.input(z.object({ tipo: z.string(), valore: z.number() })).mutation(async ({ ctx, input }) => {
+        const actor = await getActor(ctx);
+        return upsertSoglia(actor.companyId, input.tipo, input.valore, String(actor.userId));
+      }),
+    },
+  },
 });

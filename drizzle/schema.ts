@@ -872,3 +872,31 @@ export const ricorrenzeFinanziarie = mysqlTable("ricorrenzeFinanziarie", {
   ...auditColumns,
 });
 export type RicorrenzaFinanziaria = typeof ricorrenzeFinanziarie.$inferSelect;
+
+// ── Alert finanziari ──
+export const alertFinanziari = mysqlTable("alertFinanziari", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  tipo: varchar("tipo", { length: 50 }).notNull(), // saldo_negativo, scadenza_scaduta, pagamento_importante, incasso_ritardo, aumento_uscite, cdc_sopra_media, conto_sotto_soglia, doc_senza_scadenza, mov_senza_categoria, mov_senza_cdc
+  severita: mysqlEnum("severita", ["info", "attenzione", "alta", "critica"]).notNull(),
+  titolo: varchar("titolo", { length: 200 }).notNull(),
+  descrizione: text("descrizione"),
+  valore: int("valore"), // centesimi o null
+  entitaId: varchar("entitaId", { length: 36 }),
+  entitaTipo: varchar("entitaTipo", { length: 50 }), // documento, scadenza, conto, movimento
+  letto: boolean("letto").default(false).notNull(),
+  risolto: boolean("risolto").default(false).notNull(),
+  dataCreazione: date("dataCreazione").notNull(),
+  ...auditColumns,
+});
+export type AlertFinanziario = typeof alertFinanziari.$inferSelect;
+
+export const soglieAlert = mysqlTable("soglieAlert", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  tipo: varchar("tipo", { length: 50 }).notNull(), // saldo_minimo, importo_rilevante, giorni_preavviso, percentuale_aumento, importo_minimo_credito_scaduto
+  valore: int("valore").notNull(), // centesimi o giorni o percentuale*100
+  attivo: boolean("attivo").default(true).notNull(),
+  ...auditColumns,
+});
+export type SogliaAlert = typeof soglieAlert.$inferSelect;
