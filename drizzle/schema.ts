@@ -8,6 +8,8 @@ import {
   decimal,
   boolean,
   date,
+  datetime,
+  json,
 } from "drizzle-orm/mysql-core";
 
 /**
@@ -900,3 +902,65 @@ export const soglieAlert = mysqlTable("soglieAlert", {
   ...auditColumns,
 });
 export type SogliaAlert = typeof soglieAlert.$inferSelect;
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FASE 4 — INTEGRAZIONI FINANZIARIE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const proposteFinanziarie = mysqlTable("proposteFinanziarie", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  tipo: varchar("tipo", { length: 10 }).notNull(), // entrata | uscita
+  importo: decimal("importo", { precision: 12, scale: 2 }).notNull(),
+  imponibile: decimal("imponibile", { precision: 12, scale: 2 }),
+  iva: decimal("iva", { precision: 12, scale: 2 }),
+  descrizione: text("descrizione").notNull(),
+  dataOrigine: date("dataOrigine").notNull(),
+  categoriaId: varchar("categoriaId", { length: 36 }),
+  centroCostoId: varchar("centroCostoId", { length: 36 }),
+  soggettoId: varchar("soggettoId", { length: 36 }),
+  originModule: varchar("originModule", { length: 30 }).notNull(), // fleet, inventory, livestock, crop, machinery
+  originEntityType: varchar("originEntityType", { length: 40 }).notNull(), // intervento, ordine, trattamento, ...
+  originEntityId: varchar("originEntityId", { length: 36 }).notNull(),
+  originEventType: varchar("originEventType", { length: 40 }).notNull(), // completamento, acquisto, vendita, ...
+  originReference: varchar("originReference", { length: 100 }), // codice leggibile (INT-001, ORD-005)
+  stato: varchar("stato", { length: 20 }).notNull().default("da_esaminare"), // da_esaminare, approvata, convertita, collegata, ignorata, annullata, errore
+  documentoFinanziarioId: varchar("documentoFinanziarioId", { length: 36 }),
+  movimentoId: varchar("movimentoId", { length: 36 }),
+  motivoIgnorato: text("motivoIgnorato"),
+  errore: text("errore"),
+  reviewedAt: datetime("reviewedAt"),
+  reviewedBy: varchar("reviewedBy", { length: 36 }),
+  ...auditColumns,
+});
+export type PropostaFinanziaria = typeof proposteFinanziarie.$inferSelect;
+
+export const integrationSettings = mysqlTable("integrationSettings", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  modulo: varchar("modulo", { length: 30 }).notNull(), // fleet, inventory, livestock, crop, machinery
+  automazione: varchar("automazione", { length: 20 }).notNull().default("proposta_auto"), // proposta_auto, conferma, bozza, nessuna
+  categoriaDefaultId: varchar("categoriaDefaultId", { length: 36 }),
+  centroCostoDefaultId: varchar("centroCostoDefaultId", { length: 36 }),
+  soggettoDefaultId: varchar("soggettoDefaultId", { length: 36 }),
+  manodoperaInternaMode: varchar("manodoperaInternaMode", { length: 20 }).default("gestionale"), // gestionale, finanziario, escluso
+  ...auditColumns,
+});
+export type IntegrationSetting = typeof integrationSettings.$inferSelect;
+
+export const domainEvents = mysqlTable("domainEvents", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  eventType: varchar("eventType", { length: 50 }).notNull(),
+  originModule: varchar("originModule", { length: 30 }).notNull(),
+  originEntityType: varchar("originEntityType", { length: 40 }).notNull(),
+  originEntityId: varchar("originEntityId", { length: 36 }).notNull(),
+  payload: json("payload"),
+  stato: varchar("stato", { length: 20 }).notNull().default("pending"), // pending, processed, failed
+  tentativi: int("tentativi").notNull().default(0),
+  errore: text("errore"),
+  processedAt: datetime("processedAt"),
+  ...auditColumns,
+});
+export type DomainEvent = typeof domainEvents.$inferSelect;

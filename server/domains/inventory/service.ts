@@ -1,5 +1,6 @@
 import type { ActorContext } from "../_core";
 import { inventoryRepository as repo } from "./repository";
+import { proposalsService } from "../finance/proposals.service";
 import type { CreateProdottoInput, MovimentoInput } from "./validators";
 
 /** INVENTORY (Magazzino) — Service */
@@ -42,6 +43,30 @@ export const inventoryService = {
         : Number(p.quantita) - input.quantita;
       await repo.updateQuantita(actor, input.prodottoId, String(Math.max(0, nuova)));
     }
+
+    // Proposta finanziaria: carico = acquisto (uscita), scarico = consumo gestionale (no proposta)
+    if (input.tipo === "carico" && p) {
+      try {
+        const prezzoUnitario = Number(p.prezzoUnitario ?? 0);
+        const importo = Math.round(prezzoUnitario * input.quantita * 100); // centesimi
+        if (importo > 0) {
+          await proposalsService.createOrGetProposal(actor, {
+            tipo: "uscita",
+            importo,
+            descrizione: `Acquisto ${p.nome} (${input.quantita} ${p.unitaMisura ?? "pz"})`,
+            dataOrigine: input.data,
+            originModule: "inventory",
+            originEntityType: "movimento",
+            originEntityId: input.prodottoId, // idempotenza per prodotto+evento
+            originEventType: `carico_${input.data}`,
+            originReference: p.codice ?? p.nome,
+          });
+        }
+      } catch {
+        /* non bloccare il movimento se la proposta fallisce */
+      }
+    }
+
     return { success: true };
   },
 

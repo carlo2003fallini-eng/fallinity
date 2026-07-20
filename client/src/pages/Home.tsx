@@ -113,6 +113,8 @@ export default function Home() {
   if ((kpi?.prodottiSottoScorta ?? 0) > 0) alerts.push({ value: kpi!.prodottiSottoScorta, label: "prodotti sotto scorta", color: GOLD, path: "/magazzino" });
   if (zoppieAttive > 0) alerts.push({ value: zoppieAttive, label: "zoppie da trattare", color: GOLD, path: "/stalla" });
   if (utile < 0) alerts.push({ value: fmt(utile), label: "utile negativo nel mese", color: RED, path: "/finanza" });
+  const proposteDaEsaminare = (kpi as any)?.proposteDaEsaminare ?? 0;
+  if (proposteDaEsaminare > 0) alerts.push({ value: proposteDaEsaminare, label: "proposte da esaminare", color: "oklch(0.65 0.15 280)", path: "/finanza/proposte" });
 
   // ── Insight AI contestuale ──
 

@@ -1,6 +1,7 @@
 import type { ActorContext } from "../_core";
 import { coreRepository as repo } from "./repository";
 import { financeRepository } from "../finance/repository";
+import { proposalsRepository } from "../finance/proposals.repository";
 import type { CreateContattoInput } from "./validators";
 
 /** CORE — Service (company, contatti/azienda, dashboard) */
@@ -31,7 +32,7 @@ export const coreService = {
     return repo.softDeleteContatto(actor, id);
   },
 
-  /** KPI globali per la dashboard Home. */
+  /** KPI globali per la dashboard Home (con dati finanziari reali + proposte). */
   async dashboardKpi(companyId: string) {
     const { entrate, uscite } = await financeRepository.sumEntrateUscite(companyId);
     const [campi, macchine, animali, interventiAperti, prodottiSottoScorta, zoppieAttive] = await Promise.all([
@@ -42,9 +43,19 @@ export const coreService = {
       repo.count(companyId, "prodotti", "AND quantita <= quantitaMinima AND quantitaMinima > 0"),
       repo.count(companyId, "zoppie", "AND stato != 'risolta'"),
     ]);
+
+    // Proposte da esaminare
+    let proposteDaEsaminare = 0;
+    try {
+      const counts = await proposalsRepository.countByStato(companyId);
+      const daEsaminare = counts.find((c: any) => c.stato === "da_esaminare");
+      proposteDaEsaminare = daEsaminare ? Number(daEsaminare.count) : 0;
+    } catch { /* non bloccare */ }
+
     return {
       entrate, uscite, utile: entrate - uscite,
       campi, macchine, animali, interventiAperti, prodottiSottoScorta, zoppieAttive,
+      proposteDaEsaminare,
     };
   },
 

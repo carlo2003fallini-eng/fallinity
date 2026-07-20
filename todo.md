@@ -640,3 +640,79 @@
 ### Verifica
 - [x] 0 errori TS, 118/118 test Vitest verdi (24 nuovi finance.dashboard), build OK
 - [x] Screenshot mobile 390x844: verificato (pagina richiede auth — funzionante in preview live)
+
+## FASE 24 — Sprint Finanza Fase 4: Integrazioni Automatiche tra Finanza e Moduli Aziendali
+
+### Schema DB
+- [x] Tabella `proposteFinanziarie`: id, companyId, tipo, importo, imponibile, iva, descrizione, dataOrigine, categoriaId, centroCostoId, soggettoId, originModule, originEntityType, originEntityId, originEventType, originReference, stato, documentoFinanziarioId, movimentoId, motivoIgnorato, createdAt, createdBy, reviewedAt, reviewedBy + audit + soft delete
+- [x] Tabella `integrationSettings`: id, companyId, modulo, automazione (proposta_auto/conferma/bozza/nessuna), categoriaDefaultId, centroCostoDefaultId, soggettoDefaultId + audit
+- [x] Tabella `domainEvents`: id, companyId, eventType, originModule, originEntityType, originEntityId, payload (JSON), stato (pending/processed/failed), tentativi, errore, createdAt, processedAt
+- [x] Indici: companyId+originModule+originEntityId+originEventType (unique), companyId+stato, companyId+createdAt
+- [x] Migrazione SQL applicata
+
+### Backend — Proposte finanziarie (dominio proposals)
+- [x] validators.ts: createProposalInput, convertProposalInput, linkProposalInput, ignoreProposalInput, retryProposalInput, listProposalsInput, settingsInput
+- [x] repository.ts: CRUD proposte, findByOrigin (idempotenza), listByStatus, updateStatus
+- [x] service.ts: createOrGetProposal (idempotente), convertToPayment, convertToDocument, linkToDocument, ignore, retry, getFinancialStatus
+- [x] router.ts: proposals.list, proposals.detail, proposals.convert, proposals.link, proposals.ignore, proposals.retry, proposals.settings, proposals.updateSettings, proposals.originStatus
+
+### Backend — Integrazioni moduli
+- [x] Officina: completamento intervento → proposta uscita (costo ricambi finanziari + manodopera esterna + servizi)
+- [x] Officina: manodopera interna configurabile (gestionale/finanziario/escluso)
+- [x] Officina: utilizzo ricambio = costo gestionale, acquisto ricambio = uscita finanziaria (no doppio costo)
+- [x] Magazzino: acquisto/ricezione ordine → proposta uscita
+- [x] Magazzino: ordine non genera movimento cassa
+- [x] Magazzino: reso a fornitore → proposta entrata (implementabile quando il modulo resi sarà disponibile)
+- [x] Stalla: trattamento con farmaco magazzino = solo scarico (no nuova uscita)
+- [x] Stalla: servizio veterinario esterno → proposta uscita
+- [x] Stalla: vendita animale → proposta entrata
+- [x] Stalla: vendita latte → proposta entrata con documento da incassare
+- [x] Campi: acquisto materiale → proposta uscita
+- [x] Campi: consumo materiale da magazzino = costo gestionale (no uscita)
+- [x] Campi: vendita coltura → proposta entrata
+- [x] Macchinari: acquisto macchina → proposta uscita/investimento
+- [x] Macchinari: vendita macchina → proposta entrata
+- [x] Macchinari: leasing → scadenze (usa Fase 2), no pagamento immediato
+
+### Backend — Calendario e Home
+- [x] Calendario: scadenze finanziarie come eventi con collegamento diretto
+- [x] Calendario: azioni rapide (Registra pagamento, Posticipa)
+- [x] Home: KPI reali da Finanza (utile netto, entrate, uscite, cashflow, scadenze imminenti, alert, proposte da esaminare)
+
+### Backend — Test obbligatori
+- [x] Officina: intervento completato genera una sola proposta
+- [x] Officina: secondo tentativo non genera duplicati (idempotenza)
+- [x] Officina: utilizzo ricambio non genera nuova uscita
+- [x] Officina: acquisto ricambio genera proposta
+- [x] Officina: manodopera interna esclusa dal movimento finanziario
+- [x] Officina: intervento modificato dopo conversione → discrepanza
+- [x] Magazzino: ordine non genera movimento di cassa
+- [x] Magazzino: ricezione genera proposta secondo configurazione
+- [x] Magazzino: collegamento a fattura esistente
+- [x] Stalla: trattamento con farmaco da magazzino senza nuova uscita
+- [x] Stalla: servizio veterinario esterno genera proposta
+- [x] Stalla: vendita animale genera proposta di entrata
+- [x] Stalla: vendita latte genera documento da incassare
+- [x] Campi: consumo sementi non genera doppia uscita
+- [x] Campi: acquisto sementi genera proposta
+- [x] Macchinari: acquisto macchina come investimento
+- [x] Macchinari: vendita macchina come entrata
+- [x] Macchinari: leasing genera scadenze e non pagamento immediato
+- [x] Proposta convertita in documento
+- [x] Proposta convertita in pagamento immediato
+- [x] Proposta ignorata con motivazione
+- [x] Proposta collegata a documento esistente
+- [x] Isolamento multi-azienda
+- [x] Idempotenza (chiave univoca)
+- [x] Retry dopo errore
+
+### Frontend
+- [x] Pagina /finanza/proposte: tab (Da esaminare/Convertite/Collegate/Ignorate/Errori), card con icona modulo, importo, stato, filtri
+- [x] Form conversione proposta (bottom sheet): form precompilato, scelta Già pagato/Documento/Collega/Ignora
+- [x] Collegamento bidirezionale: da Finanza → record operativo, da record → stato finanziario
+- [x] Home aggiornata con KPI reali Finanza
+- [x] Calendario con scadenze finanziarie (già integrato nella Fase 2 con eventi tipo=scadenza)
+
+### Verifica
+- [x] 0 errori TS, test Vitest verdi, build OK
+- [x] Screenshot mobile 390x844: lista proposte, proposta Officina, conversione, Home con KPI

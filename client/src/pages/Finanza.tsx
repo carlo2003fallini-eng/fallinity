@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Plus, ArrowDownRight, ArrowUpRight, TrendingUp, TrendingDown,
   Wallet, CreditCard, AlertTriangle, Bell, ChevronRight, BarChart3,
-  Calendar, FileText, RefreshCw, Landmark, Banknote, CircleDollarSign,
+  Calendar, FileText, RefreshCw, Landmark, Banknote, CircleDollarSign, ClipboardList,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -416,9 +416,10 @@ export default function Finanza() {
       )}
 
       {/* ── AZIONI RAPIDE ── */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-4 gap-2">
         <ActionButton icon={FileText} label="Movimenti" onClick={() => setLocation("/finanza/movimenti")} color={BLUE} />
         <ActionButton icon={BarChart3} label="Cashflow" onClick={() => setLocation("/finanza/cashflow")} color={GOLD} />
+        <ActionButton icon={ClipboardList} label="Proposte" onClick={() => setLocation("/finanza/proposte")} color="oklch(0.65 0.15 280)" />
         <ActionButton icon={Plus} label="Nuovo" onClick={() => setLocation("/finanza/nuovo")} color={GREEN} />
       </div>
     </div>

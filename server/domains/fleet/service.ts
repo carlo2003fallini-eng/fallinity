@@ -1,7 +1,7 @@
 import type { ActorContext } from "../_core";
 import { fleetRepository as repo } from "./repository";
 import { inventoryRepository } from "../inventory/repository";
-import { financeRepository } from "../finance/repository";
+import { proposalsService } from "../finance/proposals.service";
 import { calendarRepository } from "../calendar/repository";
 import type {
   CreateMacchinaInput,
@@ -377,18 +377,28 @@ export const fleetService = {
       await repo.updateMacchina(actor, macchina.id, patch);
     }
 
-    // 5) Finanza: registra uscita.
+    // 5) Finanza: genera proposta uscita (solo costi finanziari: ricambi acquistati + manodopera esterna).
+    //    L'utilizzo di ricambi già in magazzino è costo gestionale, non finanziario.
+    //    La manodopera interna è configurabile (gestionale/finanziario/escluso).
     try {
-      await financeRepository.insertTransazione(actor, {
-        tipo: "uscita",
-        categoria: "Manutenzione mezzi",
-        descrizione: `Intervento ${intervento.tipo} — ${macchina?.nome ?? "mezzo"}`,
-        importo: String(costoFinale),
-        data: oggi,
-        note: `Manodopera €${costoManodopera.toFixed(2)} + Ricambi €${costoRicambi.toFixed(2)}`,
-      });
+      const includiManodopera = await proposalsService.isManodoperaFinanziaria(actor.companyId, "fleet");
+      const costoFinanziario = costoRicambi + (includiManodopera ? costoManodopera : 0);
+      if (costoFinanziario > 0) {
+        const codice = intervento.codice ?? `INT-${input.id.slice(0, 6)}`;
+        await proposalsService.createOrGetProposal(actor, {
+          tipo: "uscita",
+          importo: Math.round(costoFinanziario * 100), // centesimi
+          descrizione: `Intervento ${intervento.tipo} — ${macchina?.nome ?? "mezzo"} (${codice})`,
+          dataOrigine: oggi.toISOString().slice(0, 10),
+          originModule: "fleet",
+          originEntityType: "intervento",
+          originEntityId: input.id,
+          originEventType: "completamento",
+          originReference: codice,
+        });
+      }
     } catch {
-      /* non bloccare il completamento se la finanza fallisce */
+      /* non bloccare il completamento se la proposta fallisce */
     }
 
     // 6) Calendario: evento di manutenzione completata.
@@ -592,5 +602,84 @@ export const fleetService = {
       ricambiSottoScorta,
       costoManutenzioneMese,
     };
+  },
+
+  // ── Macchinari: acquisto/vendita/leasing ──────────────────────────────────────
+  /** Acquisto macchina → proposta uscita/investimento */
+  async acquistoMacchina(actor: ActorContext, macchinaId: string, data: { importo: number; data: string; fornitore?: string }) {
+    const macchina = await repo.getMacchina(actor.companyId, macchinaId);
+    if (!macchina) throw new Error("Macchina non trovata");
+    try {
+      if (data.importo > 0) {
+        await proposalsService.createOrGetProposal(actor, {
+          tipo: "uscita",
+          importo: Math.round(data.importo * 100),
+          descrizione: `Acquisto ${macchina.nome} (${macchina.codice ?? ""})`,
+          dataOrigine: data.data,
+          originModule: "machinery",
+          originEntityType: "macchina",
+          originEntityId: macchinaId,
+          originEventType: "acquisto",
+          originReference: macchina.codice ?? macchina.nome,
+        });
+      }
+    } catch { /* non bloccare */ }
+    return { success: true };
+  },
+
+  /** Vendita macchina → proposta entrata */
+  async venditaMacchina(actor: ActorContext, macchinaId: string, data: { importo: number; data: string; acquirente?: string }) {
+    const macchina = await repo.getMacchina(actor.companyId, macchinaId);
+    if (!macchina) throw new Error("Macchina non trovata");
+    try {
+      if (data.importo > 0) {
+        await proposalsService.createOrGetProposal(actor, {
+          tipo: "entrata",
+          importo: Math.round(data.importo * 100),
+          descrizione: `Vendita ${macchina.nome} (${macchina.codice ?? ""})${data.acquirente ? ` a ${data.acquirente}` : ""}`,
+          dataOrigine: data.data,
+          originModule: "machinery",
+          originEntityType: "macchina",
+          originEntityId: macchinaId,
+          originEventType: "vendita",
+          originReference: macchina.codice ?? macchina.nome,
+        });
+      }
+    } catch { /* non bloccare */ }
+    return { success: true };
+  },
+
+  /** Leasing macchina → genera scadenze periodiche (usa il sistema scadenze di Fase 2, no pagamento immediato) */
+  async leasingMacchina(actor: ActorContext, macchinaId: string, data: {
+    importoRata: number;
+    numeroRate: number;
+    dataInizio: string;
+    frequenzaMesi: number;
+    fornitore?: string;
+  }) {
+    const macchina = await repo.getMacchina(actor.companyId, macchinaId);
+    if (!macchina) throw new Error("Macchina non trovata");
+    // Genera una proposta per ogni rata (con idempotenza per rata)
+    const proposte: string[] = [];
+    for (let i = 0; i < data.numeroRate; i++) {
+      const dataRata = new Date(data.dataInizio);
+      dataRata.setMonth(dataRata.getMonth() + i * data.frequenzaMesi);
+      const dataStr = dataRata.toISOString().slice(0, 10);
+      try {
+        const result = await proposalsService.createOrGetProposal(actor, {
+          tipo: "uscita",
+          importo: Math.round(data.importoRata * 100),
+          descrizione: `Leasing ${macchina.nome} — Rata ${i + 1}/${data.numeroRate}`,
+          dataOrigine: dataStr,
+          originModule: "machinery",
+          originEntityType: "leasing",
+          originEntityId: macchinaId,
+          originEventType: `leasing_rata_${i + 1}`,
+          originReference: macchina.codice ?? macchina.nome,
+        });
+        if (result.id) proposte.push(result.id);
+      } catch { /* continua con le altre rate */ }
+    }
+    return { success: true, proposteCreate: proposte.length };
   },
 };

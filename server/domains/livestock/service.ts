@@ -1,5 +1,6 @@
 import { livestockRepository as repo } from "./repository";
 import type { ActorContext } from "../_core";
+import { proposalsService } from "../finance/proposals.service";
 import type {
   CreateGruppoInput, UpdateGruppoInput, AddAnimaleInput, UpdateAnimaleInput,
   AddZoppiaInput, AddEventoAnimaleInput, FiltriGruppiInput,
@@ -254,6 +255,28 @@ export const livestockService = {
       descrizione: `Trattamento ${input.tipo}: ${input.farmaco || input.prodotto || input.tipologia || ""}`.trim(),
       operatore: input.operatore ?? null,
     });
+
+    // Proposta finanziaria: solo servizio veterinario esterno genera uscita.
+    // Farmaco da magazzino = solo scarico (costo gestionale, no nuova uscita).
+    if (input.veterinario && (input.tipo === "visita" || input.tipo === "altro")) {
+      try {
+        const costo = (input as any).costoVeterinario ?? 0;
+        if (costo > 0) {
+          await proposalsService.createOrGetProposal(actor, {
+            tipo: "uscita",
+            importo: Math.round(costo * 100),
+            descrizione: `Servizio veterinario: ${input.farmaco || input.tipologia || input.tipo} — ${input.veterinario}`,
+            dataOrigine: input.dataTrattamento,
+            originModule: "livestock",
+            originEntityType: "trattamento",
+            originEntityId: (trattamento as any).id,
+            originEventType: "servizio_veterinario",
+            originReference: input.veterinario,
+          });
+        }
+      } catch { /* non bloccare */ }
+    }
+
     return trattamento;
   },
 
@@ -286,6 +309,57 @@ export const livestockService = {
     const eventi = await repo.listEventiAnimale(companyId, id);
     const trattamenti = await repo.listTrattamenti(companyId, id);
     return { ...animale, eventi, trattamenti };
+  },
+
+  // ── Vendita animale ──
+  async venditaAnimale(actor: ActorContext, animaleId: string, data: { importo: number; acquirente?: string; data: string }) {
+    // Registra evento timeline
+    await repo.insertEventoAnimale(actor, {
+      animaleId,
+      tipo: "vendita",
+      data: new Date(data.data),
+      descrizione: `Vendita animale${data.acquirente ? ` a ${data.acquirente}` : ""}`,
+      operatore: null,
+    });
+    // Proposta finanziaria: entrata
+    try {
+      if (data.importo > 0) {
+        await proposalsService.createOrGetProposal(actor, {
+          tipo: "entrata",
+          importo: Math.round(data.importo * 100),
+          descrizione: `Vendita animale${data.acquirente ? ` a ${data.acquirente}` : ""}`,
+          dataOrigine: data.data,
+          originModule: "livestock",
+          originEntityType: "animale",
+          originEntityId: animaleId,
+          originEventType: "vendita",
+          soggettoId: undefined,
+          originReference: data.acquirente,
+        });
+      }
+    } catch { /* non bloccare */ }
+    return { success: true };
+  },
+
+  // ── Vendita latte ──
+  async venditaLatte(actor: ActorContext, data: { importo: number; quantitaLitri: number; acquirente?: string; data: string; riferimento?: string }) {
+    // Proposta finanziaria: entrata con documento da incassare
+    try {
+      if (data.importo > 0) {
+        await proposalsService.createOrGetProposal(actor, {
+          tipo: "entrata",
+          importo: Math.round(data.importo * 100),
+          descrizione: `Vendita latte (${data.quantitaLitri} L)${data.acquirente ? ` a ${data.acquirente}` : ""}`,
+          dataOrigine: data.data,
+          originModule: "livestock",
+          originEntityType: "vendita_latte",
+          originEntityId: data.riferimento ?? `latte_${data.data}`,
+          originEventType: "vendita_latte",
+          originReference: data.riferimento,
+        });
+      }
+    } catch { /* non bloccare */ }
+    return { success: true };
   },
 
   // ── Eventi ──

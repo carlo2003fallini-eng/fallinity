@@ -20,6 +20,7 @@ import ScenarioFuturo from "./pages/ScenarioFuturo";
 import NuovoMovimento from "./pages/finanza/NuovoMovimento";
 import DettaglioMovimento from "./pages/finanza/DettaglioMovimento";
 import Cashflow from "./pages/finanza/Cashflow";
+import Proposte from "./pages/finanza/Proposte";
 import SelezionaAzienda from "./pages/SelezionaAzienda";
 
 function Router() {
@@ -32,6 +33,7 @@ function Router() {
         <Route path="/finanza/nuovo" component={NuovoMovimento} />
         <Route path="/finanza/movimento/:id" component={DettaglioMovimento} />
         <Route path="/finanza/cashflow" component={Cashflow} />
+        <Route path="/finanza/proposte" component={Proposte} />
         <Route path="/campi" component={Campi} />
         <Route path="/magazzino" component={Magazzino} />
         <Route path="/officina" component={Officina} />
