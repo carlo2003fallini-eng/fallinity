@@ -422,6 +422,16 @@ export default function Finanza() {
         <ActionButton icon={ClipboardList} label="Proposte" onClick={() => setLocation("/finanza/proposte")} color="oklch(0.65 0.15 280)" />
         <ActionButton icon={Plus} label="Nuovo" onClick={() => setLocation("/finanza/nuovo")} color={GREEN} />
       </div>
+      <div className="grid grid-cols-4 gap-2 mt-2">
+        <ActionButton icon={Landmark} label="Budget" onClick={() => setLocation("/finanza/budget")} color="oklch(0.6 0.15 250)" />
+        <ActionButton icon={RefreshCw} label="Reintegr." onClick={() => setLocation("/finanza/reintegrazione")} color={GOLD} />
+        <ActionButton icon={CircleDollarSign} label="Investim." onClick={() => setLocation("/finanza/investimenti")} color="oklch(0.6 0.18 160)" />
+        <ActionButton icon={Banknote} label="Scenari" onClick={() => setLocation("/finanza/scenari")} color="oklch(0.6 0.12 300)" />
+      </div>
+      <div className="grid grid-cols-4 gap-2 mt-2">
+        <ActionButton icon={BarChart3} label="Analisi" onClick={() => setLocation("/finanza/analisi")} color="oklch(0.65 0.12 200)" />
+        <ActionButton icon={FileText} label="Report" onClick={() => setLocation("/finanza/report")} color="oklch(0.55 0.1 180)" />
+      </div>
     </div>
   );
 }

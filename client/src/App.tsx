@@ -21,6 +21,12 @@ import NuovoMovimento from "./pages/finanza/NuovoMovimento";
 import DettaglioMovimento from "./pages/finanza/DettaglioMovimento";
 import Cashflow from "./pages/finanza/Cashflow";
 import Proposte from "./pages/finanza/Proposte";
+import BudgetPage from "./pages/finanza/Budget";
+import ReintegrazionePage from "./pages/finanza/Reintegrazione";
+import InvestimentiPage from "./pages/finanza/Investimenti";
+import ScenariPage from "./pages/finanza/Scenari";
+import AnalisiPage from "./pages/finanza/Analisi";
+import ReportFinanzaPage from "./pages/finanza/Report";
 import SelezionaAzienda from "./pages/SelezionaAzienda";
 
 function Router() {
@@ -34,6 +40,12 @@ function Router() {
         <Route path="/finanza/movimento/:id" component={DettaglioMovimento} />
         <Route path="/finanza/cashflow" component={Cashflow} />
         <Route path="/finanza/proposte" component={Proposte} />
+        <Route path="/finanza/budget" component={BudgetPage} />
+        <Route path="/finanza/reintegrazione" component={ReintegrazionePage} />
+        <Route path="/finanza/investimenti" component={InvestimentiPage} />
+        <Route path="/finanza/scenari" component={ScenariPage} />
+        <Route path="/finanza/analisi" component={AnalisiPage} />
+        <Route path="/finanza/report" component={ReportFinanzaPage} />
         <Route path="/campi" component={Campi} />
         <Route path="/magazzino" component={Magazzino} />
         <Route path="/officina" component={Officina} />

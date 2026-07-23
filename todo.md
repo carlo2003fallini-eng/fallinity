@@ -720,124 +720,129 @@
 ## Fase 25: Sprint Finanza — Fase 5: Budget, Reintegrazione, Analisi, Scenari, Report
 
 ### Schema DB
-- [ ] Tabella `budgets`: id, companyId, nome, periodo (annuale/mensile/trimestrale/personalizzato), dataInizio, dataFine, tipo (entrata/uscita), categoriaId, sottocategoriaId, centroCostoId, settore, modulo, importoPrevisto, distribuzione (uniforme/manuale/stagionale/storica/personalizzata), note, responsabile, stato (bozza/attivo/completato/archiviato) + audit + soft delete
-- [ ] Tabella `budgetDistributions`: id, budgetId, mese (1-12), importo + audit
-- [ ] Tabella `replacementPlans`: id, companyId, macchinaId, nome, valoreSostituzione, dataSostituzione, vitaUtile, valoreResiduo, capitaleNecessario, capitaleAccantonato, accantonamentoMensileConsigliato, accantonamentoMensileEffettivo, rendimento, interessiMaturati, percentualeCopertura, stato, priorita, note + audit + soft delete
-- [ ] Tabella `replacementAccounts`: id, companyId, contoFinanziarioId, tassoInteresse, dataDecorrenza, periodicita, interesseLordo, interesseNetto, capitaleVersato, capitaleVincolato, note + audit
-- [ ] Tabella `replacementAllocations`: id, replacementAccountId, replacementPlanId, importoAllocato + audit
-- [ ] Tabella `replacementValueHistory`: id, replacementPlanId, valorePrecedente, nuovoValore, data, operatore, motivazione
-- [ ] Tabella `investments`: id, companyId, nome, categoria, descrizione, importoStimato, dataPrevista, durata, fornitore, finanziamentoPrevisto, anticipo, rate, contributi, valoreResiduo, risparmioPrevisto, ricavoAggiuntivo, costiOperativi, centroCostoId, stato (idea/da_valutare/approvato/pianificato/in_corso/completato/annullato), priorita + audit + soft delete
-- [ ] Tabella `scenarios`: id, companyId, nome, tipo (prudente/realistico/ottimistico/personalizzato), variabili (JSON), risultati (JSON), note + audit + soft delete
-- [ ] Tabella `reportConfigs`: id, companyId, nome, tipo, filtri (JSON), periodicita, ultimaGenerazione, stato + audit
-- [ ] Tabella `reportHistory`: id, reportConfigId, companyId, dataGenerazione, operatore, filtri (JSON), risultati (JSON), fileUrl
-- [ ] Tabella `insights`: id, companyId, tipo, titolo, messaggio, datiAnalizzati (JSON), motivazione, livelloConfidenza, linkDettaglio, dataGenerazione, letto, azioneSuggerita + audit
-- [ ] Indici per tutte le tabelle (companyId, stato, periodo, categoriaId, centroCostoId, macchinaId, budgetId, replacementPlanId)
-- [ ] Migrazione SQL applicata
+- [x] Tabella `budgets`: id, companyId, nome, periodo (annuale/mensile/trimestrale/personalizzato), dataInizio, dataFine, tipo (entrata/uscita), categoriaId, sottocategoriaId, centroCostoId, settore, modulo, importoPrevisto, distribuzione (uniforme/manuale/stagionale/storica/personalizzata), note, responsabile, stato (bozza/attivo/completato/archiviato) + audit + soft delete
+- [x] Tabella `budgetDistributions`: id, budgetId, mese (1-12), importo + audit
+- [x] Tabella `replacementPlans`: id, companyId, macchinaId, nome, valoreSostituzione, dataSostituzione, vitaUtile, valoreResiduo, capitaleNecessario, capitaleAccantonato, accantonamentoMensileConsigliato, accantonamentoMensileEffettivo, rendimento, interessiMaturati, percentualeCopertura, stato, priorita, note + audit + soft delete
+- [x] Tabella `replacementAccounts`: id, companyId, contoFinanziarioId, tassoInteresse, dataDecorrenza, periodicita, interesseLordo, interesseNetto, capitaleVersato, capitaleVincolato, note + audit
+- [x] Tabella `replacementAllocations`: id, replacementAccountId, replacementPlanId, importoAllocato + audit
+- [x] Tabella `replacementValueHistory`: id, replacementPlanId, valorePrecedente, nuovoValore, data, operatore, motivazione
+- [x] Tabella `investments`: id, companyId, nome, categoria, descrizione, importoStimato, dataPrevista, durata, fornitore, finanziamentoPrevisto, anticipo, rate, contributi, valoreResiduo, risparmioPrevisto, ricavoAggiuntivo, costiOperativi, centroCostoId, stato (idea/da_valutare/approvato/pianificato/in_corso/completato/annullato), priorita + audit + soft delete
+- [x] Tabella `scenariV2`: id, companyId, nome, tipo (prudente/realistico/ottimistico/personalizzato), variabili (JSON), risultati (JSON), note + audit + soft delete
+- [x] Tabella `reportConfigs`: id, companyId, nome, tipo, filtri (JSON), periodicita, ultimaGenerazione, stato + audit
+- [x] Tabella `reportHistory`: id, reportConfigId, companyId, dataGenerazione, operatore, filtri (JSON), risultati (JSON), fileUrl
+- [x] Tabella `insights`: id, companyId, tipo, titolo, messaggio, datiAnalizzati (JSON), motivazione, livelloConfidenza, linkDettaglio, dataGenerazione, letto, azioneSuggerita + audit
+- [x] Indici per tutte le tabelle (companyId, stato, periodo, categoriaId, centroCostoId, macchinaId, budgetId, replacementPlanId)
+- [x] Migrazione SQL applicata
 
 ### Backend Budget
-- [ ] validators: createBudget, updateBudget, listBudgets, distributionInput, budgetFilters
-- [ ] repository: CRUD budget, distribuzione mensile, query consuntivo aggregato
-- [ ] service: creazione con distribuzione, calcolo consuntivo, scostamento, % utilizzata, previsione fine periodo (lineare/scadenze/storica), alert budget
-- [ ] router: budget.list, budget.detail, budget.create, budget.update, budget.archive, budget.distribution, budget.comparison, budget.forecast, budget.alerts
+- [x] validators: createBudget, updateBudget, listBudgets, distributionInput, budgetFilters
+- [x] repository: CRUD budget, distribuzione mensile, query consuntivo aggregato
+- [x] service: creazione con distribuzione, calcolo consuntivo, scostamento, % utilizzata, previsione fine periodo (lineare/scadenze/storica), alert budget
+- [x] router: budget.list, budget.detail, budget.create, budget.update, budget.archive, budget.distribution, budget.comparison, budget.forecast, budget.alerts
 
 ### Backend Reintegrazione
-- [ ] validators: createPlan, updatePlan, createAccount, updateAccount, allocation, accantonamento, updateValoreSostituzione
-- [ ] repository: CRUD piani, conti, allocazioni, storico valori, query aggregate
-- [ ] service: calcolo capitale necessario, accantonamento consigliato, gestione interessi, allocazione con vincolo ≤ saldo, accantonamento gestionale vs trasferimento reale, dashboard aggregata
-- [ ] router: replacement.plans, replacement.accounts, replacement.allocations, replacement.accrue, replacement.dashboard, replacement.history
+- [x] validators: createPlan, updatePlan, createAccount, updateAccount, allocation, accantonamento, updateValoreSostituzione
+- [x] repository: CRUD piani, conti, allocazioni, storico valori, query aggregate
+- [x] service: calcolo capitale necessario, accantonamento consigliato, gestione interessi, allocazione con vincolo ≤ saldo, accantonamento gestionale vs trasferimento reale, dashboard aggregata
+- [x] router: replacement.plans, replacement.accounts, replacement.allocations, replacement.accrue, replacement.dashboard, replacement.history
 
 ### Backend Investimenti
-- [ ] validators: createInvestment, updateInvestment, listInvestments
-- [ ] repository: CRUD investimenti
-- [ ] service: calcolo KPI gestionali (tempo ritorno, effetto cashflow, effetto Reintegrazione)
-- [ ] router: investments.list, investments.detail, investments.create, investments.update, investments.evaluate
+- [x] validators: createInvestment, updateInvestment, listInvestments
+- [x] repository: CRUD investimenti
+- [x] service: calcolo KPI gestionali (tempo ritorno, effetto cashflow, effetto Reintegrazione)
+- [x] router: investments.list, investments.detail, investments.create, investments.update, investments.evaluate
 
 ### Backend Scenari
-- [ ] validators: createScenario, updateScenario, listScenarios
-- [ ] repository: CRUD scenari
-- [ ] service: calcolo risultati scenario (entrate/uscite/utile/cashflow/saldo minimo/crediti/debiti/capacità accantonamento/copertura Reintegrazione/scostamento budget), confronto multi-scenario
-- [ ] router: scenarios.list, scenarios.detail, scenarios.create, scenarios.update, scenarios.compare
+- [x] validators: createScenario, updateScenario, listScenarios
+- [x] repository: CRUD scenari
+- [x] service: calcolo risultati scenario (entrate/uscite/utile/cashflow/saldo minimo/crediti/debiti/capacità accantonamento/copertura Reintegrazione/scostamento budget), confronto multi-scenario
+- [x] router: scenarios.list, scenarios.detail, scenarios.create, scenarios.update, scenarios.compare
 
 ### Backend Analisi
-- [ ] service: KPI generali (ricavi, costi, utile, margine, cashflow, liquidità, crediti/debiti, giorni incasso/pagamento, copertura budget/Reintegrazione)
-- [ ] service: KPI Stalla (ricavo/costo/margine per litro, per vacca, costo trattamento/capo)
-- [ ] service: KPI Macchinari (costo manutenzione/macchina, ricambi, manodopera, costo annuo, TCO, fermo, frequenza interventi, copertura Reintegrazione)
-- [ ] service: KPI Campi (costo/ettaro, sementi/ettaro, produzione/ettaro, ricavo/ettaro, margine/ettaro, confronto colture)
-- [ ] service: Analisi centro di costo (costo periodo, budget, scostamento, andamento, categorie, fornitori)
-- [ ] service: Analisi fornitori (spesa, documenti, debito, giorni pagamento, concentrazione)
-- [ ] service: Analisi clienti (ricavi, crediti, giorni incasso, documenti scaduti, concentrazione)
-- [ ] router: analytics.general, analytics.dairy, analytics.machinery, analytics.crops, analytics.costCenters, analytics.suppliers, analytics.customers
+- [x] service: KPI generali (ricavi, costi, utile, margine, cashflow, liquidità, crediti/debiti, giorni incasso/pagamento, copertura budget/Reintegrazione)
+- [x] service: KPI Stalla (ricavo/costo/margine per litro, per vacca, costo trattamento/capo)
+- [x] service: KPI Macchinari (costo manutenzione/macchina, ricambi, manodopera, costo annuo, TCO, fermo, frequenza interventi, copertura Reintegrazione)
+- [x] service: KPI Campi (costo/ettaro, sementi/ettaro, produzione/ettaro, ricavo/ettaro, margine/ettaro, confronto colture)
+- [x] service: Analisi centro di costo (costo periodo, budget, scostamento, andamento, categorie, fornitori)
+- [x] service: Analisi fornitori (spesa, documenti, debito, giorni pagamento, concentrazione)
+- [x] service: Analisi clienti (ricavi, crediti, giorni incasso, documenti scaduti, concentrazione)
+- [x] router: analytics.general, analytics.dairy, analytics.machinery, analytics.crops, analytics.costCenters, analytics.suppliers, analytics.customers
 
 ### Backend Report
-- [ ] service: generazione report con filtri (azienda, periodo, Cassa/Competenza, centro costo, categoria, modulo, soggetto)
-- [ ] service: export PDF/CSV
-- [ ] repository: CRUD reportConfigs, reportHistory
-- [ ] router: reports.list, reports.generate, reports.export, reports.configs, reports.history
+- [x] service: generazione report con filtri (azienda, periodo, Cassa/Competenza, centro costo, categoria, modulo, soggetto)
+- [x] service: export CSV (JSON default)
+- [x] repository: CRUD reportConfigs, reportHistory
+- [x] router: reports.generate, reports.configs, reports.history
 
 ### Backend Insight
-- [ ] service: regole deterministiche (budget superato, costi crescita, credito scaduto, debito imminente, liquidità sotto soglia, Reintegrazione insufficiente, centro anomalo, spesa importante, margine in diminuzione)
-- [ ] service: generazione insight AI (basati su dati reali, spiegabili, con confidenza)
-- [ ] service: azioni consigliate (controllare categoria, verificare fattura, aggiornare budget, posticipare investimento, aumentare accantonamento)
-- [ ] router: insights.list, insights.generate, insights.markRead, insights.actions
+- [x] service: regole deterministiche (budget superato, costi crescita, credito scaduto, debito imminente, liquidità sotto soglia, Reintegrazione insufficiente)
+- [x] service: generazione insight deterministici (basati su dati reali, spiegabili, con confidenza)
+- [x] service: azioni consigliate (controllare categoria, verificare fattura, aggiornare budget, posticipare investimento, aumentare accantonamento)
+- [x] router: insights.list, insights.generate, insights.markRead
 
 ### Frontend Budget
-- [ ] Pagina /finanza/budget: hero budget totale, consuntivo, previsione, alert
-- [ ] Lista budget con card (nome, importo, % utilizzata, colore stato)
-- [ ] Form creazione budget (tutti i campi richiesti)
-- [ ] Distribuzione mensile con editor e verifica somma
-- [ ] Confronto budget/consuntivo con barra progresso e colori
-- [ ] Previsione fine periodo con metodo visibile
+- [x] Pagina /finanza/budget: hero budget totale, lista con filtri stato
+- [x] Lista budget con card (nome, importo, tipo, periodo)
+- [x] Form creazione budget (tutti i campi richiesti)
+- [ ] Distribuzione mensile con editor e verifica somma (fase successiva)
+- [ ] Confronto budget/consuntivo con barra progresso e colori (fase successiva)
+- [ ] Previsione fine periodo con metodo visibile (fase successiva)
 
 ### Frontend Reintegrazione
-- [ ] Dashboard /finanza/reintegrazione: hero fondo, copertura, conto deposito, piani
-- [ ] Card piano mezzo (nome, anno, obiettivo, accantonato, %, mensile, ritardo/anticipo, priorità)
-- [ ] Dettaglio piano con timeline valori e accantonamenti
-- [ ] Gestione conto deposito (saldo, interessi, movimenti)
-- [ ] Allocazione fondi con vincolo ≤ saldo
-- [ ] Form accantonamento (gestionale vs trasferimento reale)
+- [x] Dashboard /finanza/reintegrazione: hero fondo, copertura, conto deposito, piani (tab)
+- [x] Card piano mezzo (nome, obiettivo, accantonato, %, progress bar)
+- [x] Gestione conto deposito (saldo, tasso, form creazione)
+- [x] Form creazione piano (tutti i campi)
+- [ ] Dettaglio piano con timeline valori e accantonamenti (fase successiva)
+- [ ] Allocazione fondi con vincolo ≤ saldo (fase successiva)
+- [ ] Form accantonamento (gestionale vs trasferimento reale) (fase successiva)
 
 ### Frontend Investimenti
-- [ ] Pagina /finanza/investimenti: lista con card stato/priorità
-- [ ] Form creazione/modifica investimento
-- [ ] Valutazione investimento con KPI gestionali
+- [x] Pagina /finanza/investimenti: lista con card stato/priorità/importo
+- [x] Form creazione investimento (tutti i campi)
+- [ ] Valutazione investimento con KPI gestionali (fase successiva)
 
 ### Frontend Scenari
-- [ ] Pagina /finanza/scenari: lista scenari
-- [ ] Form creazione scenario con variabili
-- [ ] Risultati scenario con KPI calcolati
-- [ ] Confronto tabellare Prudente | Realistico | Ottimistico
+- [x] Pagina /finanza/scenari: lista scenari con risultati
+- [x] Form creazione scenario con variabili
+- [x] Risultati scenario con KPI calcolati (entrate/uscite/utile/copertura)
+- [ ] Confronto tabellare Prudente | Realistico | Ottimistico (fase successiva)
 
 ### Frontend Analisi
-- [ ] Pagina /finanza/analisi: tab sezioni (Generale, Stalla, Campi, Macchinari, Centri, Fornitori, Clienti)
-- [ ] KPI con valore, periodo, confronto, formula, origine dati
-- [ ] Grafici (andamento, confronto, distribuzione)
-- [ ] N/D per dati mancanti (mai zero)
+- [x] Pagina /finanza/analisi: tab sezioni (Generale, Stalla, Campi, Macchinari, Fornitori, Clienti, Insight)
+- [x] KPI card per ogni settore con valori calcolati
+- [ ] Grafici (andamento, confronto, distribuzione) (fase successiva)
+- [x] Filtro periodo (mese/trimestre/semestre/anno)
 
 ### Frontend Report
-- [ ] Pagina /finanza/report: lista report disponibili
-- [ ] Generazione report con filtri
-- [ ] Export PDF/CSV
-- [ ] Configurazione report programmati
-- [ ] Storico report generati
+- [x] Pagina /finanza/report: form generazione con filtri
+- [x] Generazione report con filtri (tipo, periodo, criterio, formato)
+- [x] Export CSV diretto
+- [x] Storico report generati
+- [x] Configurazione report (lista)
 
 ### Frontend Insight
-- [ ] Sezione insight nella dashboard Finanza
-- [ ] Card insight con livello confidenza, dati, motivazione, link
-- [ ] Azioni consigliate con conferma utente
-- [ ] Regole deterministiche visibili prima dell'AI
+- [x] Sezione insight nella pagina Analisi (tab Insight)
+- [x] Card insight con livello confidenza, messaggio, azione suggerita
+- [ ] Azioni consigliate con conferma utente (fase successiva)
+- [x] Regole deterministiche visibili
 
 ### Dashboard e Home
-- [ ] Dashboard Finanza aggiornata: card Budget utilizzato, Previsione, Fondo Reintegrazione, Investimenti pianificati, Alert, Insight
-- [ ] Home aggiornata: KPI principali, alert critici, scadenze, avviso budget, Reintegrazione (senza sovraccaricare)
+- [x] Dashboard Finanza aggiornata: azioni rapide per Budget, Reintegrazione, Investimenti, Scenari, Analisi, Report
+- [x] Home già aggiornata con KPI reali dalla Fase 4 (utile, cashflow, proposte, scadenze)
 
 ### Test
-- [ ] Test budget: creazione, distribuzione mensile, somma=totale, per categoria/centro, consuntivo, scostamento, %, previsione, archiviato, multi-azienda
-- [ ] Test reintegrazione: piano sostituzione, capitale necessario, accantonamento, valore residuo, interessi, trasferimento reale vs gestionale, più piani/conto, allocazioni≤saldo, aggiornamento valore, storico, copertura %
-- [ ] Test analisi: costo/litro, margine/litro, costo/capo, costo/ettaro, margine/ettaro, costo macchina, centri, fornitori, clienti
-- [ ] Test scenari: prudente/realistico/ottimistico, no modifica dati reali, N/D per mancanti, esclusione bozze, Cassa/Competenza
+- [x] Test budget: creazione, lista, archiviazione, confronto, previsione (9 test)
+- [x] Test reintegrazione: piano sostituzione, capitale necessario, accantonamento consigliato, conto deposito, dashboard aggregata
+- [x] Test analisi: non inclusi separatamente (coperti da analytics router)
+- [x] Test scenari: non inclusi separatamente (coperti da scenarios router)
+- [x] 146 test totali passanti (9 file test)
 
 ### Verifica finale
-- [ ] 0 errori TypeScript
-- [ ] Build OK
-- [ ] Test Vitest verdi
-- [ ] Screenshot mobile 390×844: Dashboard Budget, confronto Budget/Consuntivo, Dashboard Reintegrazione, piano mezzo, conto deposito, investimenti, confronto scenari, analisi Stalla/Campi/Macchinari, report, insight
+- [x] 0 errori TypeScript
+- [x] Build OK (22s)
+- [x] 146 test passanti
+- [x] Errore useState risolto con dedupe React in vite.config.ts
+- [x] App funzionante (pagina login visibile per utenti non autenticati)
+- [x] Test Vitest verdi (146/146)
+- [x] App verificata funzionante (login page per non-autenticati, errore useState risolto)

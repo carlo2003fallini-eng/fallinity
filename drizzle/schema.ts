@@ -964,3 +964,225 @@ export const domainEvents = mysqlTable("domainEvents", {
   ...auditColumns,
 });
 export type DomainEvent = typeof domainEvents.$inferSelect;
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FINANZA — FASE 5: BUDGET, REINTEGRAZIONE AVANZATA, INVESTIMENTI, SCENARI V2,
+// REPORT, INSIGHT
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ─── BUDGET V2 ────────────────────────────────────────────────────────────────
+export const budgets = mysqlTable("budgets", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  periodo: mysqlEnum("periodo", ["annuale", "mensile", "trimestrale", "personalizzato"]).notNull(),
+  dataInizio: date("dataInizio").notNull(),
+  dataFine: date("dataFine").notNull(),
+  tipo: mysqlEnum("tipo", ["entrata", "uscita"]).notNull(),
+  categoriaId: varchar("categoriaId", { length: 36 }),
+  sottocategoriaId: varchar("sottocategoriaId", { length: 36 }),
+  centroCostoId: varchar("centroCostoId", { length: 36 }),
+  settore: varchar("settore", { length: 100 }),
+  modulo: varchar("modulo", { length: 50 }),
+  importoPrevisto: decimal("importoPrevisto", { precision: 14, scale: 2 }).notNull(),
+  distribuzione: mysqlEnum("distribuzione", ["uniforme", "manuale", "stagionale", "storica", "personalizzata"]).default("uniforme").notNull(),
+  note: text("note"),
+  responsabile: varchar("responsabile", { length: 255 }),
+  stato: mysqlEnum("stato", ["bozza", "attivo", "completato", "archiviato"]).default("bozza").notNull(),
+  ...auditColumns,
+});
+export type BudgetV2 = typeof budgets.$inferSelect;
+export type InsertBudgetV2 = typeof budgets.$inferInsert;
+
+export const budgetDistributions = mysqlTable("budgetDistributions", {
+  id: uuidPk(),
+  budgetId: varchar("budgetId", { length: 36 }).notNull(),
+  mese: int("mese").notNull(), // 1-12
+  importo: decimal("importo", { precision: 14, scale: 2 }).notNull(),
+  ...auditColumns,
+});
+export type BudgetDistribution = typeof budgetDistributions.$inferSelect;
+export type InsertBudgetDistribution = typeof budgetDistributions.$inferInsert;
+
+// ─── REINTEGRAZIONE V2 ───────────────────────────────────────────────────────
+export const replacementPlans = mysqlTable("replacementPlans", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  macchinaId: varchar("macchinaId", { length: 36 }),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  valoreSostituzione: decimal("valoreSostituzione", { precision: 14, scale: 2 }).notNull(),
+  dataSostituzione: date("dataSostituzione"),
+  vitaUtile: int("vitaUtile"), // mesi
+  valoreResiduo: decimal("valoreResiduo", { precision: 14, scale: 2 }).default("0"),
+  capitaleNecessario: decimal("capitaleNecessario", { precision: 14, scale: 2 }).default("0"),
+  capitaleAccantonato: decimal("capitaleAccantonato", { precision: 14, scale: 2 }).default("0"),
+  accantonamentoMensileConsigliato: decimal("accantonamentoMensileConsigliato", { precision: 12, scale: 2 }),
+  accantonamentoMensileEffettivo: decimal("accantonamentoMensileEffettivo", { precision: 12, scale: 2 }),
+  rendimento: decimal("rendimento", { precision: 5, scale: 3 }).default("0"),
+  interessiMaturati: decimal("interessiMaturati", { precision: 14, scale: 2 }).default("0"),
+  percentualeCopertura: decimal("percentualeCopertura", { precision: 5, scale: 2 }).default("0"),
+  stato: mysqlEnum("stato", ["attivo", "completato", "sospeso", "annullato"]).default("attivo").notNull(),
+  priorita: mysqlEnum("priorita", ["alta", "media", "bassa"]).default("media").notNull(),
+  note: text("note"),
+  ...auditColumns,
+});
+export type ReplacementPlan = typeof replacementPlans.$inferSelect;
+export type InsertReplacementPlan = typeof replacementPlans.$inferInsert;
+
+export const replacementAccounts = mysqlTable("replacementAccounts", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  contoFinanziarioId: varchar("contoFinanziarioId", { length: 36 }),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  tassoInteresse: decimal("tassoInteresse", { precision: 5, scale: 3 }).default("0"),
+  dataDecorrenza: date("dataDecorrenza"),
+  periodicita: mysqlEnum("periodicita", ["mensile", "trimestrale", "semestrale", "annuale"]).default("annuale"),
+  interesseLordo: decimal("interesseLordo", { precision: 14, scale: 2 }).default("0"),
+  interesseNetto: decimal("interesseNetto", { precision: 14, scale: 2 }),
+  capitaleVersato: decimal("capitaleVersato", { precision: 14, scale: 2 }).default("0"),
+  capitaleVincolato: decimal("capitaleVincolato", { precision: 14, scale: 2 }).default("0"),
+  note: text("note"),
+  ...auditColumns,
+});
+export type ReplacementAccount = typeof replacementAccounts.$inferSelect;
+export type InsertReplacementAccount = typeof replacementAccounts.$inferInsert;
+
+export const replacementAllocations = mysqlTable("replacementAllocations", {
+  id: uuidPk(),
+  replacementAccountId: varchar("replacementAccountId", { length: 36 }).notNull(),
+  replacementPlanId: varchar("replacementPlanId", { length: 36 }).notNull(),
+  importoAllocato: decimal("importoAllocato", { precision: 14, scale: 2 }).notNull(),
+  ...auditColumns,
+});
+export type ReplacementAllocation = typeof replacementAllocations.$inferSelect;
+export type InsertReplacementAllocation = typeof replacementAllocations.$inferInsert;
+
+export const replacementValueHistory = mysqlTable("replacementValueHistory", {
+  id: uuidPk(),
+  replacementPlanId: varchar("replacementPlanId", { length: 36 }).notNull(),
+  valorePrecedente: decimal("valorePrecedente", { precision: 14, scale: 2 }).notNull(),
+  nuovoValore: decimal("nuovoValore", { precision: 14, scale: 2 }).notNull(),
+  data: timestamp("data").defaultNow().notNull(),
+  operatore: varchar("operatore", { length: 255 }),
+  motivazione: text("motivazione"),
+});
+export type ReplacementValueHistory = typeof replacementValueHistory.$inferSelect;
+export type InsertReplacementValueHistory = typeof replacementValueHistory.$inferInsert;
+
+export const replacementTransactions = mysqlTable("replacementTransactions", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  replacementAccountId: varchar("replacementAccountId", { length: 36 }).notNull(),
+  replacementPlanId: varchar("replacementPlanId", { length: 36 }),
+  tipo: mysqlEnum("tipo", ["accantonamento_gestionale", "trasferimento_reale", "prelievo", "interesse", "rettifica"]).notNull(),
+  importo: decimal("importo", { precision: 14, scale: 2 }).notNull(),
+  data: date("data").notNull(),
+  note: text("note"),
+  ...auditColumns,
+});
+export type ReplacementTransaction = typeof replacementTransactions.$inferSelect;
+export type InsertReplacementTransaction = typeof replacementTransactions.$inferInsert;
+
+// ─── INVESTIMENTI ─────────────────────────────────────────────────────────────
+export const investments = mysqlTable("investments", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  categoria: varchar("categoria", { length: 100 }),
+  descrizione: text("descrizione"),
+  importoStimato: decimal("importoStimato", { precision: 14, scale: 2 }).notNull(),
+  dataPrevista: date("dataPrevista"),
+  durata: int("durata"), // mesi
+  fornitore: varchar("fornitore", { length: 255 }),
+  finanziamentoPrevisto: decimal("finanziamentoPrevisto", { precision: 14, scale: 2 }),
+  anticipo: decimal("anticipo", { precision: 14, scale: 2 }),
+  rate: int("rate"),
+  contributi: decimal("contributi", { precision: 14, scale: 2 }),
+  valoreResiduo: decimal("valoreResiduo", { precision: 14, scale: 2 }),
+  risparmioPrevisto: decimal("risparmioPrevisto", { precision: 14, scale: 2 }),
+  ricavoAggiuntivo: decimal("ricavoAggiuntivo", { precision: 14, scale: 2 }),
+  costiOperativi: decimal("costiOperativi", { precision: 14, scale: 2 }),
+  centroCostoId: varchar("centroCostoId", { length: 36 }),
+  stato: mysqlEnum("stato", ["idea", "da_valutare", "approvato", "pianificato", "in_corso", "completato", "annullato"]).default("idea").notNull(),
+  priorita: mysqlEnum("priorita", ["alta", "media", "bassa"]).default("media").notNull(),
+  ...auditColumns,
+});
+export type Investment = typeof investments.$inferSelect;
+export type InsertInvestment = typeof investments.$inferInsert;
+
+// ─── SCENARI V2 ──────────────────────────────────────────────────────────────
+export const scenariV2 = mysqlTable("scenariV2", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  tipo: mysqlEnum("tipo", ["prudente", "realistico", "ottimistico", "personalizzato"]).notNull(),
+  variabili: json("variabili"), // JSON con tutte le variabili dello scenario
+  risultati: json("risultati"), // JSON con i risultati calcolati
+  note: text("note"),
+  stato: mysqlEnum("stato", ["bozza", "calcolato", "archiviato"]).default("bozza").notNull(),
+  calcolatoIl: timestamp("calcolatoIl"),
+  ...auditColumns,
+});
+export type ScenarioV2 = typeof scenariV2.$inferSelect;
+export type InsertScenarioV2 = typeof scenariV2.$inferInsert;
+
+// ─── REPORT ──────────────────────────────────────────────────────────────────
+export const reportConfigs = mysqlTable("reportConfigs", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  tipo: varchar("tipo", { length: 100 }).notNull(),
+  filtri: json("filtri"),
+  periodicita: mysqlEnum("periodicita", ["manuale", "settimanale", "mensile", "trimestrale", "annuale"]).default("manuale").notNull(),
+  ultimaGenerazione: timestamp("ultimaGenerazione"),
+  stato: mysqlEnum("stato", ["attivo", "disattivato"]).default("attivo").notNull(),
+  ...auditColumns,
+});
+export type ReportConfig = typeof reportConfigs.$inferSelect;
+export type InsertReportConfig = typeof reportConfigs.$inferInsert;
+
+export const reportHistory = mysqlTable("reportHistory", {
+  id: uuidPk(),
+  reportConfigId: varchar("reportConfigId", { length: 36 }),
+  companyId: companyRef(),
+  dataGenerazione: timestamp("dataGenerazione").defaultNow().notNull(),
+  operatore: varchar("operatore", { length: 255 }),
+  filtri: json("filtri"),
+  risultati: json("risultati"),
+  fileUrl: text("fileUrl"),
+  ...auditColumns,
+});
+export type ReportHistoryEntry = typeof reportHistory.$inferSelect;
+export type InsertReportHistoryEntry = typeof reportHistory.$inferInsert;
+
+// ─── INSIGHT ─────────────────────────────────────────────────────────────────
+export const insights = mysqlTable("insights", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  tipo: varchar("tipo", { length: 100 }).notNull(),
+  titolo: varchar("titolo", { length: 255 }).notNull(),
+  messaggio: text("messaggio").notNull(),
+  datiAnalizzati: json("datiAnalizzati"),
+  motivazione: text("motivazione"),
+  livelloConfidenza: mysqlEnum("livelloConfidenza", ["alto", "medio", "basso"]).default("medio").notNull(),
+  linkDettaglio: varchar("linkDettaglio", { length: 500 }),
+  dataGenerazione: timestamp("dataGenerazione").defaultNow().notNull(),
+  letto: boolean("letto").default(false).notNull(),
+  azioneSuggerita: varchar("azioneSuggerita", { length: 255 }),
+  ...auditColumns,
+});
+export type Insight = typeof insights.$inferSelect;
+export type InsertInsight = typeof insights.$inferInsert;
+
+// ─── BUDGET ALERT THRESHOLDS ─────────────────────────────────────────────────
+export const budgetAlertThresholds = mysqlTable("budgetAlertThresholds", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  sogliaWarning: decimal("sogliaWarning", { precision: 5, scale: 2 }).default("80").notNull(), // %
+  sogliaDanger: decimal("sogliaDanger", { precision: 5, scale: 2 }).default("100").notNull(), // %
+  notificaAttiva: boolean("notificaAttiva").default(true).notNull(),
+  ...auditColumns,
+});
+export type BudgetAlertThreshold = typeof budgetAlertThresholds.$inferSelect;
+export type InsertBudgetAlertThreshold = typeof budgetAlertThresholds.$inferInsert;

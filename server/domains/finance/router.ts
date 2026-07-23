@@ -2,6 +2,13 @@ import { protectedProcedure, router } from "../../_core/trpc";
 import { getActor } from "../_core";
 import { financeService } from "./service";
 import { proposalsRouter } from "./proposals.router";
+import { budgetRouter } from "./budget.router";
+import { replacementRouter } from "./replacement.router";
+import { investmentsRouter } from "./investments";
+import { scenariosRouter } from "./scenarios";
+import { analyticsRouter } from "./analytics";
+import { reportsRouter } from "./reports";
+import { insightsRouter } from "./insights";
 import { dashboardSummary, dashboardTrend, dashboardCostCenters, dashboardCategories, dashboardDeadlines, dashboardCreditsDebts, dashboardAccounts } from "./dashboard";
 import { cashflowEffettivo, cashflowPrevisto, cashflowMensile } from "./cashflow";
 import { calcolaAlerts, listAlerts, markAlertLetto, markAlertRisolto, countAlertNonLetti, getSoglie, upsertSoglia } from "./alerts";
@@ -386,4 +393,11 @@ export const finanzaRouter = router({
 
   // ── Proposte finanziarie (Fase 4) ──
   proposte: proposalsRouter,
+  budgetV2: budgetRouter,
+  replacement: replacementRouter,
+  investments: investmentsRouter,
+  scenarios: scenariosRouter,
+  analytics: analyticsRouter,
+  reports: reportsRouter,
+  insights: insightsRouter,
 });
