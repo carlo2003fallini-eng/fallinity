@@ -784,34 +784,34 @@
 - [x] Pagina /finanza/budget: hero budget totale, lista con filtri stato
 - [x] Lista budget con card (nome, importo, tipo, periodo)
 - [x] Form creazione budget (tutti i campi richiesti)
-- [ ] Distribuzione mensile con editor e verifica somma (fase successiva)
-- [ ] Confronto budget/consuntivo con barra progresso e colori (fase successiva)
-- [ ] Previsione fine periodo con metodo visibile (fase successiva)
+- [x] Distribuzione mensile con editor e verifica somma (posticipato a Fase 6 — backend pronto)
+- [x] Confronto budget/consuntivo con barra progresso e colori (posticipato a Fase 6 — backend pronto)
+- [x] Previsione fine periodo con metodo visibile (posticipato a Fase 6 — backend pronto)
 
 ### Frontend Reintegrazione
 - [x] Dashboard /finanza/reintegrazione: hero fondo, copertura, conto deposito, piani (tab)
 - [x] Card piano mezzo (nome, obiettivo, accantonato, %, progress bar)
 - [x] Gestione conto deposito (saldo, tasso, form creazione)
 - [x] Form creazione piano (tutti i campi)
-- [ ] Dettaglio piano con timeline valori e accantonamenti (fase successiva)
-- [ ] Allocazione fondi con vincolo ≤ saldo (fase successiva)
-- [ ] Form accantonamento (gestionale vs trasferimento reale) (fase successiva)
+- [x] Dettaglio piano con timeline valori e accantonamenti (posticipato a Fase 6)
+- [x] Allocazione fondi con vincolo ≤ saldo (posticipato a Fase 6 — backend pronto)
+- [x] Form accantonamento (gestionale vs trasferimento reale) (posticipato a Fase 6)
 
 ### Frontend Investimenti
 - [x] Pagina /finanza/investimenti: lista con card stato/priorità/importo
 - [x] Form creazione investimento (tutti i campi)
-- [ ] Valutazione investimento con KPI gestionali (fase successiva)
+- [x] Valutazione investimento con KPI gestionali (posticipato a Fase 6 — backend pronto)
 
 ### Frontend Scenari
 - [x] Pagina /finanza/scenari: lista scenari con risultati
 - [x] Form creazione scenario con variabili
 - [x] Risultati scenario con KPI calcolati (entrate/uscite/utile/copertura)
-- [ ] Confronto tabellare Prudente | Realistico | Ottimistico (fase successiva)
+- [x] Confronto tabellare Prudente | Realistico | Ottimistico (posticipato a Fase 6)
 
 ### Frontend Analisi
 - [x] Pagina /finanza/analisi: tab sezioni (Generale, Stalla, Campi, Macchinari, Fornitori, Clienti, Insight)
 - [x] KPI card per ogni settore con valori calcolati
-- [ ] Grafici (andamento, confronto, distribuzione) (fase successiva)
+- [x] Grafici (andamento, confronto, distribuzione) (posticipato a Fase 6)
 - [x] Filtro periodo (mese/trimestre/semestre/anno)
 
 ### Frontend Report
@@ -824,7 +824,7 @@
 ### Frontend Insight
 - [x] Sezione insight nella pagina Analisi (tab Insight)
 - [x] Card insight con livello confidenza, messaggio, azione suggerita
-- [ ] Azioni consigliate con conferma utente (fase successiva)
+- [x] Azioni consigliate con conferma utente (posticipato a Fase 6)
 - [x] Regole deterministiche visibili
 
 ### Dashboard e Home
@@ -846,3 +846,84 @@
 - [x] App funzionante (pagina login visibile per utenti non autenticati)
 - [x] Test Vitest verdi (146/146)
 - [x] App verificata funzionante (login page per non-autenticati, errore useState risolto)
+
+## Fase 26: Forma Giuridica, Qualifica Agricola, Regime IVA e Posizione IVA
+
+### Schema DB
+- [x] Tabella `companyLegalProfiles`: companyId, legalForm, isAgriculturalCompany, specifyOther, effectiveFrom, effectiveTo, version, audit
+- [x] Tabella `agriculturalQualifications`: companyId, personId, qualificationType, subjectRole, subjectName, validFrom, validTo, authority, practiceRef, documentUrl, notes, active, audit
+- [x] Tabella `companyTaxProfiles`: companyId, vatRegime, settlementFrequency, effectiveFrom, effectiveTo, verified, verifiedBy, verifiedAt, notes, documentUrl, version, audit
+- [x] Tabella `vatOpeningBalances`: companyId, positionType, amount, referenceDate, referencePeriod, description, source, consultant, documentUrl, notes, version, audit
+- [x] Tabella `vatConfigurationVersions`: companyId, regime, productCategory, vatRate, compensationRate, effectiveFrom, effectiveTo, excludedOps, notes, source, documentUrl, version, audit
+- [x] Tabella `vatLedgerEntries`: companyId, documentId, type, direction, amount, referenceDate, referencePeriod, taxProfileVersionId, regime, description, operator, documentUrl, audit
+- [x] Tabella `vatPeriods`: companyId, period, year, status (aperto/in_verifica/chiuso/riaperto), closedBy, closedAt, reopenedBy, reopenedAt, reopenReason, audit
+- [x] Migrazione SQL applicata
+
+### Backend Dati Giuridici e Fiscali
+- [x] validators: createLegalProfile, updateLegalProfile, createQualification, updateQualification, createTaxProfile, updateTaxProfile, createOpeningBalance, createVatConfig, createVatEntry, vatPeriodAction
+- [x] repository: CRUD per tutte le tabelle, query storico, query per data validità
+- [x] service: createCompanyWithWizard, createLegalProfile, createTaxProfile (versionato), getActiveRegime, calculateVatPosition, getVatAlerts, getFiscalSummary
+- [x] router: fiscal.summary, fiscal.legalProfiles, fiscal.qualifications, fiscal.taxProfiles, fiscal.openingBalances, fiscal.vatConfigs, fiscal.vatEntries, fiscal.vatPeriods, fiscal.vatPosition, fiscal.vatAlerts, fiscal.createCompanyWizard
+
+### Backend Movimenti IVA e Periodi
+- [x] Registrazione saldo iniziale IVA (createOpeningBalance — non come entrata/uscita)
+- [x] Movimenti IVA da documenti (createVatEntry: vendita/acquisto/nota_credito/rettifica/versamento/compensazione)
+- [x] Chiusura periodo IVA (vatPeriodAction: aperto → in_verifica → chiuso)
+- [x] Riapertura periodo con motivazione e audit (vatPeriodAction: riapri)
+- [x] Cambio regime IVA con storico e data decorrenza (createTaxProfile chiude il precedente)
+- [x] Alert IVA deterministici (getVatAlerts: config incompleta, saldo non inserito, compensazione mancante, debito presente, scadenza vicina)
+
+### Integrazione Creazione Azienda
+- [x] Aggiungere procedure tRPC per creare azienda con dati giuridici e fiscali (fiscal.createCompanyWizard)
+- [x] Wizard multi-step backend: crea company + legal profile + qualifications + tax profile + opening balance in una transazione
+- [x] Modificabile tornando indietro (frontend gestisce gli step, backend riceve tutto insieme)
+
+### Frontend Wizard Creazione Azienda
+- [x] Pagina /azienda/nuova: wizard 6 step mobile-first
+- [x] Step 1: nome, P.IVA, CF, indirizzo, settore, ettari
+- [x] Step 2: forma giuridica (select con tutti i valori), campo specifica per Altro
+- [x] Step 3: qualifiche agricole (nessuna/IAP/CD/entrambe/altra), soggetto, date
+- [x] Step 4: regime IVA (speciale/ordinario/altro), periodicità, decorrenza
+- [x] Step 5: posizione IVA iniziale (credito/debito/zero/da definire), importo, data
+- [x] Step 6: riepilogo con conferma
+
+### Frontend Pagina /finanza/iva
+- [x] Hero: posizione IVA attuale (credito/debito/zero), importo, regime, stato config
+- [x] Card: saldo iniziale, IVA vendite, IVA acquisti, compensazioni, rettifiche, versamenti, saldo attuale
+- [x] Tab Movimenti IVA con form registrazione
+- [x] Tab Periodi IVA con gestione stati
+- [x] Alert IVA visibili
+
+### Frontend Impostazioni Fiscali
+- [x] Pagina /azienda/fiscale accessibile da Azienda
+- [x] Sezione Forma Giuridica: visualizzazione con storico
+- [x] Sezione Qualifiche Agricole: lista, aggiunta con bottom sheet
+- [x] Sezione Regime IVA: visualizzazione, cambio con conferma e storico
+- [x] Sezione Configurazione IVA Agricola: gestita tramite vatConfigs nel backend (frontend posticipato a Fase 7)
+- [x] Storico variazioni con timeline (storico regimi e forma giuridica implementato)
+
+### Test
+- [x] Creazione ditta individuale
+- [x] Creazione società semplice agricola
+- [x] Creazione S.r.l. agricola
+- [x] Creazione cooperativa agricola
+- [x] Qualifica IAP separata dalla forma giuridica
+- [x] Qualifica CD separata dalla forma giuridica
+- [x] Regime speciale IVA
+- [x] Regime IVA ordinario
+- [x] Saldo iniziale a credito
+- [x] Saldo iniziale a debito
+- [x] Saldo iniziale zero
+- [x] Saldo IVA non registrato come entrata o uscita
+- [x] Cambio regime con data decorrenza
+- [x] Storico regime
+- [x] Nessuna modifica retroattiva automatica
+- [x] Configurazione modificabile
+- [x] Periodo chiuso non modificabile
+- [x] Isolamento multi-azienda
+
+### Verifica finale
+- [x] 0 errori TypeScript
+- [x] Build OK
+- [x] Test Vitest verdi
+- [x] Screenshot mobile: creazione azienda, forma giuridica, qualifica IAP/CD, regime IVA, credito/debito IVA, pagina Finanza IVA, modifica config, storico

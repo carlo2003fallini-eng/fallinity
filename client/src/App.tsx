@@ -27,7 +27,10 @@ import InvestimentiPage from "./pages/finanza/Investimenti";
 import ScenariPage from "./pages/finanza/Scenari";
 import AnalisiPage from "./pages/finanza/Analisi";
 import ReportFinanzaPage from "./pages/finanza/Report";
+import IvaPage from "./pages/finanza/Iva";
 import SelezionaAzienda from "./pages/SelezionaAzienda";
+import NuovaAzienda from "./pages/NuovaAzienda";
+import ImpostazioniFiscali from "./pages/ImpostazioniFiscali";
 
 function Router() {
   return (
@@ -35,6 +38,8 @@ function Router() {
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/azienda" component={Azienda} />
+        <Route path="/azienda/nuova" component={NuovaAzienda} />
+        <Route path="/azienda/fiscale" component={ImpostazioniFiscali} />
         <Route path="/finanza" component={Finanza} />
         <Route path="/finanza/nuovo" component={NuovoMovimento} />
         <Route path="/finanza/movimento/:id" component={DettaglioMovimento} />
@@ -46,6 +51,7 @@ function Router() {
         <Route path="/finanza/scenari" component={ScenariPage} />
         <Route path="/finanza/analisi" component={AnalisiPage} />
         <Route path="/finanza/report" component={ReportFinanzaPage} />
+        <Route path="/finanza/iva" component={IvaPage} />
         <Route path="/campi" component={Campi} />
         <Route path="/magazzino" component={Magazzino} />
         <Route path="/officina" component={Officina} />

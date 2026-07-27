@@ -1186,3 +1186,112 @@ export const budgetAlertThresholds = mysqlTable("budgetAlertThresholds", {
 });
 export type BudgetAlertThreshold = typeof budgetAlertThresholds.$inferSelect;
 export type InsertBudgetAlertThreshold = typeof budgetAlertThresholds.$inferInsert;
+
+// ──────────────────────────────────────────────────────────────────────────────
+// FASE 26: FORMA GIURIDICA, QUALIFICHE AGRICOLE, REGIME IVA, POSIZIONE IVA
+// ──────────────────────────────────────────────────────────────────────────────
+
+export const companyLegalProfiles = mysqlTable("companyLegalProfiles", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  legalForm: varchar("legalForm", { length: 100 }).notNull(),
+  isAgriculturalCompany: boolean("isAgriculturalCompany").default(false).notNull(),
+  specifyOther: varchar("specifyOther", { length: 255 }),
+  effectiveFrom: date("effectiveFrom").notNull(),
+  effectiveTo: date("effectiveTo"),
+  ...auditColumns,
+});
+
+export const agriculturalQualifications = mysqlTable("agriculturalQualifications", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  personId: varchar("personId", { length: 36 }),
+  qualificationType: varchar("qualificationType", { length: 50 }).notNull(),
+  subjectRole: varchar("subjectRole", { length: 50 }),
+  subjectName: varchar("subjectName", { length: 255 }),
+  validFrom: date("validFrom").notNull(),
+  validTo: date("validTo"),
+  authority: varchar("authority", { length: 255 }),
+  practiceRef: varchar("practiceRef", { length: 100 }),
+  documentUrl: text("documentUrl"),
+  notes: text("notes"),
+  active: boolean("active").default(true).notNull(),
+  ...auditColumns,
+});
+
+export const companyTaxProfiles = mysqlTable("companyTaxProfiles", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  vatRegime: varchar("vatRegime", { length: 100 }).notNull(),
+  settlementFrequency: varchar("settlementFrequency", { length: 50 }).notNull(),
+  effectiveFrom: date("effectiveFrom").notNull(),
+  effectiveTo: date("effectiveTo"),
+  verified: boolean("verified").default(false).notNull(),
+  verifiedBy: varchar("verifiedBy", { length: 255 }),
+  verifiedAt: timestamp("verifiedAt"),
+  notes: text("notes"),
+  documentUrl: text("documentUrl"),
+  ...auditColumns,
+});
+
+export const vatOpeningBalances = mysqlTable("vatOpeningBalances", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  positionType: varchar("positionType", { length: 30 }).notNull(),
+  amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
+  referenceDate: date("referenceDate").notNull(),
+  referencePeriod: varchar("referencePeriod", { length: 20 }),
+  description: text("description"),
+  source: varchar("source", { length: 100 }),
+  consultant: varchar("consultant", { length: 255 }),
+  documentUrl: text("documentUrl"),
+  notes: text("notes"),
+  ...auditColumns,
+});
+
+export const vatConfigurationVersions = mysqlTable("vatConfigurationVersions", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  regime: varchar("regime", { length: 100 }).notNull(),
+  productCategory: varchar("productCategory", { length: 255 }).notNull(),
+  vatRate: decimal("vatRate", { precision: 5, scale: 2 }).notNull(),
+  compensationRate: decimal("compensationRate", { precision: 5, scale: 2 }).notNull(),
+  effectiveFrom: date("effectiveFrom").notNull(),
+  effectiveTo: date("effectiveTo"),
+  excludedOps: text("excludedOps"),
+  notes: text("notes"),
+  source: varchar("source", { length: 255 }),
+  documentUrl: text("documentUrl"),
+  ...auditColumns,
+});
+
+export const vatLedgerEntries = mysqlTable("vatLedgerEntries", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  documentId: varchar("documentId", { length: 36 }),
+  type: varchar("type", { length: 50 }).notNull(),
+  direction: varchar("direction", { length: 10 }).notNull(),
+  amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
+  referenceDate: date("referenceDate").notNull(),
+  referencePeriod: varchar("referencePeriod", { length: 20 }).notNull(),
+  taxProfileVersionId: varchar("taxProfileVersionId", { length: 36 }),
+  regime: varchar("regime", { length: 100 }),
+  description: text("description"),
+  operator: varchar("operator", { length: 255 }),
+  documentUrl: text("documentUrl"),
+  ...auditColumns,
+});
+
+export const vatPeriods = mysqlTable("vatPeriods", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  period: varchar("period", { length: 20 }).notNull(),
+  year: int("year").notNull(),
+  status: varchar("status", { length: 20 }).default("aperto").notNull(),
+  closedBy: varchar("closedBy", { length: 255 }),
+  closedAt: timestamp("closedAt"),
+  reopenedBy: varchar("reopenedBy", { length: 255 }),
+  reopenedAt: timestamp("reopenedAt"),
+  reopenReason: text("reopenReason"),
+  ...auditColumns,
+});
