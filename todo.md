@@ -987,3 +987,9 @@
 - [x] Test archiviazione e riattivazione
 - [x] 0 errori TypeScript
 - [x] Screenshot mobile 390x844 delle principali schermate
+
+## Fase 28 — Miglioramenti Form Nuovo Movimento
+- [x] Persistenza ultimi valori usati dopo salvataggio (tranne importo che si svuota)
+- [x] Pulsante primario "Salva Movimento" ben visibile su mobile
+- [x] Messaggio chiaro di conferma dopo il salvataggio
+- [x] Centro di costo facoltativo con icona di aiuto e tooltip esplicativo
