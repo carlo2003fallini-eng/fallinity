@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,18 @@ export default function ImpostazioniCategorie() {
 
   const utils = trpc.useUtils();
   const { data: categorie = [] } = trpc.finanza.categorie.list.useQuery({});
+
+  // ── Seed automatico se nessuna categoria presente ──
+  const seedMut = trpc.finanza.seed.useMutation({
+    onSuccess: (data) => {
+      if (data?.seeded) utils.finanza.categorie.invalidate();
+    },
+  });
+  useEffect(() => {
+    if ((categorie as any[]).length === 0 && !seedMut.isPending && !seedMut.isSuccess) {
+      seedMut.mutate({});
+    }
+  }, [categorie]);
 
   const createMut = trpc.finanza.categorie.create.useMutation({
     onSuccess: () => { utils.finanza.categorie.invalidate(); toast.success("Categoria creata"); closeForm(); },

@@ -993,3 +993,9 @@
 - [x] Pulsante primario "Salva Movimento" ben visibile su mobile
 - [x] Messaggio chiaro di conferma dopo il salvataggio
 - [x] Centro di costo facoltativo con icona di aiuto e tooltip esplicativo
+
+## Fase 29 — Seed Categorie Agricole Predefinite
+- [x] Seed automatico categorie entrata (Vendita latte, Vendita animali, Vendita colture, Contributi PAC, Agriturismo, Conto terzi, Altre entrate)
+- [x] Seed automatico categorie uscita (Carburanti, Mangimi, Farmaci veterinari, Sementi e piantine, Fertilizzanti, Fitosanitari, Energia elettrica, Acqua irrigua, Manutenzione mezzi, Assicurazioni, Affitti terreni, Manodopera, Consulenze, Imposte e tasse, Materiali consumo, Altre uscite)
+- [x] Seed idempotente (non duplica se già presenti)
+- [x] Colori distinti per ogni categoria

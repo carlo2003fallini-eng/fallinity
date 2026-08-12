@@ -86,6 +86,22 @@ export default function NuovoMovimento() {
 
   const utils = trpc.useUtils();
 
+  // ── Seed automatico al primo accesso (se nessuna categoria presente) ──
+  const seedMut = trpc.finanza.seed.useMutation({
+    onSuccess: (data) => {
+      if (data?.seeded) {
+        utils.finanza.categorie.invalidate();
+        utils.finanza.centriCosto.invalidate();
+        utils.finanza.metodi.invalidate();
+      }
+    },
+  });
+  useEffect(() => {
+    if ((categorie as any[]).length === 0 && !seedMut.isPending && !seedMut.isSuccess) {
+      seedMut.mutate({});
+    }
+  }, [categorie]);
+
   // Calcoli IVA
   const importoCents = useMemo(() => {
     const val = parseFloat(importoStr.replace(",", "."));

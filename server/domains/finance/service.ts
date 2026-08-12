@@ -708,27 +708,48 @@ export const financeService = {
   // SEED — Categorie e centri di costo iniziali
   // ══════════════════════════════════════════════════════════════════════════
   async seedDatiIniziali(actor: ActorContext) {
-    // Controlla se già seedato
+    // Controlla se le categorie predefinite sono già presenti (per codice)
     const existingCat = await repo.listCategorie(actor.companyId);
-    if (existingCat.length > 0) return { seeded: false, message: "Dati già presenti" };
+    const existingCodes = new Set((existingCat as any[]).map((c: any) => c.codice));
 
-    // Categorie uscite
+    let inserted = 0;
+
+    // Categorie uscite — inserisci solo quelle mancanti
     for (const cat of CATEGORIE_USCITE_DEFAULT) {
-      await repo.insertCategoria(actor, { ...cat, tipo: "uscita", attivo: true, ordine: 0 });
+      if (!existingCodes.has(cat.codice)) {
+        await repo.insertCategoria(actor, { ...cat, tipo: "uscita", attivo: true, ordine: 0 });
+        inserted++;
+      }
     }
-    // Categorie entrate
+    // Categorie entrate — inserisci solo quelle mancanti
     for (const cat of CATEGORIE_ENTRATE_DEFAULT) {
-      await repo.insertCategoria(actor, { ...cat, tipo: "entrata", attivo: true, ordine: 0 });
-    }
-    // Centri di costo
-    for (const cdc of CENTRI_COSTO_DEFAULT) {
-      await repo.insertCentroCosto(actor, { ...cdc, attivo: true });
-    }
-    // Metodi di pagamento
-    for (const nome of METODI_PAGAMENTO_DEFAULT) {
-      await repo.insertMetodo(actor, nome);
+      if (!existingCodes.has(cat.codice)) {
+        await repo.insertCategoria(actor, { ...cat, tipo: "entrata", attivo: true, ordine: 0 });
+        inserted++;
+      }
     }
 
-    return { seeded: true, message: "Categorie, centri di costo e metodi creati" };
+    // Centri di costo — inserisci solo quelli mancanti
+    const existingCdc = await repo.listCentriCosto(actor.companyId);
+    const existingCdcCodes = new Set((existingCdc as any[]).map((c: any) => c.codice));
+    for (const cdc of CENTRI_COSTO_DEFAULT) {
+      if (!existingCdcCodes.has(cdc.codice)) {
+        await repo.insertCentroCosto(actor, { ...cdc, attivo: true });
+        inserted++;
+      }
+    }
+
+    // Metodi di pagamento — inserisci solo quelli mancanti
+    const existingMetodi = await repo.listMetodi(actor.companyId);
+    const existingMetodiNomi = new Set((existingMetodi as any[]).map((m: any) => m.nome));
+    for (const nome of METODI_PAGAMENTO_DEFAULT) {
+      if (!existingMetodiNomi.has(nome)) {
+        await repo.insertMetodo(actor, nome);
+        inserted++;
+      }
+    }
+
+    if (inserted === 0) return { seeded: false, message: "Dati già presenti" };
+    return { seeded: true, message: `${inserted} elementi predefiniti creati` };
   },
 };
