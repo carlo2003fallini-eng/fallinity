@@ -31,6 +31,13 @@ import IvaPage from "./pages/finanza/Iva";
 import SelezionaAzienda from "./pages/SelezionaAzienda";
 import NuovaAzienda from "./pages/NuovaAzienda";
 import ImpostazioniFiscali from "./pages/ImpostazioniFiscali";
+import ListaMovimenti from "./pages/finanza/ListaMovimenti";
+import ImpostazioniFinanza from "./pages/finanza/Impostazioni";
+import ImpostazioniCategorie from "./pages/finanza/ImpostazioniCategorie";
+import ImpostazioniSoggetti from "./pages/finanza/ImpostazioniSoggetti";
+import ImpostazioniCentriCosto from "./pages/finanza/ImpostazioniCentriCosto";
+import ImpostazioniConti from "./pages/finanza/ImpostazioniConti";
+import ImpostazioniMetodi from "./pages/finanza/ImpostazioniMetodi";
 
 function Router() {
   return (
@@ -41,6 +48,7 @@ function Router() {
         <Route path="/azienda/nuova" component={NuovaAzienda} />
         <Route path="/azienda/fiscale" component={ImpostazioniFiscali} />
         <Route path="/finanza" component={Finanza} />
+        <Route path="/finanza/movimenti" component={ListaMovimenti} />
         <Route path="/finanza/nuovo" component={NuovoMovimento} />
         <Route path="/finanza/movimento/:id" component={DettaglioMovimento} />
         <Route path="/finanza/cashflow" component={Cashflow} />
@@ -52,6 +60,12 @@ function Router() {
         <Route path="/finanza/analisi" component={AnalisiPage} />
         <Route path="/finanza/report" component={ReportFinanzaPage} />
         <Route path="/finanza/iva" component={IvaPage} />
+        <Route path="/finanza/impostazioni" component={ImpostazioniFinanza} />
+        <Route path="/finanza/impostazioni/categorie" component={ImpostazioniCategorie} />
+        <Route path="/finanza/impostazioni/soggetti" component={ImpostazioniSoggetti} />
+        <Route path="/finanza/impostazioni/centri-costo" component={ImpostazioniCentriCosto} />
+        <Route path="/finanza/impostazioni/conti" component={ImpostazioniConti} />
+        <Route path="/finanza/impostazioni/metodi-pagamento" component={ImpostazioniMetodi} />
         <Route path="/campi" component={Campi} />
         <Route path="/magazzino" component={Magazzino} />
         <Route path="/officina" component={Officina} />

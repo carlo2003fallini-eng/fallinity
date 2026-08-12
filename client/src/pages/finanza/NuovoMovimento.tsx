@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
+import { SelectWithQuickCreate, type SelectOption } from "@/components/SelectWithQuickCreate";
 import {
   ArrowLeft, ArrowDownRight, ArrowUpRight, ChevronDown, ChevronUp,
   Plus, Wallet, CreditCard, Building2, Receipt, Check,
@@ -40,8 +40,6 @@ export default function NuovoMovimento() {
   const [tipoDocumento, setTipoDocumento] = useState("");
   const [numero, setNumero] = useState("");
   const [showDettagli, setShowDettagli] = useState(false);
-  const [showNewSoggetto, setShowNewSoggetto] = useState(false);
-  const [newSoggettoNome, setNewSoggettoNome] = useState("");
 
   // Queries
   const { data: categorie = [] } = trpc.finanza.categorie.list.useQuery({ tipo });
@@ -52,8 +50,7 @@ export default function NuovoMovimento() {
     tipologia: tipo === "entrata" ? "cliente" : "fornitore",
   });
 
-  // Seed automatico
-  trpc.finanza.seed.useMutation();
+  const utils = trpc.useUtils();
 
   // Calcoli IVA
   const importoCents = useMemo(() => {
@@ -63,13 +60,11 @@ export default function NuovoMovimento() {
 
   const calcoloIva = useMemo(() => {
     if (importoCents <= 0) return { imponibile: 0, importoIva: 0, totale: 0 };
-    // Importo inserito = imponibile, calcoliamo IVA sopra
     const iva = Math.round((importoCents * aliquotaIva) / 10000);
     return { imponibile: importoCents, importoIva: iva, totale: importoCents + iva };
   }, [importoCents, aliquotaIva]);
 
-  // Saldo conto selezionato
-  const contoSelezionato = useMemo(() => conti.find((c: any) => c.id === contoId), [conti, contoId]);
+  const contoSelezionato = useMemo(() => (conti as any[]).find((c: any) => c.id === contoId), [conti, contoId]);
 
   // Mutations
   const createMutation = trpc.finanza.movimenti.create.useMutation({
@@ -80,14 +75,47 @@ export default function NuovoMovimento() {
     onError: (e) => toast.error(e.message || "Errore"),
   });
 
-  const createSoggettoMutation = trpc.finanza.soggetti.create.useMutation({
-    onSuccess: (data) => {
-      setSoggettoId(data.id);
-      setShowNewSoggetto(false);
-      setNewSoggettoNome("");
-      toast.success("Soggetto creato");
-    },
+  const createCategoriaMut = trpc.finanza.categorie.create.useMutation({
+    onSuccess: () => { utils.finanza.categorie.invalidate(); },
   });
+  const createSoggettoMut = trpc.finanza.soggetti.create.useMutation({
+    onSuccess: () => { utils.finanza.soggetti.invalidate(); },
+  });
+  const createCentroCostoMut = trpc.finanza.centriCosto.create.useMutation({
+    onSuccess: () => { utils.finanza.centriCosto.invalidate(); },
+  });
+  const createContoMut = trpc.finanza.conti.create.useMutation({
+    onSuccess: () => { utils.finanza.conti.invalidate(); },
+  });
+  const createMetodoMut = trpc.finanza.metodi.create.useMutation({
+    onSuccess: () => { utils.finanza.metodi.invalidate(); },
+  });
+
+  // Options for SelectWithQuickCreate
+  const categorieOptions: SelectOption[] = useMemo(() =>
+    (categorie as any[]).filter((c: any) => c.attivo !== false).map((c: any) => ({
+      id: c.id, label: c.nome, sublabel: c.codice, color: c.colore,
+    })), [categorie]);
+
+  const soggettiOptions: SelectOption[] = useMemo(() =>
+    (soggettiList as any[]).filter((s: any) => s.attivo !== false).map((s: any) => ({
+      id: s.id, label: s.nomeBreve || s.ragioneSociale, sublabel: s.partitaIva || s.tipologia,
+    })), [soggettiList]);
+
+  const centriCostoOptions: SelectOption[] = useMemo(() =>
+    (centriCosto as any[]).filter((c: any) => c.attivo !== false).map((c: any) => ({
+      id: c.id, label: c.nome, sublabel: c.codice, color: c.colore,
+    })), [centriCosto]);
+
+  const contiOptions: SelectOption[] = useMemo(() =>
+    (conti as any[]).filter((c: any) => c.attivo !== false).map((c: any) => ({
+      id: c.id, label: c.nome, sublabel: `${c.tipo} • ${fmtCents(c.saldoAttuale || 0)}`,
+    })), [conti]);
+
+  const metodiOptions: SelectOption[] = useMemo(() =>
+    (metodi as any[]).filter((m: any) => m.attivo !== false).map((m: any) => ({
+      id: m.id, label: m.nome,
+    })), [metodi]);
 
   const handleSubmit = useCallback(() => {
     if (!categoriaId) { toast.error("Seleziona una categoria"); return; }
@@ -201,9 +229,7 @@ export default function NuovoMovimento() {
             <button
               onClick={() => setTipoRegistrazione("pagato_subito")}
               className={`flex flex-col items-center gap-1 py-3 rounded-xl border-2 transition-all ${
-                tipoRegistrazione === "pagato_subito"
-                  ? "border-primary bg-primary/5"
-                  : "border-muted"
+                tipoRegistrazione === "pagato_subito" ? "border-primary bg-primary/5" : "border-muted"
               }`}
             >
               <Wallet className="w-5 h-5" />
@@ -212,9 +238,7 @@ export default function NuovoMovimento() {
             <button
               onClick={() => setTipoRegistrazione("documento")}
               className={`flex flex-col items-center gap-1 py-3 rounded-xl border-2 transition-all ${
-                tipoRegistrazione === "documento"
-                  ? "border-primary bg-primary/5"
-                  : "border-muted"
+                tipoRegistrazione === "documento" ? "border-primary bg-primary/5" : "border-muted"
               }`}
             >
               <Receipt className="w-5 h-5" />
@@ -223,52 +247,99 @@ export default function NuovoMovimento() {
           </div>
         </div>
 
-        {/* ── Categoria ── */}
-        <div>
-          <Label className="text-sm">Categoria *</Label>
-          <Select value={categoriaId} onValueChange={setCategoriaId}>
-            <SelectTrigger className="mt-1">
-              <SelectValue placeholder="Seleziona categoria" />
-            </SelectTrigger>
-            <SelectContent>
-              {(categorie as any[]).filter((c: any) => c.attivo).map((c: any) => (
-                <SelectItem key={c.id} value={c.id}>
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full" style={{ background: c.colore }} />
-                    {c.nome}
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {/* ── Categoria (con QuickCreate) ── */}
+        <SelectWithQuickCreate
+          label="Categoria *"
+          value={categoriaId}
+          onChange={setCategoriaId}
+          options={categorieOptions}
+          placeholder="Seleziona categoria"
+          quickCreateTitle="Nuova categoria"
+          quickCreateFields={[
+            { key: "nome", label: "Nome", placeholder: "es. Carburanti", required: true },
+            { key: "tipo", label: "Tipo", type: "select", options: [
+              { value: "entrata", label: "Entrata" },
+              { value: "uscita", label: "Uscita" },
+              { value: "entrambi", label: "Entrambi" },
+            ], required: true },
+          ]}
+          onQuickCreate={async (data) => {
+            const result = await createCategoriaMut.mutateAsync({
+              nome: data.nome,
+              tipo: (data.tipo as "entrata" | "uscita" | "entrambi") || "uscita",
+            });
+            toast.success("Categoria creata");
+            return result.id;
+          }}
+          managePath="/finanza/impostazioni/categorie"
+          onManage={() => setLocation("/finanza/impostazioni/categorie")}
+          searchable
+        />
 
-        {/* ── Conto (per pagato_subito) ── */}
+        {/* ── Soggetto (con QuickCreate) — SEMPRE VISIBILE ── */}
+        <SelectWithQuickCreate
+          label={tipo === "entrata" ? "Cliente" : "Fornitore"}
+          value={soggettoId}
+          onChange={setSoggettoId}
+          options={soggettiOptions}
+          placeholder={`Cerca ${tipo === "entrata" ? "cliente" : "fornitore"}...`}
+          quickCreateTitle={`Nuovo ${tipo === "entrata" ? "cliente" : "fornitore"}`}
+          quickCreateFields={[
+            { key: "ragioneSociale", label: "Ragione sociale", placeholder: "es. Agriforniture Rossi", required: true },
+            { key: "partitaIva", label: "Partita IVA" },
+            { key: "telefono", label: "Telefono" },
+          ]}
+          onQuickCreate={async (data) => {
+            const result = await createSoggettoMut.mutateAsync({
+              tipologia: tipo === "entrata" ? "cliente" : "fornitore",
+              ragioneSociale: data.ragioneSociale,
+              partitaIva: data.partitaIva || undefined,
+              telefono: data.telefono || undefined,
+            });
+            toast.success("Soggetto creato");
+            return result.id;
+          }}
+          managePath="/finanza/impostazioni/soggetti"
+          onManage={() => setLocation("/finanza/impostazioni/soggetti")}
+          searchable
+        />
+
+        {/* ── Conto (con QuickCreate, per pagato_subito) ── */}
         {tipoRegistrazione === "pagato_subito" && (
-          <div>
-            <Label className="text-sm">Conto *</Label>
-            <Select value={contoId} onValueChange={setContoId}>
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Seleziona conto" />
-              </SelectTrigger>
-              <SelectContent>
-                {(conti as any[]).filter((c: any) => c.attivo).map((c: any) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    <span className="flex items-center gap-2">
-                      {c.tipo === "bancario" ? <Building2 className="w-4 h-4" /> :
-                       c.tipo === "carta" ? <CreditCard className="w-4 h-4" /> :
-                       <Wallet className="w-4 h-4" />}
-                      {c.nome}
-                      <Badge variant="outline" className="ml-auto text-xs">
-                        {fmtCents(c.saldoAttuale)}
-                      </Badge>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <>
+            <SelectWithQuickCreate
+              label="Conto *"
+              value={contoId}
+              onChange={setContoId}
+              options={contiOptions}
+              placeholder="Seleziona conto"
+              quickCreateTitle="Nuovo conto"
+              quickCreateFields={[
+                { key: "nome", label: "Nome", placeholder: "es. Banca Aziendale", required: true },
+                { key: "tipo", label: "Tipo", type: "select", options: [
+                  { value: "bancario", label: "Conto bancario" },
+                  { value: "cassa", label: "Cassa" },
+                  { value: "carta", label: "Carta" },
+                  { value: "deposito", label: "Deposito" },
+                  { value: "altro", label: "Altro" },
+                ], required: true },
+              ]}
+              onQuickCreate={async (data) => {
+                const result = await createContoMut.mutateAsync({
+                  nome: data.nome,
+                  tipo: (data.tipo as any) || "bancario",
+                  saldoIniziale: 0,
+                  valuta: "EUR",
+                });
+                toast.success("Conto creato");
+                return result.id;
+              }}
+              managePath="/finanza/impostazioni/conti"
+              onManage={() => setLocation("/finanza/impostazioni/conti")}
+              searchable
+            />
             {contoSelezionato && calcoloIva.totale > 0 && (
-              <div className="mt-2 p-3 rounded-lg bg-muted/50 text-sm">
+              <div className="rounded-lg bg-muted/50 p-3 text-sm -mt-3">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Saldo attuale</span>
                   <span className="font-medium">{fmtCents((contoSelezionato as any).saldoAttuale)}</span>
@@ -281,111 +352,85 @@ export default function NuovoMovimento() {
                 </div>
               </div>
             )}
-          </div>
+          </>
         )}
 
         {/* ── Scadenza (per documento) ── */}
         {tipoRegistrazione === "documento" && (
           <div>
             <Label className="text-sm">Data scadenza</Label>
-            <Input
-              type="date"
-              value={dataScadenza}
-              onChange={(e) => setDataScadenza(e.target.value)}
-              className="mt-1"
-            />
+            <Input type="date" value={dataScadenza} onChange={(e) => setDataScadenza(e.target.value)} className="mt-1" />
           </div>
         )}
 
         {/* ── Data ── */}
         <div>
           <Label className="text-sm">Data</Label>
-          <Input
-            type="date"
-            value={dataDocumento}
-            onChange={(e) => setDataDocumento(e.target.value)}
-            className="mt-1"
-          />
+          <Input type="date" value={dataDocumento} onChange={(e) => setDataDocumento(e.target.value)} className="mt-1" />
         </div>
 
         {/* ── Descrizione ── */}
         <div>
           <Label className="text-sm">Descrizione</Label>
-          <Input
-            placeholder="Es: Acquisto mangimi"
-            value={descrizione}
-            onChange={(e) => setDescrizione(e.target.value)}
-            className="mt-1"
-          />
+          <Input placeholder="Es: Acquisto mangimi" value={descrizione} onChange={(e) => setDescrizione(e.target.value)} className="mt-1" />
         </div>
 
         {/* ── Sezione espandibile "Altri dettagli" ── */}
-        <button
-          onClick={() => setShowDettagli(!showDettagli)}
-          className="flex items-center gap-2 text-sm text-muted-foreground w-full py-2"
-        >
+        <button onClick={() => setShowDettagli(!showDettagli)} className="flex items-center gap-2 text-sm text-muted-foreground w-full py-2">
           {showDettagli ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           Altri dettagli
         </button>
 
         {showDettagli && (
           <div className="space-y-4 pl-1 border-l-2 border-muted ml-2">
-            {/* Soggetto */}
-            <div className="pl-3">
-              <Label className="text-sm">Soggetto</Label>
-              <div className="flex gap-2 mt-1">
-                <Select value={soggettoId} onValueChange={setSoggettoId}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder={tipo === "entrata" ? "Cliente" : "Fornitore"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(soggettiList as any[]).map((s: any) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.nomeBreve || s.ragioneSociale}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button variant="outline" size="icon" onClick={() => setShowNewSoggetto(true)}>
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-
             {/* Centro di costo */}
             <div className="pl-3">
-              <Label className="text-sm">Centro di costo</Label>
-              <Select value={centroCostoId} onValueChange={setCentroCostoId}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Opzionale" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(centriCosto as any[]).filter((c: any) => c.attivo).map((c: any) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      <span className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full" style={{ background: c.colore }} />
-                        {c.nome}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SelectWithQuickCreate
+                label="Centro di costo"
+                value={centroCostoId}
+                onChange={setCentroCostoId}
+                options={centriCostoOptions}
+                placeholder="Opzionale"
+                quickCreateTitle="Nuovo centro di costo"
+                quickCreateFields={[
+                  { key: "nome", label: "Nome", placeholder: "es. Stalla", required: true },
+                  { key: "codice", label: "Codice", placeholder: "CDC-XXX" },
+                ]}
+                onQuickCreate={async (data) => {
+                  const result = await createCentroCostoMut.mutateAsync({
+                    nome: data.nome,
+                    codice: data.codice || undefined,
+                  });
+                  toast.success("Centro di costo creato");
+                  return result.id;
+                }}
+                managePath="/finanza/impostazioni/centri-costo"
+                onManage={() => setLocation("/finanza/impostazioni/centri-costo")}
+                searchable
+              />
             </div>
 
             {/* Metodo pagamento */}
             {tipoRegistrazione === "pagato_subito" && (
               <div className="pl-3">
-                <Label className="text-sm">Metodo pagamento</Label>
-                <Select value={metodoId} onValueChange={setMetodoId}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Opzionale" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(metodi as any[]).filter((m: any) => m.attivo).map((m: any) => (
-                      <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SelectWithQuickCreate
+                  label="Metodo pagamento"
+                  value={metodoId}
+                  onChange={setMetodoId}
+                  options={metodiOptions}
+                  placeholder="Opzionale"
+                  quickCreateTitle="Nuovo metodo"
+                  quickCreateFields={[
+                    { key: "nome", label: "Nome", placeholder: "es. Bonifico", required: true },
+                  ]}
+                  onQuickCreate={async (data) => {
+                    const result = await createMetodoMut.mutateAsync({ nome: data.nome });
+                    toast.success("Metodo creato");
+                    return result.id;
+                  }}
+                  managePath="/finanza/impostazioni/metodi-pagamento"
+                  onManage={() => setLocation("/finanza/impostazioni/metodi-pagamento")}
+                />
               </div>
             )}
 
@@ -394,9 +439,7 @@ export default function NuovoMovimento() {
               <div>
                 <Label className="text-sm">Tipo doc.</Label>
                 <Select value={tipoDocumento} onValueChange={setTipoDocumento}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Generico" />
-                  </SelectTrigger>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Generico" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="fattura">Fattura</SelectItem>
                     <SelectItem value="ricevuta">Ricevuta</SelectItem>
@@ -407,25 +450,14 @@ export default function NuovoMovimento() {
               </div>
               <div>
                 <Label className="text-sm">Numero</Label>
-                <Input
-                  placeholder="N. doc"
-                  value={numero}
-                  onChange={(e) => setNumero(e.target.value)}
-                  className="mt-1"
-                />
+                <Input placeholder="N. doc" value={numero} onChange={(e) => setNumero(e.target.value)} className="mt-1" />
               </div>
             </div>
 
             {/* Note */}
             <div className="pl-3">
               <Label className="text-sm">Note</Label>
-              <Textarea
-                placeholder="Note aggiuntive..."
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                className="mt-1"
-                rows={2}
-              />
+              <Textarea placeholder="Note aggiuntive..." value={note} onChange={(e) => setNote(e.target.value)} className="mt-1" rows={2} />
             </div>
           </div>
         )}
@@ -454,7 +486,7 @@ export default function NuovoMovimento() {
       </div>
 
       {/* ── Pulsante conferma fisso in basso ── */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur border-t">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur border-t z-20">
         <Button
           onClick={handleSubmit}
           disabled={createMutation.isPending || importoCents <= 0 || !categoriaId}
@@ -470,37 +502,6 @@ export default function NuovoMovimento() {
           )}
         </Button>
       </div>
-
-      {/* ── Sheet creazione rapida soggetto ── */}
-      <Sheet open={showNewSoggetto} onOpenChange={setShowNewSoggetto}>
-        <SheetContent side="bottom" className="rounded-t-2xl">
-          <SheetHeader>
-            <SheetTitle>Nuovo {tipo === "entrata" ? "Cliente" : "Fornitore"}</SheetTitle>
-          </SheetHeader>
-          <div className="space-y-3 mt-4">
-            <div>
-              <Label>Ragione sociale *</Label>
-              <Input
-                value={newSoggettoNome}
-                onChange={(e) => setNewSoggettoNome(e.target.value)}
-                placeholder="Es: Agriforniture Rossi"
-              />
-            </div>
-            <Button
-              className="w-full"
-              disabled={!newSoggettoNome || createSoggettoMutation.isPending}
-              onClick={() => {
-                createSoggettoMutation.mutate({
-                  tipologia: tipo === "entrata" ? "cliente" : "fornitore",
-                  ragioneSociale: newSoggettoNome,
-                });
-              }}
-            >
-              Crea e seleziona
-            </Button>
-          </div>
-        </SheetContent>
-      </Sheet>
     </div>
   );
 }

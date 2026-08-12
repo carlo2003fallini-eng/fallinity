@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Plus, ArrowDownRight, ArrowUpRight, TrendingUp, TrendingDown,
   Wallet, CreditCard, AlertTriangle, Bell, ChevronRight, BarChart3,
-  Calendar, FileText, RefreshCw, Landmark, Banknote, CircleDollarSign, ClipboardList,
+  Calendar, FileText, RefreshCw, Landmark, Banknote, CircleDollarSign, ClipboardList, Settings2, Receipt,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -431,6 +431,8 @@ export default function Finanza() {
       <div className="grid grid-cols-4 gap-2 mt-2">
         <ActionButton icon={BarChart3} label="Analisi" onClick={() => setLocation("/finanza/analisi")} color="oklch(0.65 0.12 200)" />
         <ActionButton icon={FileText} label="Report" onClick={() => setLocation("/finanza/report")} color="oklch(0.55 0.1 180)" />
+        <ActionButton icon={Receipt} label="IVA" onClick={() => setLocation("/finanza/iva")} color="oklch(0.6 0.15 30)" />
+        <ActionButton icon={Settings2} label="Impostaz." onClick={() => setLocation("/finanza/impostazioni")} color="oklch(0.5 0.08 240)" />
       </div>
     </div>
   );

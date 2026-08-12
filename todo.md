@@ -927,3 +927,63 @@
 - [x] Build OK
 - [x] Test Vitest verdi
 - [x] Screenshot mobile: creazione azienda, forma giuridica, qualifica IAP/CD, regime IVA, credito/debito IVA, pagina Finanza IVA, modifica config, storico
+
+## Fase 27: Sprint Completamento Interfaccia Anagrafiche e Impostazioni Finanza
+
+### Hub Impostazioni Finanza
+- [x] Pagina /finanza/impostazioni con card grandi (Categorie, Soggetti, Centri di costo, Conti, Metodi pagamento, Config fiscale/IVA)
+- [x] Ogni card con icona, titolo, descrizione, conteggio, chevron
+
+### Categorie e Sottocategorie
+- [x] Pagina /finanza/impostazioni/categorie con lista, ricerca, filtro tipo
+- [x] Form creazione/modifica categoria (nome, codice, tipo, colore, icona, ordine)
+- [x] Archiviazione e riattivazione categoria
+- [x] Gestione sottocategorie (parentId)
+
+### Soggetti
+- [x] Pagina /finanza/impostazioni/soggetti con tab (Tutti/Clienti/Fornitori/Entrambi/Archiviati)
+- [x] Ricerca per ragione sociale, P.IVA, CF, email, telefono
+- [x] Form soggetto completo (ragione sociale, tipo, P.IVA, CF, email, telefono, PEC, SDI, indirizzo, IBAN, note)
+- [x] Dettaglio soggetto con riepilogo finanziario e ultimi movimenti
+- [x] Archiviazione e riattivazione soggetto
+
+### Centri di Costo
+- [x] Pagina /finanza/impostazioni/centri-costo con lista, ricerca
+- [x] Form creazione/modifica (nome, codice, descrizione, colore)
+- [x] Archiviazione e riattivazione
+
+### Conti Finanziari
+- [x] Pagina /finanza/impostazioni/conti con lista e saldo attuale
+- [x] Form creazione/modifica (nome, tipo, banca, IBAN, saldo iniziale, valuta, colore)
+- [x] Archiviazione e riattivazione
+
+### Metodi di Pagamento
+- [x] Pagina /finanza/impostazioni/metodi-pagamento con lista
+- [x] Form creazione/modifica (nome, codice, icona)
+- [x] Archiviazione e riattivazione
+
+### Componente QuickCreate riutilizzabile
+- [x] Componente SelectWithQuickCreate (select + pulsante + + menu ⋯)
+- [x] Bottom sheet creazione rapida per: categoria, soggetto, centro costo, conto, metodo pagamento
+- [x] Selezione automatica dopo creazione
+- [x] Link "Gestisci tutti" verso pagina impostazioni
+
+### Selettori migliorati nel form Nuovo Movimento
+- [x] Selettore categoria con ricerca e recenti
+- [x] Selettore soggetto con ricerca e recenti
+- [x] Selettore centro di costo con ricerca
+- [x] Selettore conto con ricerca
+- [x] Selettore metodo pagamento con ricerca
+- [x] Pulsante "+" sempre visibile per ogni selettore
+
+### Route e Navigazione
+- [x] Route /finanza/movimenti registrata (ListaMovimenti)
+- [x] Route /finanza/impostazioni e sotto-route registrate
+- [x] Link Impostazioni dalla dashboard Finanza
+- [x] Nessun pulsante porta a 404
+
+### Test e Verifica
+- [x] Test Vitest: CRUD categorie, soggetti, centri costo, conti, metodi
+- [x] Test archiviazione e riattivazione
+- [x] 0 errori TypeScript
+- [x] Screenshot mobile 390x844 delle principali schermate
