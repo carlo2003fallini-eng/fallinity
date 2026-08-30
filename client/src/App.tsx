@@ -15,14 +15,12 @@ import Calendario from "./pages/Calendario";
 import Report from "./pages/Report";
 import AI from "./pages/AI";
 import Stalla from "./pages/Stalla";
-import Reintegrazione from "./pages/Reintegrazione";
 import ScenarioFuturo from "./pages/ScenarioFuturo";
 import NuovoMovimento from "./pages/finanza/NuovoMovimento";
 import DettaglioMovimento from "./pages/finanza/DettaglioMovimento";
 import Cashflow from "./pages/finanza/Cashflow";
 import Proposte from "./pages/finanza/Proposte";
 import BudgetPage from "./pages/finanza/Budget";
-import ReintegrazionePage from "./pages/finanza/Reintegrazione";
 import InvestimentiPage from "./pages/finanza/Investimenti";
 import ScenariPage from "./pages/finanza/Scenari";
 import AnalisiPage from "./pages/finanza/Analisi";
@@ -47,14 +45,14 @@ function Router() {
         <Route path="/azienda" component={Azienda} />
         <Route path="/azienda/nuova" component={NuovaAzienda} />
         <Route path="/azienda/fiscale" component={ImpostazioniFiscali} />
-        <Route path="/finanza" component={Finanza} />
+        <Route path="/finanza">{() => <Finanza />}</Route>
         <Route path="/finanza/movimenti" component={ListaMovimenti} />
         <Route path="/finanza/nuovo" component={NuovoMovimento} />
         <Route path="/finanza/movimento/:id" component={DettaglioMovimento} />
         <Route path="/finanza/cashflow" component={Cashflow} />
         <Route path="/finanza/proposte" component={Proposte} />
         <Route path="/finanza/budget" component={BudgetPage} />
-        <Route path="/finanza/reintegrazione" component={ReintegrazionePage} />
+        <Route path="/finanza/reintegrazione">{() => <Finanza initialTab="reintegrazione" />}</Route>
         <Route path="/finanza/investimenti" component={InvestimentiPage} />
         <Route path="/finanza/scenari" component={ScenariPage} />
         <Route path="/finanza/analisi" component={AnalisiPage} />
@@ -73,7 +71,7 @@ function Router() {
         <Route path="/report" component={Report} />
         <Route path="/ai" component={AI} />
         <Route path="/stalla" component={Stalla} />
-        <Route path="/reintegrazione">{() => <Reintegrazione />}</Route>
+        <Route path="/reintegrazione">{() => <Finanza initialTab="reintegrazione" />}</Route>
         <Route path="/scenario-futuro" component={ScenarioFuturo} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />

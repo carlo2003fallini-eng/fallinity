@@ -26,7 +26,7 @@ export const updateReplacementPlanInput = z.object({
   accantonamentoMensileEffettivo: z.number().min(0).optional(),
   rendimento: z.number().min(0).max(100).optional(),
   priorita: z.enum(["alta", "media", "bassa"]).optional(),
-  stato: z.enum(["attivo", "completato", "sospeso"]).optional(),
+  stato: z.enum(["attivo", "completato", "sospeso", "annullato"]).optional(),
   note: z.string().optional(),
 });
 export type UpdateReplacementPlanInput = z.infer<typeof updateReplacementPlanInput>;
@@ -48,8 +48,10 @@ export type UpdateValoreSostituzioneInput = z.infer<typeof updateValoreSostituzi
 // ─── CONTI DEPOSITO ─────────────────────────────────────────────────────────────
 
 export const createReplacementAccountInput = z.object({
+  nome: z.string().min(1).max(255).default("Conto deposito"),
   contoFinanziarioId: z.string().optional(),
   tassoInteresse: z.number().min(0).max(100).default(0),
+  dataDecorrenza: z.string().optional(),
   periodicita: z.enum(["mensile", "trimestrale", "semestrale", "annuale"]).default("mensile"),
   note: z.string().optional(),
 });
@@ -84,6 +86,15 @@ export const accantonamentoInput = z.object({
   planId: z.string(),
   importo: z.number().positive(),
   tipo: z.enum(["gestionale", "trasferimento"]), // gestionale = solo contabile, trasferimento = muove soldi al conto deposito
+  replacementAccountId: z.string().optional(),
   note: z.string().optional(),
+}).superRefine((input, ctx) => {
+  if (input.tipo === "trasferimento" && !input.replacementAccountId) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["replacementAccountId"],
+      message: "Seleziona un conto deposito per il trasferimento reale",
+    });
+  }
 });
 export type AccantonamentoInput = z.infer<typeof accantonamentoInput>;

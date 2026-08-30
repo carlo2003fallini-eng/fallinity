@@ -15,7 +15,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   Line, ComposedChart, Area,
 } from "recharts";
-import Reintegrazione from "./Reintegrazione";
+import Reintegrazione from "./finanza/Reintegrazione";
 
 // ── Design Tokens ──
 const GREEN = "oklch(0.65 0.18 142)";
@@ -55,9 +55,9 @@ function getDateRange(key: PeriodoKey): { dataInizio: string; dataFine: string }
   return { dataInizio: inizio.toISOString().split("T")[0], dataFine };
 }
 
-export default function Finanza() {
+export default function Finanza({ initialTab = "dashboard" }: { initialTab?: "dashboard" | "reintegrazione" }) {
   const [, setLocation] = useLocation();
-  const [mainTab, setMainTab] = useState<"dashboard" | "reintegrazione">("dashboard");
+  const [mainTab, setMainTab] = useState<"dashboard" | "reintegrazione">(initialTab);
   const [periodo, setPeriodo] = useState<PeriodoKey>("mese");
   const [modalita, setModalita] = useState<"cassa" | "competenza">("cassa");
 
@@ -422,9 +422,8 @@ export default function Finanza() {
         <ActionButton icon={ClipboardList} label="Proposte" onClick={() => setLocation("/finanza/proposte")} color="oklch(0.65 0.15 280)" />
         <ActionButton icon={Plus} label="Nuovo" onClick={() => setLocation("/finanza/nuovo")} color={GREEN} />
       </div>
-      <div className="grid grid-cols-4 gap-2 mt-2">
+      <div className="grid grid-cols-3 gap-2 mt-2">
         <ActionButton icon={Landmark} label="Budget" onClick={() => setLocation("/finanza/budget")} color="oklch(0.6 0.15 250)" />
-        <ActionButton icon={RefreshCw} label="Reintegr." onClick={() => setLocation("/finanza/reintegrazione")} color={GOLD} />
         <ActionButton icon={CircleDollarSign} label="Investim." onClick={() => setLocation("/finanza/investimenti")} color="oklch(0.6 0.18 160)" />
         <ActionButton icon={Banknote} label="Scenari" onClick={() => setLocation("/finanza/scenari")} color="oklch(0.6 0.12 300)" />
       </div>

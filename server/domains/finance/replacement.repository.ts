@@ -11,7 +11,7 @@ export async function createPlan(companyId: string, input: CreateReplacementPlan
   const id = crypto.randomUUID();
   
   // Calcoli automatici
-  const capitaleNecessario = input.valoreSostituzione - input.valoreResiduo;
+  const capitaleNecessario = Math.max(0, input.valoreSostituzione - input.valoreResiduo);
   const dataSost = new Date(input.dataSostituzione);
   const now = new Date();
   const mesiRimanenti = Math.max(1, (dataSost.getFullYear() - now.getFullYear()) * 12 + (dataSost.getMonth() - now.getMonth()));
@@ -88,7 +88,7 @@ export async function deletePlan(companyId: string, id: string, userId?: string)
     .where(and(eq(replacementPlans.id, id), eq(replacementPlans.companyId, companyId), isNull(replacementPlans.deletedAt)));
 }
 
-export async function updatePlanCapitale(planId: string, capitaleAccantonato: number, interessiMaturati: number, percentualeCopertura: number) {
+export async function updatePlanCapitale(companyId: string, planId: string, capitaleAccantonato: number, interessiMaturati: number, percentualeCopertura: number) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
   await db.update(replacementPlans)
@@ -97,7 +97,19 @@ export async function updatePlanCapitale(planId: string, capitaleAccantonato: nu
       interessiMaturati: String(interessiMaturati),
       percentualeCopertura: String(percentualeCopertura),
     } as any)
-    .where(eq(replacementPlans.id, planId));
+    .where(and(eq(replacementPlans.id, planId), eq(replacementPlans.companyId, companyId), isNull(replacementPlans.deletedAt)));
+}
+
+export async function updatePlanFinancials(companyId: string, planId: string, capitaleNecessario: number, accantonamentoMensileConsigliato: number, percentualeCopertura: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.update(replacementPlans)
+    .set({
+      capitaleNecessario: String(capitaleNecessario),
+      accantonamentoMensileConsigliato: String(accantonamentoMensileConsigliato),
+      percentualeCopertura: String(percentualeCopertura),
+    } as any)
+    .where(and(eq(replacementPlans.id, planId), eq(replacementPlans.companyId, companyId), isNull(replacementPlans.deletedAt)));
 }
 
 // ─── CONTI DEPOSITO ─────────────────────────────────────────────────────────────
@@ -109,9 +121,10 @@ export async function createAccount(companyId: string, input: CreateReplacementA
   await db.insert(replacementAccounts).values({
     id,
     companyId,
-    nome: `Conto deposito`,
+    nome: input.nome,
     contoFinanziarioId: input.contoFinanziarioId,
     tassoInteresse: String(input.tassoInteresse),
+    dataDecorrenza: input.dataDecorrenza,
     periodicita: input.periodicita,
     interesseLordo: "0",
     interesseNetto: "0",
@@ -140,14 +153,25 @@ export async function getAccountById(companyId: string, id: string) {
   const db = await getDb();
   if (!db) return null;
   const rows = await db.select().from(replacementAccounts)
-    .where(and(eq(replacementAccounts.id, id), eq(replacementAccounts.companyId, companyId)));
+    .where(and(eq(replacementAccounts.id, id), eq(replacementAccounts.companyId, companyId), isNull(replacementAccounts.deletedAt)));
   return rows[0] || null;
 }
 
 export async function listAccounts(companyId: string) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(replacementAccounts).where(eq(replacementAccounts.companyId, companyId));
+  return db.select().from(replacementAccounts).where(and(eq(replacementAccounts.companyId, companyId), isNull(replacementAccounts.deletedAt)));
+}
+
+export async function incrementAccountCapital(companyId: string, accountId: string, importo: number, userId?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.update(replacementAccounts)
+    .set({
+      capitaleVersato: sql`${replacementAccounts.capitaleVersato} + ${importo}`,
+      updatedBy: userId,
+    } as any)
+    .where(and(eq(replacementAccounts.id, accountId), eq(replacementAccounts.companyId, companyId), isNull(replacementAccounts.deletedAt)));
 }
 
 // ─── ALLOCAZIONI ────────────────────────────────────────────────────────────────
@@ -221,12 +245,13 @@ export async function getValueHistory(planId: string) {
 
 // ─── TRANSAZIONI REINTEGRAZIONE ─────────────────────────────────────────────────
 
-export async function addTransaction(planId: string, accountId: string | null, tipo: string, importo: number, note?: string, userId?: string) {
+export async function addTransaction(companyId: string, planId: string, accountId: string | null, tipo: "accantonamento_gestionale" | "trasferimento_reale", importo: number, note?: string, userId?: string) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
   const id = crypto.randomUUID();
   await db.insert(replacementTransactions).values({
     id,
+    companyId,
     replacementPlanId: planId,
     replacementAccountId: accountId,
     tipo,
@@ -234,6 +259,7 @@ export async function addTransaction(planId: string, accountId: string | null, t
     data: new Date().toISOString().split("T")[0],
     note,
     createdBy: userId,
+    updatedBy: userId,
   } as any);
   return { id };
 }
@@ -256,7 +282,11 @@ export async function getDashboardAggregates(companyId: string) {
       COALESCE(SUM(CAST(capitaleAccantonato AS DECIMAL(14,2))),0) as capitaleAccantonato,
       COALESCE(SUM(CAST(capitaleNecessario AS DECIMAL(14,2))),0) as capitaleNecessario,
       COALESCE(SUM(CAST(interessiMaturati AS DECIMAL(14,2))),0) as interessiTotali,
-      COALESCE(AVG(CAST(percentualeCopertura AS DECIMAL(5,2))),0) as coperturaMedia
+      CASE
+        WHEN COALESCE(SUM(CAST(capitaleNecessario AS DECIMAL(14,2))),0) > 0
+        THEN LEAST(100, COALESCE(SUM(CAST(capitaleAccantonato AS DECIMAL(14,2))),0) / SUM(CAST(capitaleNecessario AS DECIMAL(14,2))) * 100)
+        ELSE 0
+      END as coperturaMedia
     FROM replacementPlans 
     WHERE companyId=${companyId} AND deletedAt IS NULL AND stato='attivo'`,
   ) as any[]);

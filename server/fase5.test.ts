@@ -95,12 +95,42 @@ describe("Replacement Service", () => {
 
   it("crea un conto deposito", async () => {
     const result = await replacementService.createAccount(COMPANY_ID, {
+      nome: `Deposito Test ${RUN_ID}`,
       tassoInteresse: 2.5,
       periodicita: "mensile",
     }, actor.userUuid);
     expect(result).toBeTruthy();
     expect(result.id).toBeTruthy();
     accountId = result.id;
+  });
+
+  it("registra un accantonamento gestionale sul piano", async () => {
+    const result = await replacementService.accantona(COMPANY_ID, {
+      planId,
+      importo: 1000,
+      tipo: "gestionale",
+      note: `Accantonamento test ${RUN_ID}`,
+    }, actor.userUuid);
+
+    expect(result.capitaleAccantonato).toBe(1000);
+    expect(result.percentualeCopertura).toBeGreaterThan(0);
+    const plan = await replacementService.getPlan(COMPANY_ID, planId);
+    expect(Number(plan?.capitaleAccantonato)).toBe(1000);
+  });
+
+  it("registra un trasferimento reale e aggiorna il conto deposito", async () => {
+    await replacementService.accantona(COMPANY_ID, {
+      planId,
+      importo: 500,
+      tipo: "trasferimento",
+      replacementAccountId: accountId,
+      note: `Trasferimento test ${RUN_ID}`,
+    }, actor.userUuid);
+
+    const account = await replacementService.getAccount(COMPANY_ID, accountId);
+    expect(Number(account?.capitaleVersato)).toBe(500);
+    const plan = await replacementService.getPlan(COMPANY_ID, planId);
+    expect(Number(plan?.capitaleAccantonato)).toBe(1500);
   });
 
   it("dashboard restituisce dati aggregati", async () => {

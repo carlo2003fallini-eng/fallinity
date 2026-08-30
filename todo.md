@@ -1028,3 +1028,18 @@
 - [x] Verificare pagina Fondo Reintegrazione a 390×844
 - [x] Eseguire suite Vitest, TypeScript e build
 - [x] Salvare il checkpoint della correzione
+
+## Fase 34 — Reintegrazione Unificata Dentro Finanza
+- [x] Verificare route, collegamenti dalla Finanza e componenti Reintegrazione esistenti
+- [x] Mantenere la sezione Reintegrazione dentro Finanza come seconda tab primaria
+- [x] Rimuovere il riquadro Reintegr. dalla griglia azioni della Dashboard
+- [x] Eliminare schermate e route Reintegrazione duplicate
+- [x] Unificare riepilogo, piani, conti e versamenti in un’unica pagina continua
+- [x] Verificare e correggere calcoli aggregati di capitale, copertura e versamento mensile
+- [x] Rendere operativa la creazione di un piano con validazioni e feedback
+- [x] Rendere operativa la creazione di un conto deposito con selezione del conto finanziario
+- [x] Aggiungere gestione errori leggibile e invalidazione completa delle query
+- [x] Migliorare stati loading, vuoti e navigazione mobile del modulo
+- [x] Aggiungere test backend e contratti UI di regressione
+- [x] Verificare modulo a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint del modulo aggiornato

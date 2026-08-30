@@ -1073,7 +1073,7 @@ export type InsertReplacementValueHistory = typeof replacementValueHistory.$infe
 export const replacementTransactions = mysqlTable("replacementTransactions", {
   id: uuidPk(),
   companyId: companyRef(),
-  replacementAccountId: varchar("replacementAccountId", { length: 36 }).notNull(),
+  replacementAccountId: varchar("replacementAccountId", { length: 36 }),
   replacementPlanId: varchar("replacementPlanId", { length: 36 }),
   tipo: mysqlEnum("tipo", ["accantonamento_gestionale", "trasferimento_reale", "prelievo", "interesse", "rettifica"]).notNull(),
   importo: decimal("importo", { precision: 14, scale: 2 }).notNull(),

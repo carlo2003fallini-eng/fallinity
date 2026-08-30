@@ -4,6 +4,13 @@ import type { CreateReplacementPlanInput, UpdateReplacementPlanInput, CreateRepl
 // ─── PIANI ──────────────────────────────────────────────────────────────────────
 
 export async function createPlan(companyId: string, input: CreateReplacementPlanInput, userId?: string) {
+  const dataSostituzione = new Date(`${input.dataSostituzione}T00:00:00`);
+  if (Number.isNaN(dataSostituzione.getTime()) || dataSostituzione <= new Date()) {
+    throw new Error("La data di sostituzione deve essere futura");
+  }
+  if (input.valoreResiduo >= input.valoreSostituzione) {
+    throw new Error("Il valore residuo deve essere inferiore al valore di sostituzione");
+  }
   return repo.createPlan(companyId, input, userId);
 }
 
@@ -40,7 +47,7 @@ export async function updateValoreSostituzione(companyId: string, input: UpdateV
   await repo.addValueHistory(input.planId, valorePrecedente, input.nuovoValore, userId || "system", input.motivazione);
 
   // Aggiorna il piano
-  const nuovoCapitaleNecessario = input.nuovoValore - Number(plan.valoreResiduo);
+  const nuovoCapitaleNecessario = Math.max(0, input.nuovoValore - Number(plan.valoreResiduo));
   const capitaleAccantonato = Number(plan.capitaleAccantonato);
   const nuovaCopertura = nuovoCapitaleNecessario > 0 ? (capitaleAccantonato / nuovoCapitaleNecessario) * 100 : 100;
 
@@ -56,12 +63,24 @@ export async function updateValoreSostituzione(companyId: string, input: UpdateV
   const residuo = nuovoCapitaleNecessario - capitaleAccantonato;
   const nuovoAccantonamentoConsigliato = Math.max(0, Math.round((residuo / mesiRimanenti) * 100) / 100);
 
-  await repo.updatePlanCapitale(input.planId, capitaleAccantonato, Number(plan.interessiMaturati), Math.min(100, Math.round(nuovaCopertura * 100) / 100));
+  await repo.updatePlanFinancials(
+    companyId,
+    input.planId,
+    nuovoCapitaleNecessario,
+    nuovoAccantonamentoConsigliato,
+    Math.min(100, Math.round(nuovaCopertura * 100) / 100),
+  );
 }
 
 // ─── CONTI DEPOSITO ─────────────────────────────────────────────────────────────
 
 export async function createAccount(companyId: string, input: CreateReplacementAccountInput, userId?: string) {
+  if (input.contoFinanziarioId) {
+    const existing = await repo.listAccounts(companyId);
+    if (existing.some((account) => account.contoFinanziarioId === input.contoFinanziarioId)) {
+      throw new Error("Questo conto finanziario è già collegato alla Reintegrazione");
+    }
+  }
   return repo.createAccount(companyId, input, userId);
 }
 
@@ -121,11 +140,21 @@ export async function accantona(companyId: string, input: AccantonamentoInput, u
   const capitaleNecessario = Number(plan.capitaleNecessario);
   const nuovaCopertura = capitaleNecessario > 0 ? (nuovoCapitale / capitaleNecessario) * 100 : 100;
 
+  let accountId: string | null = null;
+  if (input.tipo === "trasferimento") {
+    accountId = input.replacementAccountId ?? null;
+    if (!accountId) throw new Error("Seleziona un conto deposito per il trasferimento reale");
+    const account = await repo.getAccountById(companyId, accountId);
+    if (!account) throw new Error("Conto deposito non trovato");
+    await repo.incrementAccountCapital(companyId, accountId, input.importo, userId);
+  }
+
   // Registra transazione
   await repo.addTransaction(
+    companyId,
     input.planId,
-    input.tipo === "trasferimento" ? null : null, // accountId se trasferimento
-    input.tipo === "trasferimento" ? "versamento" : "accantonamento_gestionale",
+    accountId,
+    input.tipo === "trasferimento" ? "trasferimento_reale" : "accantonamento_gestionale",
     input.importo,
     input.note,
     userId,
@@ -133,6 +162,7 @@ export async function accantona(companyId: string, input: AccantonamentoInput, u
 
   // Aggiorna totali piano
   await repo.updatePlanCapitale(
+    companyId,
     input.planId,
     nuovoCapitale,
     Number(plan.interessiMaturati),
