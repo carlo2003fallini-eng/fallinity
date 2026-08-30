@@ -205,7 +205,7 @@ export default function NuovoMovimento() {
   }, [tipo, tipoRegistrazione, calcoloIva, categoriaId, centroCostoId, soggettoId, contoId, metodoId, dataDocumento, dataScadenza, tipoDocumento, numero, descrizione, note, aliquotaIva, importoCents, createMutation]);
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="min-h-screen bg-background pb-48">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b px-4 py-3 flex items-center gap-3">
         <button onClick={() => setLocation("/finanza")} className="p-1 -ml-1">
@@ -582,7 +582,10 @@ export default function NuovoMovimento() {
       </div>
 
       {/* ── Pulsante SALVA MOVIMENTO fisso in basso ── */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur border-t z-20">
+      <div
+        className="fixed bottom-16 left-0 right-0 z-30 border-t bg-background/95 p-4 backdrop-blur"
+        aria-label="Azioni movimento"
+      >
         <Button
           onClick={handleSubmit}
           disabled={createMutation.isPending || importoCents <= 0 || !categoriaId}

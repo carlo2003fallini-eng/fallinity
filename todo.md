@@ -1005,3 +1005,10 @@
 - [x] Ripristinare il server di sviluppo e l’URL di anteprima
 - [x] Verificare il caricamento dell’app su desktop e mobile
 - [x] Salvare un checkpoint del ripristino
+
+## Fase 31 — Fix Pulsante Saldo Finanza su Mobile
+- [x] Individuare la barra azioni di saldo coperta dalla bottom navigation
+- [x] Aggiungere area sicura e spaziatura mobile al pulsante
+- [x] Verificare che il pulsante sia visibile e premibile a 390×844
+- [x] Eseguire test Vitest e controllo TypeScript
+- [x] Salvare il checkpoint della correzione
