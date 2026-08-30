@@ -312,7 +312,7 @@ export async function getVatAlerts(companyId: string) {
   if (!openingBalance) {
     alerts.push({ tipo: "saldo_mancante", messaggio: "Saldo IVA iniziale non inserito", livello: "warning" });
   }
-  if (taxProfile?.vatRegime === "speciale_agricoltura" && vatConfigs.length === 0) {
+  if (taxProfile?.vatRegime === "speciale_agricolo" && vatConfigs.length === 0) {
     alerts.push({ tipo: "compensazione_mancante", messaggio: "Percentuali di compensazione non configurate", livello: "warning" });
   }
   if (taxProfile && !taxProfile.verified) {

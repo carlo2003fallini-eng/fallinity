@@ -34,10 +34,11 @@ export const qualificationTypes = [
 
 // Regimi IVA
 export const vatRegimes = [
-  "speciale_agricoltura",
+  "speciale_agricolo",
   "ordinario",
   "forfettario",
   "esonero",
+  "misto",
   "altro",
 ] as const;
 

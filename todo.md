@@ -1012,3 +1012,11 @@
 - [x] Verificare che il pulsante sia visibile e premibile a 390×844
 - [x] Eseguire test Vitest e controllo TypeScript
 - [x] Salvare il checkpoint della correzione
+
+## Fase 32 — Fix Cambio Regime IVA
+- [x] Verificare i valori regime IVA usati da frontend, validator e database
+- [x] Allineare “Regime speciale agricolo” al valore canonico condiviso
+- [x] Sostituire l’errore tecnico Zod con un messaggio utente leggibile
+- [x] Aggiungere test di regressione per il cambio regime
+- [x] Verificare cambio regime su mobile, suite Vitest e TypeScript
+- [x] Salvare il checkpoint della correzione

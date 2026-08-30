@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ArrowLeft, Scale, Award, Receipt, Plus, History, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { getUserErrorMessage } from "@/lib/userError";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // IMPOSTAZIONI FISCALI — Forma Giuridica, Qualifiche, Regime IVA
@@ -68,11 +69,11 @@ export default function ImpostazioniFiscali() {
 
   const createQualification = trpc.fiscal.createQualification.useMutation({
     onSuccess: () => { toast.success("Qualifica aggiunta"); setShowNewQualifica(false); },
-    onError: (e) => toast.error(e.message),
+    onError: (e) => toast.error(getUserErrorMessage(e)),
   });
   const createTaxProfile = trpc.fiscal.createTaxProfile.useMutation({
     onSuccess: () => { toast.success("Regime IVA aggiornato"); setShowCambioRegime(false); },
-    onError: (e) => toast.error(e.message),
+    onError: (e) => toast.error(getUserErrorMessage(e)),
   });
 
   return (
