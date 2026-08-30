@@ -62,7 +62,13 @@ export default function ReintegrazionePage() {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b px-4 py-3">
         <div className="flex items-center gap-3">
-          <Link href="/finanza"><a><ArrowLeft className="w-5 h-5" /></a></Link>
+          <Link
+            href="/finanza"
+            aria-label="Torna alla Finanza"
+            className="inline-flex size-9 items-center justify-center rounded-md transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
           <h1 className="text-lg font-semibold flex-1">Fondo Reintegrazione</h1>
         </div>
       </div>

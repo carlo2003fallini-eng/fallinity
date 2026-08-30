@@ -1020,3 +1020,11 @@
 - [x] Aggiungere test di regressione per il cambio regime
 - [x] Verificare cambio regime su mobile, suite Vitest e TypeScript
 - [x] Salvare il checkpoint della correzione
+
+## Fase 33 — Fix Link Annidati Fondo Reintegrazione
+- [x] Individuare il componente che genera `<a>` dentro `<a>`
+- [x] Separare navigazione della card e azioni interne con markup accessibile
+- [x] Aggiungere test di regressione contro link annidati
+- [x] Verificare pagina Fondo Reintegrazione a 390×844
+- [x] Eseguire suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della correzione
