@@ -999,3 +999,9 @@
 - [x] Seed automatico categorie uscita (Carburanti, Mangimi, Farmaci veterinari, Sementi e piantine, Fertilizzanti, Fitosanitari, Energia elettrica, Acqua irrigua, Manutenzione mezzi, Assicurazioni, Affitti terreni, Manodopera, Consulenze, Imposte e tasse, Materiali consumo, Altre uscite)
 - [x] Seed idempotente (non duplica se già presenti)
 - [x] Colori distinti per ogni categoria
+
+## Fase 30 — Ripristino Anteprima
+- [x] Diagnosticare il mancato accesso all’anteprima
+- [x] Ripristinare il server di sviluppo e l’URL di anteprima
+- [x] Verificare il caricamento dell’app su desktop e mobile
+- [x] Salvare un checkpoint del ripristino
