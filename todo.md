@@ -1083,21 +1083,21 @@
 - [x] Salvare il checkpoint della funzionalità
 
 ## Fase 38 — Analisi Finanziaria e Filtri Avanzati Movimenti
-- [ ] Verificare pagina Analisi, route, grafici e aggregazioni finanziarie esistenti
-- [ ] Verificare filtri esistenti nella Lista Movimenti e relative query backend
-- [ ] Definire intervalli rapidi: mese, anno, periodo personalizzato e confronto precedente
-- [ ] Implementare KPI comparativi per entrate, uscite, utile, margine e variazioni percentuali
-- [ ] Implementare serie temporali mensili e annuali per entrate, uscite e risultato
-- [ ] Implementare analisi per fornitore/cliente, categoria e centro di costo
-- [ ] Implementare confronto tra due periodi con delta assoluti e percentuali
-- [ ] Implementare grafici chiari per andamento, composizione e concentrazione
-- [ ] Aggiungere insight deterministici su trend, concentrazione costi e variazioni rilevanti
-- [ ] Aggiungere selettori e filtri interattivi nella pagina Analisi
-- [ ] Rendere il pulsante Analisi correttamente collegato alla nuova schermata
-- [ ] Aggiungere filtri combinabili per soggetto, categoria, centro di costo, tipo e periodo nella Lista Movimenti
-- [ ] Mostrare filtri attivi come chip singolarmente rimovibili e azione Azzera filtri
-- [ ] Mantenere ricerca testuale e tab Entrate/Uscite compatibili con i nuovi filtri
-- [ ] Gestire stati vuoti e caricamento per analisi e movimenti filtrati
-- [ ] Aggiungere test backend e contratti UI di regressione
-- [ ] Verificare Analisi e Lista Movimenti a 390×844, suite Vitest, TypeScript e build
-- [ ] Salvare il checkpoint finale
+- [x] Verificare pagina Analisi, route, grafici e aggregazioni finanziarie esistenti
+- [x] Verificare filtri esistenti nella Lista Movimenti e relative query backend
+- [x] Definire intervalli rapidi: mese, anno, periodo personalizzato e confronto precedente
+- [x] Implementare KPI comparativi per entrate, uscite, utile, margine e variazioni percentuali
+- [x] Implementare serie temporali mensili e annuali per entrate, uscite e risultato
+- [x] Implementare analisi per fornitore/cliente, categoria e centro di costo
+- [x] Implementare confronto tra due periodi con delta assoluti e percentuali
+- [x] Implementare grafici chiari per andamento, composizione e concentrazione
+- [x] Aggiungere insight deterministici su trend, concentrazione costi e variazioni rilevanti
+- [x] Aggiungere selettori e filtri interattivi nella pagina Analisi
+- [x] Rendere il pulsante Analisi correttamente collegato alla nuova schermata
+- [x] Aggiungere filtri combinabili per soggetto, categoria, centro di costo, tipo e periodo nella Lista Movimenti
+- [x] Mostrare filtri attivi come chip singolarmente rimovibili e azione Azzera filtri
+- [x] Mantenere ricerca testuale e tab Entrate/Uscite compatibili con i nuovi filtri
+- [x] Gestire stati vuoti e caricamento per analisi e movimenti filtrati
+- [x] Aggiungere test backend e contratti UI di regressione
+- [x] Verificare Analisi e Lista Movimenti a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint finale

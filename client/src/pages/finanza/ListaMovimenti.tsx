@@ -2,13 +2,17 @@ import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MovimentoActions } from "@/components/finance/MovimentoActions";
 import {
   ArrowDownRight, ArrowUpRight, Search, Calendar, Receipt,
-  Clock, CheckCircle2, XCircle, AlertTriangle,
+  Clock, CheckCircle2, XCircle, AlertTriangle, SlidersHorizontal, X, FilterX,
 } from "lucide-react";
 
 const GREEN = "oklch(0.65 0.18 142)";
@@ -48,13 +52,48 @@ export default function ListaMovimenti() {
   const [, setLocation] = useLocation();
   const [tab, setTab] = useState<TabFilter>("tutti");
   const [search, setSearch] = useState("");
+  const [soggettoId, setSoggettoId] = useState("all");
+  const [categoriaId, setCategoriaId] = useState("all");
+  const [centroCostoId, setCentroCostoId] = useState("all");
+  const [dataInizio, setDataInizio] = useState("");
+  const [dataFine, setDataFine] = useState("");
 
-  const tipoFilter = tab === "entrate" ? "entrata" : tab === "uscite" ? "uscita" : undefined;
-  const { data: movimenti = [], isLoading } = trpc.finanza.movimenti.list.useQuery({
+  const { data: soggetti = [] } = trpc.finanza.soggetti.list.useQuery(undefined);
+  const { data: categorie = [] } = trpc.finanza.categorie.list.useQuery(undefined);
+  const { data: centriCosto = [] } = trpc.finanza.centriCosto.list.useQuery();
+
+  const tipoFilter: "entrata" | "uscita" | undefined = tab === "entrate" ? "entrata" : tab === "uscite" ? "uscita" : undefined;
+  const queryInput = useMemo(() => ({
     tipo: tipoFilter,
     stato: tab === "da_regolare" ? "registrato" : undefined,
     search: search || undefined,
-  });
+    soggettoId: soggettoId === "all" ? undefined : soggettoId,
+    categoriaId: categoriaId === "all" ? undefined : categoriaId,
+    centroCostoId: centroCostoId === "all" ? undefined : centroCostoId,
+    dataInizio: dataInizio || undefined,
+    dataFine: dataFine || undefined,
+  }), [tipoFilter, tab, search, soggettoId, categoriaId, centroCostoId, dataInizio, dataFine]);
+  const { data: movimenti = [], isLoading } = trpc.finanza.movimenti.list.useQuery(queryInput);
+
+  const labelFor = (items: any[], id: string, fallback: string) => {
+    const item = items.find((candidate) => candidate.id === id);
+    return item?.nomeBreve || item?.ragioneSociale || item?.nome || fallback;
+  };
+  const activeFilters = [
+    soggettoId !== "all" ? { key: "soggetto", label: labelFor(soggetti as any[], soggettoId, "Soggetto"), clear: () => setSoggettoId("all") } : null,
+    categoriaId !== "all" ? { key: "categoria", label: labelFor(categorie as any[], categoriaId, "Categoria"), clear: () => setCategoriaId("all") } : null,
+    centroCostoId !== "all" ? { key: "centro", label: labelFor(centriCosto as any[], centroCostoId, "Centro di costo"), clear: () => setCentroCostoId("all") } : null,
+    dataInizio ? { key: "inizio", label: `Dal ${fmtDate(dataInizio)}`, clear: () => setDataInizio("") } : null,
+    dataFine ? { key: "fine", label: `Al ${fmtDate(dataFine)}`, clear: () => setDataFine("") } : null,
+  ].filter(Boolean) as Array<{ key: string; label: string; clear: () => void }>;
+
+  const clearFilters = () => {
+    setSoggettoId("all");
+    setCategoriaId("all");
+    setCentroCostoId("all");
+    setDataInizio("");
+    setDataFine("");
+  };
 
   // Raggruppamento per mese
   const grouped = useMemo(() => {
@@ -109,16 +148,75 @@ export default function ListaMovimenti() {
         </TabsList>
       </Tabs>
 
-      {/* Ricerca */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Cerca per descrizione, soggetto..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
+      {/* Ricerca e filtri */}
+      <div className="flex gap-2">
+        <div className="relative min-w-0 flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Descrizione, fornitore, categoria..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="outline" className="relative shrink-0 bg-card">
+              <SlidersHorizontal className="mr-2 size-4" />Filtri
+              {activeFilters.length > 0 && <span className="ml-2 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">{activeFilters.length}</span>}
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="bottom" className="max-h-[88vh] overflow-y-auto rounded-t-2xl pb-[calc(1rem+env(safe-area-inset-bottom))]">
+            <SheetHeader className="text-left">
+              <SheetTitle>Filtra i movimenti</SheetTitle>
+              <SheetDescription>Combina più criteri per isolare esattamente i dati che ti servono.</SheetDescription>
+            </SheetHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-1.5">
+                <Label>Cliente o fornitore</Label>
+                <Select value={soggettoId} onValueChange={setSoggettoId}>
+                  <SelectTrigger><SelectValue placeholder="Tutti i soggetti" /></SelectTrigger>
+                  <SelectContent><SelectItem value="all">Tutti i soggetti</SelectItem>{(soggetti as any[]).map((item) => <SelectItem key={item.id} value={item.id}>{item.nomeBreve || item.ragioneSociale}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Categoria</Label>
+                <Select value={categoriaId} onValueChange={setCategoriaId}>
+                  <SelectTrigger><SelectValue placeholder="Tutte le categorie" /></SelectTrigger>
+                  <SelectContent><SelectItem value="all">Tutte le categorie</SelectItem>{(categorie as any[]).map((item) => <SelectItem key={item.id} value={item.id}>{item.nome}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Centro di costo</Label>
+                <Select value={centroCostoId} onValueChange={setCentroCostoId}>
+                  <SelectTrigger><SelectValue placeholder="Tutti i centri" /></SelectTrigger>
+                  <SelectContent><SelectItem value="all">Tutti i centri di costo</SelectItem>{(centriCosto as any[]).map((item) => <SelectItem key={item.id} value={item.id}>{item.nome}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5"><Label>Dal</Label><Input type="date" value={dataInizio} onChange={(event) => setDataInizio(event.target.value)} /></div>
+                <div className="space-y-1.5"><Label>Al</Label><Input type="date" value={dataFine} onChange={(event) => setDataFine(event.target.value)} /></div>
+              </div>
+            </div>
+            <SheetFooter className="grid grid-cols-2 gap-2">
+              <Button type="button" variant="outline" onClick={clearFilters}><FilterX className="mr-2 size-4" />Azzera filtri</Button>
+              <SheetClose asChild><Button type="button">Mostra risultati</Button></SheetClose>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
       </div>
+
+      {activeFilters.length > 0 && (
+        <div className="flex flex-wrap gap-2" aria-label="Filtri attivi">
+          {activeFilters.map((filter) => (
+            <button key={filter.key} type="button" onClick={filter.clear} className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs text-primary">
+              <span className="max-w-40 truncate">{filter.label}</span><X className="size-3" aria-hidden="true" />
+              <span className="sr-only">Rimuovi filtro {filter.label}</span>
+            </button>
+          ))}
+          {activeFilters.length > 1 && <button type="button" onClick={clearFilters} className="px-2 py-1 text-xs text-muted-foreground underline underline-offset-2">Azzera tutti</button>}
+        </div>
+      )}
 
       {/* Lista */}
       {isLoading ? (
@@ -130,8 +228,9 @@ export default function ListaMovimenti() {
       ) : grouped.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <Receipt className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="font-medium">Nessun movimento</p>
-          <p className="text-sm mt-1">Premi + per registrare il primo</p>
+          <p className="font-medium">{activeFilters.length || search ? "Nessun movimento corrisponde ai filtri" : "Nessun movimento"}</p>
+          <p className="text-sm mt-1">{activeFilters.length || search ? "Modifica o rimuovi uno dei criteri attivi." : "Premi + per registrare il primo"}</p>
+          {(activeFilters.length > 0 || search) && <Button variant="outline" size="sm" className="mt-4" onClick={() => { clearFilters(); setSearch(""); }}>Azzera ricerca e filtri</Button>}
         </div>
       ) : (
         <div className="space-y-5">
@@ -167,6 +266,7 @@ export default function ListaMovimenti() {
                         <p className="truncate text-sm font-medium">
                           {m.descrizione || m.tipoDocumento || (m.tipo === "entrata" ? "Entrata" : "Uscita")}
                         </p>
+                        {m.soggettoNome && <p className="truncate text-xs text-muted-foreground">{m.soggettoNome}{m.centroCostoNome ? ` · ${m.centroCostoNome}` : ""}</p>}
                         <div className="mt-0.5 flex items-center gap-1.5">
                           {statoIcon[m.stato]}
                           <span className="text-xs text-muted-foreground">{statoLabel[m.stato] || m.stato}</span>

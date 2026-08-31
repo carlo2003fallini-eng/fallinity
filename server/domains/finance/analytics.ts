@@ -3,6 +3,7 @@ import { router, protectedProcedure } from "../../_core/trpc";
 import { getDb } from "../../db";
 import { sql } from "drizzle-orm";
 import { getActor } from "../_core";
+import { financialAnalysisInput, financialAnalysisOverview } from "./financial-analysis";
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────────
 
@@ -351,6 +352,12 @@ async function getCustomersAnalysis(companyId: string, periodo: string) {
 // ─── ROUTER ─────────────────────────────────────────────────────────────────────
 
 export const analyticsRouter = router({
+  overview: protectedProcedure
+    .input(financialAnalysisInput)
+    .query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return financialAnalysisOverview(actor.companyId, input);
+    }),
   general: protectedProcedure
     .input(periodoInput)
     .query(async ({ ctx, input }) => {

@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, sql, like, or, asc } from "drizzle-orm";
+import { and, desc, eq, getTableColumns, isNull, sql, like, or, asc } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
   transazioni,
@@ -275,14 +275,40 @@ export const financeRepository = {
       conds.push(or(
         like(documentiFinanziari.descrizione, `%${filters.search}%`),
         like(documentiFinanziari.numero, `%${filters.search}%`),
+        like(soggetti.ragioneSociale, `%${filters.search}%`),
+        like(soggetti.nomeBreve, `%${filters.search}%`),
+        like(categorieFinanziarie.nome, `%${filters.search}%`),
+        like(centriDiCosto.nome, `%${filters.search}%`),
       ));
     }
     if (filters?.dataInizio) conds.push(sql`dataDocumento >= ${filters.dataInizio}`);
     if (filters?.dataFine) conds.push(sql`dataDocumento <= ${filters.dataFine}`);
     const limit = filters?.limit ?? 50;
     const offset = filters?.offset ?? 0;
-    return db.select().from(documentiFinanziari).where(and(...conds))
-      .orderBy(desc(documentiFinanziari.dataDocumento)).limit(limit).offset(offset);
+    return db.select({
+      ...getTableColumns(documentiFinanziari),
+      categoriaNome: categorieFinanziarie.nome,
+      categoriaColore: categorieFinanziarie.colore,
+      centroCostoNome: centriDiCosto.nome,
+      soggettoNome: sql<string | null>`COALESCE(${soggetti.nomeBreve}, ${soggetti.ragioneSociale})`,
+    })
+      .from(documentiFinanziari)
+      .leftJoin(categorieFinanziarie, and(
+        eq(categorieFinanziarie.id, documentiFinanziari.categoriaId),
+        eq(categorieFinanziarie.companyId, documentiFinanziari.companyId),
+      ))
+      .leftJoin(centriDiCosto, and(
+        eq(centriDiCosto.id, documentiFinanziari.centroCostoId),
+        eq(centriDiCosto.companyId, documentiFinanziari.companyId),
+      ))
+      .leftJoin(soggetti, and(
+        eq(soggetti.id, documentiFinanziari.soggettoId),
+        eq(soggetti.companyId, documentiFinanziari.companyId),
+      ))
+      .where(and(...conds))
+      .orderBy(desc(documentiFinanziari.dataDocumento), desc(documentiFinanziari.createdAt))
+      .limit(limit)
+      .offset(offset);
   },
   async getDocumento(companyId: string, id: string) {
     const db = await getDb();

@@ -1,200 +1,384 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, BarChart3, Milk, Tractor, Wheat, Users, Building2, Lightbulb } from "lucide-react";
-import { Link } from "wouter";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  ArrowLeft,
+  ArrowDownRight,
+  ArrowUpRight,
+  BarChart3,
+  CalendarRange,
+  CircleDollarSign,
+  FilterX,
+  Lightbulb,
+  Minus,
+  Scale,
+  TrendingDown,
+  TrendingUp,
+  Users,
+} from "lucide-react";
+import {
+  Area,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ComposedChart,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
-export default function AnalisiPage() {
-  const [tab, setTab] = useState("generale");
-  const [periodo, setPeriodo] = useState<"mese" | "trimestre" | "semestre" | "anno">("anno");
+const GREEN = "#4ade80";
+const RED = "#f87171";
+const GOLD = "#d4a843";
+const BLUE = "#60a5fa";
+const PURPLE = "#a78bfa";
+const COLORS = [GREEN, GOLD, BLUE, PURPLE, RED, "#2dd4bf", "#fb923c", "#f472b6"];
 
-  const { data: general } = trpc.finanza.analytics.general.useQuery({ periodo });
-  const { data: dairy } = trpc.finanza.analytics.dairy.useQuery({ periodo });
-  const { data: machinery } = trpc.finanza.analytics.machinery.useQuery({ periodo });
-  const { data: crops } = trpc.finanza.analytics.crops.useQuery({ periodo });
-  const { data: costCenters } = trpc.finanza.analytics.costCenters.useQuery({ periodo });
-  const { data: suppliers } = trpc.finanza.analytics.suppliers.useQuery({ periodo });
-  const { data: customers } = trpc.finanza.analytics.customers.useQuery({ periodo });
-  const { data: insightsList } = trpc.finanza.insights.list.useQuery();
+type Preset = "mese" | "anno" | "dodici_mesi" | "personalizzato";
+type Dimensione = "categorie" | "soggetti" | "centri";
 
-  const fmt = (v: number | null | undefined) => v != null ? `€${v.toLocaleString("it-IT")}` : "—";
+function isoDate(date: Date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
 
+function previousRange(inizio: Date, fine: Date) {
+  const durata = fine.getTime() - inizio.getTime();
+  const finePrecedente = new Date(inizio);
+  finePrecedente.setDate(finePrecedente.getDate() - 1);
+  const inizioPrecedente = new Date(finePrecedente.getTime() - durata);
+  return { inizio: isoDate(inizioPrecedente), fine: isoDate(finePrecedente) };
+}
+
+function rangeForPreset(preset: Exclude<Preset, "personalizzato">) {
+  const oggi = new Date();
+  let inizio: Date;
+  let fine: Date;
+  if (preset === "mese") {
+    inizio = new Date(oggi.getFullYear(), oggi.getMonth(), 1);
+    fine = new Date(oggi.getFullYear(), oggi.getMonth() + 1, 0);
+  } else if (preset === "anno") {
+    inizio = new Date(oggi.getFullYear(), 0, 1);
+    fine = new Date(oggi.getFullYear(), 11, 31);
+  } else {
+    inizio = new Date(oggi.getFullYear(), oggi.getMonth() - 11, 1);
+    fine = oggi;
+  }
+  return { inizio: isoDate(inizio), fine: isoDate(fine), precedente: previousRange(inizio, fine) };
+}
+
+function fmtMoney(cents: number | null | undefined) {
+  return new Intl.NumberFormat("it-IT", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  }).format(Number(cents ?? 0) / 100);
+}
+
+function fmtCompact(cents: number) {
+  return new Intl.NumberFormat("it-IT", { notation: "compact", maximumFractionDigits: 1 }).format(cents / 100);
+}
+
+function fmtPeriod(date: string) {
+  return new Date(`${date}T12:00:00`).toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function Delta({ value, invert = false }: { value: number | null | undefined; invert?: boolean }) {
+  if (value === null || value === undefined) return <span className="text-[11px] text-muted-foreground">Nessun confronto</span>;
+  const positive = invert ? value <= 0 : value >= 0;
+  const Icon = value > 0 ? TrendingUp : value < 0 ? TrendingDown : Minus;
   return (
-    <div className="min-h-screen bg-background">
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b px-4 py-3">
-        <div className="flex items-center gap-3">
-          <Link href="/finanza"><a><ArrowLeft className="w-5 h-5" /></a></Link>
-          <h1 className="text-lg font-semibold flex-1">Analisi</h1>
-          <Select value={periodo} onValueChange={v => setPeriodo(v as any)}>
-            <SelectTrigger className="w-28 h-8"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="mese">Mese</SelectItem>
-              <SelectItem value="trimestre">Trimestre</SelectItem>
-              <SelectItem value="semestre">Semestre</SelectItem>
-              <SelectItem value="anno">Anno</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+    <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${positive ? "text-emerald-400" : "text-red-400"}`}>
+      <Icon className="size-3" />{value > 0 ? "+" : ""}{value.toFixed(1)}%
+    </span>
+  );
+}
 
-      <Tabs value={tab} onValueChange={setTab} className="w-full">
-        <div className="overflow-x-auto px-4 pt-2">
-          <TabsList className="inline-flex w-auto">
-            <TabsTrigger value="generale" className="text-xs"><BarChart3 className="w-3 h-3 mr-1" />Generale</TabsTrigger>
-            <TabsTrigger value="stalla" className="text-xs"><Milk className="w-3 h-3 mr-1" />Stalla</TabsTrigger>
-            <TabsTrigger value="macchinari" className="text-xs"><Tractor className="w-3 h-3 mr-1" />Macchinari</TabsTrigger>
-            <TabsTrigger value="campi" className="text-xs"><Wheat className="w-3 h-3 mr-1" />Campi</TabsTrigger>
-            <TabsTrigger value="fornitori" className="text-xs"><Building2 className="w-3 h-3 mr-1" />Fornitori</TabsTrigger>
-            <TabsTrigger value="clienti" className="text-xs"><Users className="w-3 h-3 mr-1" />Clienti</TabsTrigger>
-            <TabsTrigger value="insight" className="text-xs"><Lightbulb className="w-3 h-3 mr-1" />Insight</TabsTrigger>
-          </TabsList>
-        </div>
+function KpiCard({ label, value, delta, tone, invert }: {
+  label: string;
+  value: string;
+  delta?: number | null;
+  tone: "green" | "red" | "gold" | "blue";
+  invert?: boolean;
+}) {
+  const palette = {
+    green: "border-emerald-500/20 bg-emerald-500/[0.06] text-emerald-400",
+    red: "border-red-500/20 bg-red-500/[0.06] text-red-400",
+    gold: "border-amber-500/20 bg-amber-500/[0.06] text-amber-300",
+    blue: "border-blue-500/20 bg-blue-500/[0.06] text-blue-400",
+  }[tone];
+  return (
+    <Card className={`border ${palette}`}>
+      <CardContent className="p-3">
+        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="mt-1 truncate text-lg font-bold text-foreground">{value}</p>
+        <div className="mt-1"><Delta value={delta} invert={invert} /></div>
+      </CardContent>
+    </Card>
+  );
+}
 
-        {/* Generale */}
-        <TabsContent value="generale" className="px-4 py-3 space-y-3">
-          {general && (
-            <>
-              <div className="grid grid-cols-2 gap-3">
-                <KpiCard label="Ricavi" value={fmt(general.ricavi)} />
-                <KpiCard label="Costi" value={fmt(general.costi)} />
-                <KpiCard label="Utile" value={fmt(general.utile)} color={Number(general.utile ?? 0) >= 0 ? "green" : "red"} />
-                <KpiCard label="Margine" value={general.margine != null ? `${general.margine.toFixed(1)}%` : "—"} />
-                <KpiCard label="Liquidità" value={fmt(general.liquidita)} />
-                <KpiCard label="Cashflow" value={fmt(general.cashflow)} color={Number(general.cashflow ?? 0) >= 0 ? "green" : "red"} />
-                <KpiCard label="Crediti" value={fmt(general.crediti)} />
-                <KpiCard label="Debiti" value={fmt(general.debiti)} />
-              </div>
-              <Card>
-                <CardContent className="p-3 grid grid-cols-2 gap-2 text-xs">
-                  <div><span className="text-muted-foreground">GG Incasso: </span><span className="font-medium">{general.giorniIncasso ?? "—"}</span></div>
-                  <div><span className="text-muted-foreground">GG Pagamento: </span><span className="font-medium">{general.giorniPagamento ?? "—"}</span></div>
-                  <div><span className="text-muted-foreground">Budget attivi: </span><span className="font-medium">{general.budgetAttivi}</span></div>
-                  <div><span className="text-muted-foreground">Cop. Reintegr.: </span><span className="font-medium">{Number(general.coperturaReintegrazione ?? 0).toFixed(0)}%</span></div>
-                </CardContent>
-              </Card>
-            </>
-          )}
-        </TabsContent>
-
-        {/* Stalla */}
-        <TabsContent value="stalla" className="px-4 py-3 space-y-3">
-          {dairy && (
-            <div className="grid grid-cols-2 gap-3">
-              <KpiCard label="Ricavo Latte" value={fmt(dairy.ricavoLatte)} />
-              <KpiCard label="Costo Stalla" value={fmt(dairy.costoStalla)} />
-              <KpiCard label="Margine" value={fmt(dairy.margine)} color={Number(dairy.margine ?? 0) >= 0 ? "green" : "red"} />
-              <KpiCard label="Vacche" value={String(dairy.vacche)} />
-              <KpiCard label="Ricavo/Vacca" value={fmt(dairy.ricavoPerVacca)} />
-              <KpiCard label="Costo/Vacca" value={fmt(dairy.costoPerVacca)} />
-              <KpiCard label="Margine/Vacca" value={fmt(dairy.marginePerVacca)} />
-              <KpiCard label="Trattamenti" value={String(dairy.trattamenti)} />
-            </div>
-          )}
-        </TabsContent>
-
-        {/* Macchinari */}
-        <TabsContent value="macchinari" className="px-4 py-3 space-y-3">
-          {machinery && (
-            <div className="grid grid-cols-2 gap-3">
-              <KpiCard label="Macchine" value={String(machinery.totaleMacchine)} />
-              <KpiCard label="Costo Manut." value={fmt(machinery.costoManutenzione)} />
-              <KpiCard label="Interventi" value={String(machinery.interventi)} />
-              <KpiCard label="Costo/Macchina" value={fmt(machinery.costoPerMacchina)} />
-              <KpiCard label="Freq. Interv." value={machinery.frequenzaInterventi != null ? machinery.frequenzaInterventi.toFixed(1) : "—"} />
-              <KpiCard label="Cop. Reintegr." value={`${Number(machinery.coperturaReintegrazione ?? 0).toFixed(0)}%`} />
-            </div>
-          )}
-        </TabsContent>
-
-        {/* Campi */}
-        <TabsContent value="campi" className="px-4 py-3 space-y-3">
-          {crops && (
-            <div className="grid grid-cols-2 gap-3">
-              <KpiCard label="Ettari" value={crops.ettari != null ? `${crops.ettari} ha` : "—"} />
-              <KpiCard label="Campi" value={String(crops.numCampi)} />
-              <KpiCard label="Costo Totale" value={fmt(crops.costoTotale)} />
-              <KpiCard label="Ricavi" value={fmt(crops.ricavi)} />
-              <KpiCard label="Costo/Ettaro" value={fmt(crops.costoPerEttaro)} />
-              <KpiCard label="Ricavo/Ettaro" value={fmt(crops.ricavoPerEttaro)} />
-            </div>
-          )}
-        </TabsContent>
-
-        {/* Fornitori */}
-        <TabsContent value="fornitori" className="px-4 py-3 space-y-3">
-          {suppliers?.map((s: any, i: number) => (
-            <Card key={s.id}>
-              <CardContent className="p-3 flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-sm">{i + 1}. {s.nome}</p>
-                  <p className="text-xs text-muted-foreground">{s.movimenti} movimenti</p>
-                </div>
-                <p className="font-semibold text-sm">{fmt(s.spesa)}</p>
-              </CardContent>
-            </Card>
-          ))}
-          {(!suppliers || suppliers.length === 0) && <p className="text-center text-muted-foreground py-8">Nessun fornitore</p>}
-        </TabsContent>
-
-        {/* Clienti */}
-        <TabsContent value="clienti" className="px-4 py-3 space-y-3">
-          {customers?.map((c: any, i: number) => (
-            <Card key={c.id}>
-              <CardContent className="p-3 flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-sm">{i + 1}. {c.nome}</p>
-                  <p className="text-xs text-muted-foreground">{c.movimenti} movimenti</p>
-                </div>
-                <p className="font-semibold text-sm text-green-600">{fmt(c.ricavi)}</p>
-              </CardContent>
-            </Card>
-          ))}
-          {(!customers || customers.length === 0) && <p className="text-center text-muted-foreground py-8">Nessun cliente</p>}
-        </TabsContent>
-
-        {/* Insight */}
-        <TabsContent value="insight" className="px-4 py-3 space-y-3">
-          {insightsList?.map((ins: any) => (
-            <Card key={ins.id} className={ins.letto ? "opacity-60" : ""}>
-              <CardContent className="p-3">
-                <div className="flex items-start gap-2">
-                  <Lightbulb className="w-4 h-4 mt-0.5 text-amber-500 shrink-0" />
-                  <div>
-                    <p className="font-medium text-sm">{ins.titolo}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{ins.messaggio}</p>
-                    {ins.azioneSuggerita && (
-                      <p className="text-xs text-blue-500 mt-1">→ {ins.azioneSuggerita}</p>
-                    )}
-                    <Badge variant="outline" className="mt-1 text-xs capitalize">{ins.livelloConfidenza}</Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-          {(!insightsList || insightsList.length === 0) && (
-            <div className="text-center py-8 text-muted-foreground">
-              <Lightbulb className="w-10 h-10 mx-auto mb-2 opacity-50" />
-              <p>Nessun insight disponibile</p>
-              <p className="text-xs mt-1">Gli insight vengono generati automaticamente</p>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+function ChartTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-lg border bg-popover p-2 text-xs text-popover-foreground shadow-xl">
+      <p className="mb-1 font-semibold">{label}</p>
+      {payload.map((item: any) => (
+        <p key={item.dataKey} style={{ color: item.color }}>{item.name}: {fmtMoney(item.value)}</p>
+      ))}
     </div>
   );
 }
 
-function KpiCard({ label, value, color }: { label: string; value: string; color?: "green" | "red" }) {
+export default function AnalisiPage() {
+  const iniziale = useMemo(() => rangeForPreset("anno"), []);
+  const [preset, setPreset] = useState<Preset>("anno");
+  const [dataInizio, setDataInizio] = useState(iniziale.inizio);
+  const [dataFine, setDataFine] = useState(iniziale.fine);
+  const [confrontoInizio, setConfrontoInizio] = useState(iniziale.precedente.inizio);
+  const [confrontoFine, setConfrontoFine] = useState(iniziale.precedente.fine);
+  const [granularita, setGranularita] = useState<"mese" | "anno">("mese");
+  const [soggettoId, setSoggettoId] = useState("all");
+  const [categoriaId, setCategoriaId] = useState("all");
+  const [centroCostoId, setCentroCostoId] = useState("all");
+  const [dimensione, setDimensione] = useState<Dimensione>("categorie");
+
+  const { data: soggetti = [] } = trpc.finanza.soggetti.list.useQuery(undefined);
+  const { data: categorie = [] } = trpc.finanza.categorie.list.useQuery(undefined);
+  const { data: centriCosto = [] } = trpc.finanza.centriCosto.list.useQuery();
+
+  const queryInput = useMemo(() => ({
+    dataInizio,
+    dataFine,
+    confrontoInizio,
+    confrontoFine,
+    granularita,
+    soggettoId: soggettoId === "all" ? undefined : soggettoId,
+    categoriaId: categoriaId === "all" ? undefined : categoriaId,
+    centroCostoId: centroCostoId === "all" ? undefined : centroCostoId,
+  }), [dataInizio, dataFine, confrontoInizio, confrontoFine, granularita, soggettoId, categoriaId, centroCostoId]);
+
+  const { data, isLoading, isError } = trpc.finanza.analytics.overview.useQuery(queryInput);
+
+  function applicaPreset(next: Preset) {
+    setPreset(next);
+    if (next === "personalizzato") return;
+    const range = rangeForPreset(next);
+    setDataInizio(range.inizio);
+    setDataFine(range.fine);
+    setConfrontoInizio(range.precedente.inizio);
+    setConfrontoFine(range.precedente.fine);
+    setGranularita("mese");
+  }
+
+  function aggiornaPeriodo(field: "inizio" | "fine", value: string) {
+    setPreset("personalizzato");
+    const nextInizio = field === "inizio" ? value : dataInizio;
+    const nextFine = field === "fine" ? value : dataFine;
+    if (field === "inizio") setDataInizio(value); else setDataFine(value);
+    if (nextInizio && nextFine) {
+      const prev = previousRange(new Date(`${nextInizio}T12:00:00`), new Date(`${nextFine}T12:00:00`));
+      setConfrontoInizio(prev.inizio);
+      setConfrontoFine(prev.fine);
+    }
+  }
+
+  const filtriAttivi = [soggettoId, categoriaId, centroCostoId].filter((id) => id !== "all").length;
+  const comparisonRows = data ? [
+    { label: "Entrate", current: data.kpi.entrate.valore, previous: data.kpi.entrate.precedente, difference: data.kpi.entrate.differenza },
+    { label: "Uscite", current: data.kpi.uscite.valore, previous: data.kpi.uscite.precedente, difference: data.kpi.uscite.differenza },
+    { label: "Risultato", current: data.kpi.utile.valore, previous: data.kpi.utile.precedente, difference: data.kpi.utile.differenza },
+  ] : [];
+  const dimensionData = data ? (
+    dimensione === "categorie" ? data.categorie : dimensione === "soggetti" ? data.soggetti : data.centriCosto
+  ).slice(0, 8).map((item: any) => ({ ...item, valore: item.totale })) : [];
+  const pieData = data?.categorie.filter((item: any) => item.tipo === "uscita").slice(0, 8) ?? [];
+
   return (
-    <Card>
-      <CardContent className="p-3 text-center">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className={`text-sm font-bold ${color === "green" ? "text-green-600" : color === "red" ? "text-red-600" : ""}`}>{value}</p>
-      </CardContent>
-    </Card>
+    <div className="min-h-screen bg-background pb-28">
+      <header className="sticky top-0 z-20 border-b bg-background/95 px-4 py-3 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center gap-3">
+          <Link href="/finanza" aria-label="Torna alla Finanza" className="inline-flex size-9 items-center justify-center rounded-lg hover:bg-muted">
+            <ArrowLeft className="size-5" />
+          </Link>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg font-semibold">Analisi finanziaria</h1>
+            <p className="truncate text-xs text-muted-foreground">Confronti rapidi e dati spiegabili</p>
+          </div>
+          {filtriAttivi > 0 && <Badge variant="secondary">{filtriAttivi} filtri</Badge>}
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-6xl space-y-4 px-4 py-4">
+        <Card className="overflow-hidden border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-card to-card">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">Periodo analizzato</p>
+                <p className="mt-1 text-lg font-semibold">{fmtPeriod(dataInizio)} — {fmtPeriod(dataFine)}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Confronto: {fmtPeriod(confrontoInizio)} — {fmtPeriod(confrontoFine)}</p>
+              </div>
+              <CalendarRange className="size-6 shrink-0 text-amber-300" />
+            </div>
+            <div className="mt-4 grid grid-cols-4 gap-2">
+              {(["mese", "anno", "dodici_mesi", "personalizzato"] as Preset[]).map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => applicaPreset(key)}
+                  className={`rounded-lg px-2 py-2 text-[11px] font-medium transition-colors ${preset === key ? "bg-amber-400 text-black" : "bg-muted text-muted-foreground"}`}
+                >
+                  {key === "mese" ? "Mese" : key === "anno" ? "Anno" : key === "dodici_mesi" ? "12 mesi" : "Custom"}
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Periodi da confrontare</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label className="text-xs">Da</Label><Input type="date" value={dataInizio} onChange={(e) => aggiornaPeriodo("inizio", e.target.value)} className="mt-1" /></div>
+              <div><Label className="text-xs">A</Label><Input type="date" value={dataFine} onChange={(e) => aggiornaPeriodo("fine", e.target.value)} className="mt-1" /></div>
+              <div><Label className="text-xs">Confronta da</Label><Input type="date" value={confrontoInizio} onChange={(e) => setConfrontoInizio(e.target.value)} className="mt-1" /></div>
+              <div><Label className="text-xs">Confronta a</Label><Input type="date" value={confrontoFine} onChange={(e) => setConfrontoFine(e.target.value)} className="mt-1" /></div>
+            </div>
+            <Select value={granularita} onValueChange={(value) => setGranularita(value as "mese" | "anno")}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="mese">Andamento mensile</SelectItem><SelectItem value="anno">Andamento annuale</SelectItem></SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm">Filtri analisi</CardTitle>
+            {filtriAttivi > 0 && <Button variant="ghost" size="sm" onClick={() => { setSoggettoId("all"); setCategoriaId("all"); setCentroCostoId("all"); }}><FilterX className="mr-1 size-4" />Azzera</Button>}
+          </CardHeader>
+          <CardContent className="grid gap-2 sm:grid-cols-3">
+            <Select value={soggettoId} onValueChange={setSoggettoId}>
+              <SelectTrigger><SelectValue placeholder="Tutti i soggetti" /></SelectTrigger>
+              <SelectContent><SelectItem value="all">Tutti i soggetti</SelectItem>{(soggetti as any[]).map((s) => <SelectItem key={s.id} value={s.id}>{s.nomeBreve || s.ragioneSociale}</SelectItem>)}</SelectContent>
+            </Select>
+            <Select value={categoriaId} onValueChange={setCategoriaId}>
+              <SelectTrigger><SelectValue placeholder="Tutte le categorie" /></SelectTrigger>
+              <SelectContent><SelectItem value="all">Tutte le categorie</SelectItem>{(categorie as any[]).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
+            </Select>
+            <Select value={centroCostoId} onValueChange={setCentroCostoId}>
+              <SelectTrigger><SelectValue placeholder="Tutti i centri" /></SelectTrigger>
+              <SelectContent><SelectItem value="all">Tutti i centri di costo</SelectItem>{(centriCosto as any[]).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
+        {isLoading ? (
+          <div className="space-y-3"><div className="grid grid-cols-2 gap-3">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div><Skeleton className="h-64 rounded-xl" /></div>
+        ) : isError || !data ? (
+          <Card><CardContent className="py-12 text-center"><BarChart3 className="mx-auto mb-3 size-10 text-muted-foreground" /><p className="font-medium">Analisi non disponibile</p><p className="mt-1 text-sm text-muted-foreground">Controlla i periodi selezionati e riprova.</p></CardContent></Card>
+        ) : (
+          <>
+            <section>
+              <div className="mb-2 flex items-center gap-2"><CircleDollarSign className="size-4 text-amber-300" /><h2 className="text-sm font-semibold">Sintesi del periodo</h2></div>
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <KpiCard label="Entrate" value={fmtMoney(data.kpi.entrate.valore)} delta={data.kpi.entrate.percentuale} tone="green" />
+                <KpiCard label="Uscite" value={fmtMoney(data.kpi.uscite.valore)} delta={data.kpi.uscite.percentuale} tone="red" invert />
+                <KpiCard label="Risultato" value={fmtMoney(data.kpi.utile.valore)} delta={data.kpi.utile.percentuale} tone="gold" />
+                <KpiCard label="Margine" value={data.kpi.margine.valore == null ? "—" : `${data.kpi.margine.valore.toFixed(1)}%`} delta={data.kpi.margine.differenza} tone="blue" />
+              </div>
+            </section>
+
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm">Andamento entrate, uscite e risultato</CardTitle></CardHeader>
+              <CardContent>
+                {data.trend.length ? (
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={data.trend} margin={{ top: 8, right: 4, left: -24, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.08)" />
+                        <XAxis dataKey="periodo" tick={{ fill: "#8a8a8a", fontSize: 10 }} axisLine={false} tickLine={false} />
+                        <YAxis tickFormatter={fmtCompact} tick={{ fill: "#8a8a8a", fontSize: 10 }} axisLine={false} tickLine={false} />
+                        <Tooltip content={<ChartTooltip />} />
+                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                        <Bar dataKey="entrate" name="Entrate" fill={GREEN} radius={[3, 3, 0, 0]} />
+                        <Bar dataKey="uscite" name="Uscite" fill={RED} radius={[3, 3, 0, 0]} />
+                        <Area type="monotone" dataKey="risultato" name="Risultato" stroke={GOLD} fill={GOLD} fillOpacity={0.08} strokeWidth={2} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : <p className="py-12 text-center text-sm text-muted-foreground">Nessun movimento nel periodo selezionato.</p>}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm">Confronto diretto</CardTitle></CardHeader>
+              <CardContent className="space-y-2">
+                <div className="grid grid-cols-[1fr_repeat(3,minmax(0,1fr))] gap-2 text-[10px] uppercase tracking-wide text-muted-foreground">
+                  <span>Voce</span><span className="text-right">Periodo</span><span className="text-right">Confronto</span><span className="text-right">Delta</span>
+                </div>
+                {comparisonRows.map((row) => (
+                  <div key={row.label} className="grid grid-cols-[1fr_repeat(3,minmax(0,1fr))] gap-2 border-t py-2 text-xs">
+                    <span className="font-medium">{row.label}</span><span className="text-right">{fmtMoney(row.current)}</span><span className="text-right text-muted-foreground">{fmtMoney(row.previous)}</span><span className={`text-right font-medium ${row.difference >= 0 ? "text-emerald-400" : "text-red-400"}`}>{row.difference >= 0 ? "+" : ""}{fmtMoney(row.difference)}</span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Card>
+                <CardHeader className="pb-2"><CardTitle className="text-sm">Composizione delle uscite</CardTitle></CardHeader>
+                <CardContent>
+                  {pieData.length ? <>
+                    <div className="h-48"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={pieData} dataKey="totale" nameKey="nome" innerRadius={48} outerRadius={78} paddingAngle={2}>{pieData.map((_: any, index: number) => <Cell key={index} fill={COLORS[index % COLORS.length]} />)}</Pie><Tooltip formatter={(value: number) => fmtMoney(value)} /></PieChart></ResponsiveContainer></div>
+                    <div className="space-y-1.5">{pieData.slice(0, 5).map((item: any, index: number) => <div key={`${item.id}-${item.tipo}`} className="flex items-center justify-between text-xs"><span className="flex min-w-0 items-center gap-2"><span className="size-2 shrink-0 rounded-full" style={{ background: COLORS[index % COLORS.length] }} /><span className="truncate">{item.nome}</span></span><span className="font-medium">{fmtMoney(item.totale)}</span></div>)}</div>
+                  </> : <p className="py-12 text-center text-sm text-muted-foreground">Nessuna uscita da distribuire.</p>}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2"><CardTitle className="text-sm">Confronta dimensioni</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="mb-3 grid grid-cols-3 gap-2">
+                    {(["categorie", "soggetti", "centri"] as Dimensione[]).map((item) => <button key={item} type="button" onClick={() => setDimensione(item)} className={`rounded-lg px-2 py-2 text-xs font-medium ${dimensione === item ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{item === "categorie" ? "Categorie" : item === "soggetti" ? "Soggetti" : "Centri"}</button>)}
+                  </div>
+                  {dimensionData.length ? <div className="h-64"><ResponsiveContainer width="100%" height="100%"><BarChart data={dimensionData} layout="vertical" margin={{ top: 0, right: 8, left: 10, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(255,255,255,.08)" /><XAxis type="number" tickFormatter={fmtCompact} tick={{ fill: "#8a8a8a", fontSize: 10 }} axisLine={false} tickLine={false} /><YAxis type="category" dataKey="nome" width={90} tick={{ fill: "#a3a3a3", fontSize: 10 }} axisLine={false} tickLine={false} /><Tooltip formatter={(value: number) => fmtMoney(value)} /><Bar dataKey="valore" name="Totale" fill={BLUE} radius={[0, 4, 4, 0]} /></BarChart></ResponsiveContainer></div> : <p className="py-12 text-center text-sm text-muted-foreground">Nessun dato per il confronto.</p>}
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="border-blue-500/20 bg-blue-500/[0.04]">
+              <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm"><Lightbulb className="size-4 text-blue-400" />Lettura rapida dei dati</CardTitle></CardHeader>
+              <CardContent className="space-y-2">
+                {data.insight.map((item, index) => (
+                  <div key={`${item.titolo}-${index}`} className="flex gap-3 rounded-lg border border-border/50 bg-background/40 p-3">
+                    {item.livello === "positivo" ? <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-emerald-400" /> : item.livello === "attenzione" ? <ArrowDownRight className="mt-0.5 size-4 shrink-0 text-red-400" /> : <Scale className="mt-0.5 size-4 shrink-0 text-blue-400" />}
+                    <div><p className="text-sm font-medium">{item.titolo}</p><p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{item.messaggio}</p></div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
+              <div className="rounded-xl border bg-card p-3"><Users className="mb-2 size-4 text-blue-400" /><p className="font-medium text-foreground">{data.kpi.movimenti.valore} movimenti</p><p>nel periodo analizzato</p></div>
+              <div className="rounded-xl border bg-card p-3"><BarChart3 className="mb-2 size-4 text-amber-300" /><p className="font-medium text-foreground">{dimensionData.length} voci</p><p>nel confronto attivo</p></div>
+            </div>
+          </>
+        )}
+      </main>
+    </div>
   );
 }
