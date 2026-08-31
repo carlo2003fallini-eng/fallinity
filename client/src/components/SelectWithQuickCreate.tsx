@@ -30,6 +30,7 @@ interface SelectWithQuickCreateProps {
   onChange: (value: string) => void;
   options: SelectOption[];
   placeholder?: string;
+  disabled?: boolean;
   // Quick create
   quickCreateTitle?: string;
   quickCreateFields?: QuickCreateField[];
@@ -49,6 +50,7 @@ export function SelectWithQuickCreate({
   onChange,
   options,
   placeholder = "Seleziona...",
+  disabled = false,
   quickCreateTitle,
   quickCreateFields = [],
   onQuickCreate,
@@ -105,7 +107,8 @@ export function SelectWithQuickCreate({
         <button
           type="button"
           onClick={() => setShowPicker(true)}
-          className="flex-1 h-10 px-3 rounded-lg border border-border/40 bg-white/[0.03] text-left flex items-center gap-2 hover:bg-white/[0.05] transition-colors"
+          disabled={disabled}
+          className="flex-1 h-10 px-3 rounded-lg border border-border/40 bg-white/[0.03] text-left flex items-center gap-2 hover:bg-white/[0.05] transition-colors disabled:cursor-not-allowed disabled:opacity-50"
         >
           {selected ? (
             <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -119,7 +122,7 @@ export function SelectWithQuickCreate({
         </button>
 
         {/* Quick create button */}
-        {onQuickCreate && (
+        {onQuickCreate && !disabled && (
           <button
             type="button"
             onClick={() => { setFormData({}); setShowQuickCreate(true); }}
@@ -130,7 +133,7 @@ export function SelectWithQuickCreate({
         )}
 
         {/* More menu */}
-        {(managePath || onManage) && (
+        {(managePath || onManage) && !disabled && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button type="button" className="w-10 h-10 rounded-lg border border-border/40 bg-white/[0.03] flex items-center justify-center hover:bg-white/[0.05] transition-colors">

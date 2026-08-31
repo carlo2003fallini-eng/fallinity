@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { SelectWithQuickCreate, type SelectOption } from "@/components/SelectWithQuickCreate";
 import {
   ArrowLeft, ArrowDownRight, ArrowUpRight, ChevronDown, ChevronUp,
-  Plus, Wallet, CreditCard, Building2, Receipt, Check, HelpCircle, CheckCircle2,
+  Plus, Wallet, CreditCard, Building2, Receipt, Check, HelpCircle, CheckCircle2, History, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -30,12 +30,11 @@ interface LastValues {
   tipo: "entrata" | "uscita";
   tipoRegistrazione: TipoRegistrazione;
   aliquotaIva: number;
-  categoriaId: string;
-  centroCostoId: string;
   soggettoId: string;
   contoId: string;
   metodoId: string;
   descrizione: string;
+  dataDocumento: string;
 }
 
 function loadLastValues(): Partial<LastValues> {
@@ -60,20 +59,22 @@ export default function NuovoMovimento() {
   const [tipoRegistrazione, setTipoRegistrazione] = useState<TipoRegistrazione>(last.tipoRegistrazione || "pagato_subito");
   const [importoStr, setImportoStr] = useState("");
   const [aliquotaIva, setAliquotaIva] = useState(last.aliquotaIva ?? 2200);
-  const [categoriaId, setCategoriaId] = useState(last.categoriaId || "");
-  const [centroCostoId, setCentroCostoId] = useState(last.centroCostoId || "");
+  const [categoriaId, setCategoriaId] = useState("");
+  const [centroCostoId, setCentroCostoId] = useState("");
   const [soggettoId, setSoggettoId] = useState(last.soggettoId || "");
   const [contoId, setContoId] = useState(last.contoId || "");
   const [metodoId, setMetodoId] = useState(last.metodoId || "");
   const [descrizione, setDescrizione] = useState(last.descrizione || "");
   const [note, setNote] = useState("");
-  const [dataDocumento, setDataDocumento] = useState(new Date().toISOString().split("T")[0]);
+  const [dataDocumento, setDataDocumento] = useState(last.dataDocumento || new Date().toISOString().split("T")[0]);
   const [dataScadenza, setDataScadenza] = useState("");
   const [tipoDocumento, setTipoDocumento] = useState("");
   const [numero, setNumero] = useState("");
   const [showDettagli, setShowDettagli] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showHelpCdc, setShowHelpCdc] = useState(false);
+  const [subjectDefaultsStatus, setSubjectDefaultsStatus] = useState<"idle" | "applied" | "none">("idle");
+  const lastAppliedPreferenceKeyRef = useRef("");
 
   // Queries
   const { data: categorie = [] } = trpc.finanza.categorie.list.useQuery({ tipo });
@@ -83,8 +84,33 @@ export default function NuovoMovimento() {
   const { data: soggettiList = [] } = trpc.finanza.soggetti.list.useQuery({
     tipologia: tipo === "entrata" ? "cliente" : "fornitore",
   });
+  const subjectHistoryInput = useMemo(() => ({
+    tipo,
+    soggettoId,
+  }), [tipo, soggettoId]);
+  const subjectHistoryQuery = trpc.finanza.movimenti.lastForSubject.useQuery(subjectHistoryInput, {
+    enabled: Boolean(soggettoId),
+  });
 
   const utils = trpc.useUtils();
+
+  useEffect(() => {
+    if (!soggettoId || !subjectHistoryQuery.isFetched || subjectHistoryQuery.isFetching) return;
+
+    const ultimoMovimento = subjectHistoryQuery.data;
+    const preferenceKey = `${tipo}:${soggettoId}:${ultimoMovimento?.id ?? "nessuno"}`;
+    if (lastAppliedPreferenceKeyRef.current === preferenceKey) return;
+
+    lastAppliedPreferenceKeyRef.current = preferenceKey;
+    if (!ultimoMovimento) {
+      setSubjectDefaultsStatus("none");
+      return;
+    }
+
+    setCategoriaId(ultimoMovimento.categoriaId ?? "");
+    setCentroCostoId(ultimoMovimento.centroCostoId ?? "");
+    setSubjectDefaultsStatus("applied");
+  }, [soggettoId, tipo, subjectHistoryQuery.data, subjectHistoryQuery.isFetched, subjectHistoryQuery.isFetching]);
 
   // ── Seed automatico al primo accesso (se nessuna categoria presente) ──
   const seedMut = trpc.finanza.seed.useMutation({
@@ -118,17 +144,17 @@ export default function NuovoMovimento() {
 
   // Mutations
   const createMutation = trpc.finanza.movimenti.create.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       // Salva ultimi valori (tranne importo)
       saveLastValues({
-        tipo, tipoRegistrazione, aliquotaIva, categoriaId,
-        centroCostoId, soggettoId, contoId, metodoId, descrizione,
+        tipo, tipoRegistrazione, aliquotaIva,
+        soggettoId, contoId, metodoId, descrizione, dataDocumento,
       });
       // Svuota solo l'importo
       setImportoStr("");
       setNote("");
       setNumero("");
-      setDataDocumento(new Date().toISOString().split("T")[0]);
+      await utils.finanza.movimenti.invalidate();
       // Mostra conferma
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
@@ -178,7 +204,27 @@ export default function NuovoMovimento() {
       id: m.id, label: m.nome,
     })), [metodi]);
 
+  const handleTipoChange = useCallback((nextTipo: "entrata" | "uscita") => {
+    if (nextTipo === tipo) return;
+    setTipo(nextTipo);
+    setSoggettoId("");
+    setCategoriaId("");
+    setCentroCostoId("");
+    setSubjectDefaultsStatus("idle");
+    lastAppliedPreferenceKeyRef.current = "";
+  }, [tipo]);
+
+  const handleSoggettoChange = useCallback((nextSoggettoId: string) => {
+    if (nextSoggettoId === soggettoId) return;
+    setSoggettoId(nextSoggettoId);
+    setCategoriaId("");
+    setCentroCostoId("");
+    setSubjectDefaultsStatus("idle");
+    lastAppliedPreferenceKeyRef.current = "";
+  }, [soggettoId]);
+
   const handleSubmit = useCallback(() => {
+    if (!soggettoId) { toast.error(`Seleziona ${tipo === "entrata" ? "un cliente" : "un fornitore"}`); return; }
     if (!categoriaId) { toast.error("Seleziona una categoria"); return; }
     if (importoCents <= 0) { toast.error("Inserisci un importo valido"); return; }
     if (tipoRegistrazione === "pagato_subito" && !contoId) { toast.error("Seleziona un conto"); return; }
@@ -229,7 +275,7 @@ export default function NuovoMovimento() {
         {/* ── Selettore Entrata / Uscita ── */}
         <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={() => setTipo("entrata")}
+            onClick={() => handleTipoChange("entrata")}
             className={`flex items-center justify-center gap-2 py-4 rounded-xl border-2 transition-all font-semibold ${
               tipo === "entrata"
                 ? "border-emerald-500 bg-emerald-500/10 text-emerald-600"
@@ -240,7 +286,7 @@ export default function NuovoMovimento() {
             Entrata
           </button>
           <button
-            onClick={() => setTipo("uscita")}
+            onClick={() => handleTipoChange("uscita")}
             className={`flex items-center justify-center gap-2 py-4 rounded-xl border-2 transition-all font-semibold ${
               tipo === "uscita"
                 ? "border-red-500 bg-red-500/10 text-red-600"
@@ -319,40 +365,11 @@ export default function NuovoMovimento() {
           </div>
         </div>
 
-        {/* ── Categoria (con QuickCreate) ── */}
+        {/* ── Soggetto prima della classificazione ── */}
         <SelectWithQuickCreate
-          label="Categoria *"
-          value={categoriaId}
-          onChange={setCategoriaId}
-          options={categorieOptions}
-          placeholder="Seleziona categoria"
-          quickCreateTitle="Nuova categoria"
-          quickCreateFields={[
-            { key: "nome", label: "Nome", placeholder: "es. Carburanti", required: true },
-            { key: "tipo", label: "Tipo", type: "select", options: [
-              { value: "entrata", label: "Entrata" },
-              { value: "uscita", label: "Uscita" },
-              { value: "entrambi", label: "Entrambi" },
-            ], required: true },
-          ]}
-          onQuickCreate={async (data) => {
-            const result = await createCategoriaMut.mutateAsync({
-              nome: data.nome,
-              tipo: (data.tipo as "entrata" | "uscita" | "entrambi") || "uscita",
-            });
-            toast.success("Categoria creata");
-            return result.id;
-          }}
-          managePath="/finanza/impostazioni/categorie"
-          onManage={() => setLocation("/finanza/impostazioni/categorie")}
-          searchable
-        />
-
-        {/* ── Soggetto (con QuickCreate) — SEMPRE VISIBILE ── */}
-        <SelectWithQuickCreate
-          label={tipo === "entrata" ? "Cliente" : "Fornitore"}
+          label={`${tipo === "entrata" ? "Cliente" : "Fornitore"} *`}
           value={soggettoId}
-          onChange={setSoggettoId}
+          onChange={handleSoggettoChange}
           options={soggettiOptions}
           placeholder={`Cerca ${tipo === "entrata" ? "cliente" : "fornitore"}...`}
           quickCreateTitle={`Nuovo ${tipo === "entrata" ? "cliente" : "fornitore"}`}
@@ -373,6 +390,55 @@ export default function NuovoMovimento() {
           }}
           managePath="/finanza/impostazioni/soggetti"
           onManage={() => setLocation("/finanza/impostazioni/soggetti")}
+          searchable
+        />
+
+        {soggettoId && subjectHistoryQuery.isFetching && (
+          <div className="-mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="size-3.5 animate-spin" />
+            Cerco categoria e centro di costo usati l’ultima volta…
+          </div>
+        )}
+        {soggettoId && !subjectHistoryQuery.isFetching && subjectDefaultsStatus === "applied" && (
+          <div className="-mt-3 flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
+            <History className="mt-0.5 size-3.5 shrink-0 text-primary" />
+            <span>Categoria e centro di costo precompilati dall’ultimo movimento di questo {tipo === "entrata" ? "cliente" : "fornitore"}. Puoi modificarli.</span>
+          </div>
+        )}
+        {soggettoId && !subjectHistoryQuery.isFetching && subjectDefaultsStatus === "none" && (
+          <div className="-mt-3 flex items-start gap-2 rounded-lg border border-border/50 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+            <History className="mt-0.5 size-3.5 shrink-0" />
+            <span>Nessun movimento precedente: scegli categoria e, se serve, centro di costo.</span>
+          </div>
+        )}
+
+        {/* ── Categoria suggerita dallo storico del soggetto ── */}
+        <SelectWithQuickCreate
+          label="Categoria *"
+          value={categoriaId}
+          onChange={setCategoriaId}
+          options={categorieOptions}
+          disabled={!soggettoId}
+          placeholder={soggettoId ? "Seleziona categoria" : `Prima seleziona ${tipo === "entrata" ? "il cliente" : "il fornitore"}`}
+          quickCreateTitle="Nuova categoria"
+          quickCreateFields={[
+            { key: "nome", label: "Nome", placeholder: "es. Carburanti", required: true },
+            { key: "tipo", label: "Tipo", type: "select", options: [
+              { value: "entrata", label: "Entrata" },
+              { value: "uscita", label: "Uscita" },
+              { value: "entrambi", label: "Entrambi" },
+            ], required: true },
+          ]}
+          onQuickCreate={async (data) => {
+            const result = await createCategoriaMut.mutateAsync({
+              nome: data.nome,
+              tipo: (data.tipo as "entrata" | "uscita" | "entrambi") || tipo,
+            });
+            toast.success("Categoria creata");
+            return result.id;
+          }}
+          managePath="/finanza/impostazioni/categorie"
+          onManage={() => setLocation("/finanza/impostazioni/categorie")}
           searchable
         />
 
@@ -458,6 +524,7 @@ export default function NuovoMovimento() {
             value={centroCostoId}
             onChange={setCentroCostoId}
             options={centriCostoOptions}
+            disabled={!soggettoId}
             placeholder="Nessuno (opzionale)"
             quickCreateTitle="Nuovo centro di costo"
             quickCreateFields={[
@@ -588,7 +655,7 @@ export default function NuovoMovimento() {
       >
         <Button
           onClick={handleSubmit}
-          disabled={createMutation.isPending || importoCents <= 0 || !categoriaId}
+          disabled={createMutation.isPending || importoCents <= 0 || !soggettoId || !categoriaId}
           className="w-full h-14 text-base font-bold rounded-xl shadow-lg shadow-primary/20"
           style={{ background: tipo === "entrata" ? GREEN : RED }}
         >

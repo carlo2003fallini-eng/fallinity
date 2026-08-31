@@ -30,6 +30,7 @@ import {
   updateMetodoInput,
   createMovimentoInput,
   updateMovimentoInput,
+  lastMovimentoForSubjectInput,
   listMovimentiInput,
   annullaMovimentoInput,
   deleteMovimentoInput,
@@ -169,6 +170,10 @@ export const finanzaRouter = router({
     list: protectedProcedure.input(listMovimentiInput).query(async ({ ctx, input }) => {
       const actor = await getActor(ctx);
       return financeService.listMovimenti(actor.companyId, input as any);
+    }),
+    lastForSubject: protectedProcedure.input(lastMovimentoForSubjectInput).query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return financeService.ultimoMovimentoPerSoggetto(actor.companyId, input.soggettoId, input.tipo);
     }),
     create: protectedProcedure.input(createMovimentoInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);

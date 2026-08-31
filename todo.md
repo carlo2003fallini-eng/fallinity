@@ -1056,3 +1056,16 @@
 - [x] Aggiungere test backend e contratti UI di regressione
 - [x] Verificare a 390×844, suite Vitest, TypeScript e build
 - [x] Salvare il checkpoint della funzionalità
+
+## Fase 36 — Flusso Soggetto-Prima e Data Persistente
+- [x] Verificare ordine campi, valori persistiti e reset dopo salvataggio in Nuovo Movimento
+- [x] Esporre l’ultimo movimento compatibile per soggetto, tipo e azienda
+- [x] Mostrare Fornitore prima di Categoria nelle uscite e Cliente prima di Categoria nelle entrate
+- [x] Precompilare categoria e centro di costo dall’ultimo movimento del soggetto selezionato
+- [x] Mantenere categoria e centro di costo modificabili dopo la precompilazione
+- [x] Non sovrascrivere valori scelti manualmente quando cambia lo stato del form
+- [x] Mantenere la data selezionata dopo il salvataggio e nel movimento successivo
+- [x] Gestire soggetti senza storico senza bloccare il form
+- [x] Aggiungere test backend e contratti UI di regressione
+- [x] Verificare flussi Entrata/Uscita a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della funzionalità

@@ -161,6 +161,11 @@ export const listMovimentiInput = z.object({
   offset: z.number().int().min(0).default(0),
 }).optional();
 
+export const lastMovimentoForSubjectInput = z.object({
+  soggettoId: z.string().min(1),
+  tipo: z.enum(["entrata", "uscita"]),
+});
+
 export const updateMovimentoInput = z.object({
   id: z.string(),
   tipo: z.enum(["entrata", "uscita"]).optional(),
@@ -298,6 +303,7 @@ export const listRicorrenzeInput = z.object({
 export type CreateMovimentoInput = z.infer<typeof createMovimentoInput>;
 export type UpdateMovimentoInput = z.infer<typeof updateMovimentoInput>;
 export type ListMovimentiInput = z.infer<typeof listMovimentiInput>;
+export type LastMovimentoForSubjectInput = z.infer<typeof lastMovimentoForSubjectInput>;
 export type CreateCategoriaInput = z.infer<typeof createCategoriaInput>;
 export type CreateSoggettoInput = z.infer<typeof createSoggettoInput>;
 export type CreateContoInput = z.infer<typeof createContoInput>;

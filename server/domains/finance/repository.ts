@@ -291,6 +291,24 @@ export const financeRepository = {
       .where(and(eq(documentiFinanziari.id, id), eq(documentiFinanziari.companyId, companyId), isNull(documentiFinanziari.deletedAt)));
     return rows[0] ?? null;
   },
+  async getLastDocumentoForSubject(companyId: string, soggettoId: string, tipo: "entrata" | "uscita") {
+    const db = await getDb();
+    if (!db) return null;
+    const rows = await db.select().from(documentiFinanziari)
+      .where(and(
+        eq(documentiFinanziari.companyId, companyId),
+        eq(documentiFinanziari.soggettoId, soggettoId),
+        eq(documentiFinanziari.tipo, tipo),
+        isNull(documentiFinanziari.deletedAt),
+      ))
+      .orderBy(
+        desc(documentiFinanziari.createdAt),
+        desc(documentiFinanziari.codiceInterno),
+        desc(documentiFinanziari.id),
+      )
+      .limit(1);
+    return rows[0] ?? null;
+  },
   async insertDocumento(actor: ActorContext, data: Record<string, unknown>) {
     const db = await getDb();
     if (!db) throw new Error("DB not available");

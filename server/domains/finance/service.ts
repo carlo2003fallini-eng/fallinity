@@ -259,6 +259,20 @@ export const financeService = {
     return repo.listDocumenti(companyId, filters as any);
   },
 
+  async ultimoMovimentoPerSoggetto(companyId: string, soggettoId: string, tipo: "entrata" | "uscita") {
+    const doc = await repo.getLastDocumentoForSubject(companyId, soggettoId, tipo);
+    if (!doc) return null;
+    return {
+      id: doc.id,
+      soggettoId: doc.soggettoId,
+      tipo: doc.tipo,
+      categoriaId: doc.categoriaId,
+      centroCostoId: doc.centroCostoId,
+      dataDocumento: doc.dataDocumento,
+      createdAt: doc.createdAt,
+    };
+  },
+
   /**
    * Dettaglio movimento con scadenze e pagamenti.
    */
