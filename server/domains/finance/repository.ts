@@ -309,6 +309,49 @@ export const financeRepository = {
       .limit(1);
     return rows[0] ?? null;
   },
+  async getLastPaymentForSubject(companyId: string, soggettoId: string, tipo: "entrata" | "uscita") {
+    const db = await getDb();
+    if (!db) return null;
+    const rows = await db.select({
+      pagamentoId: pagamentiIncassi.id,
+      documentoId: documentiFinanziari.id,
+      contoId: contiFin.id,
+      metodoId: metodiPagamento.id,
+      data: pagamentiIncassi.data,
+    })
+      .from(pagamentiIncassi)
+      .innerJoin(documentiFinanziari, and(
+        eq(documentiFinanziari.id, pagamentiIncassi.documentoId),
+        eq(documentiFinanziari.companyId, pagamentiIncassi.companyId),
+      ))
+      .innerJoin(contiFin, and(
+        eq(contiFin.id, pagamentiIncassi.contoId),
+        eq(contiFin.companyId, pagamentiIncassi.companyId),
+        eq(contiFin.attivo, true),
+        isNull(contiFin.deletedAt),
+      ))
+      .leftJoin(metodiPagamento, and(
+        eq(metodiPagamento.id, pagamentiIncassi.metodoId),
+        eq(metodiPagamento.companyId, pagamentiIncassi.companyId),
+        eq(metodiPagamento.attivo, true),
+        isNull(metodiPagamento.deletedAt),
+      ))
+      .where(and(
+        eq(documentiFinanziari.companyId, companyId),
+        eq(documentiFinanziari.soggettoId, soggettoId),
+        eq(documentiFinanziari.tipo, tipo),
+        eq(pagamentiIncassi.stato, "confermato"),
+        isNull(documentiFinanziari.deletedAt),
+        isNull(pagamentiIncassi.deletedAt),
+      ))
+      .orderBy(
+        desc(pagamentiIncassi.createdAt),
+        desc(pagamentiIncassi.data),
+        desc(pagamentiIncassi.id),
+      )
+      .limit(1);
+    return rows[0] ?? null;
+  },
   async insertDocumento(actor: ActorContext, data: Record<string, unknown>) {
     const db = await getDb();
     if (!db) throw new Error("DB not available");

@@ -109,6 +109,8 @@ export default function NuovoMovimento() {
 
     setCategoriaId(ultimoMovimento.categoriaId ?? "");
     setCentroCostoId(ultimoMovimento.centroCostoId ?? "");
+    setContoId(ultimoMovimento.contoId ?? "");
+    setMetodoId(ultimoMovimento.metodoId ?? "");
     setSubjectDefaultsStatus("applied");
   }, [soggettoId, tipo, subjectHistoryQuery.data, subjectHistoryQuery.isFetched, subjectHistoryQuery.isFetching]);
 
@@ -210,6 +212,8 @@ export default function NuovoMovimento() {
     setSoggettoId("");
     setCategoriaId("");
     setCentroCostoId("");
+    setContoId("");
+    setMetodoId("");
     setSubjectDefaultsStatus("idle");
     lastAppliedPreferenceKeyRef.current = "";
   }, [tipo]);
@@ -219,6 +223,8 @@ export default function NuovoMovimento() {
     setSoggettoId(nextSoggettoId);
     setCategoriaId("");
     setCentroCostoId("");
+    setContoId("");
+    setMetodoId("");
     setSubjectDefaultsStatus("idle");
     lastAppliedPreferenceKeyRef.current = "";
   }, [soggettoId]);
@@ -402,7 +408,7 @@ export default function NuovoMovimento() {
         {soggettoId && !subjectHistoryQuery.isFetching && subjectDefaultsStatus === "applied" && (
           <div className="-mt-3 flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
             <History className="mt-0.5 size-3.5 shrink-0 text-primary" />
-            <span>Categoria e centro di costo precompilati dall’ultimo movimento di questo {tipo === "entrata" ? "cliente" : "fornitore"}. Puoi modificarli.</span>
+            <span>Categoria, centro di costo, conto e metodo disponibili sono stati precompilati dallo storico di questo {tipo === "entrata" ? "cliente" : "fornitore"}. Puoi modificarli.</span>
           </div>
         )}
         {soggettoId && !subjectHistoryQuery.isFetching && subjectDefaultsStatus === "none" && (

@@ -1069,3 +1069,35 @@
 - [x] Aggiungere test backend e contratti UI di regressione
 - [x] Verificare flussi Entrata/Uscita a 390×844, suite Vitest, TypeScript e build
 - [x] Salvare il checkpoint della funzionalità
+
+## Fase 37 — Precompilazione Conto e Metodo per Soggetto
+- [x] Verificare come conto e metodo sono salvati nei diversi tipi di movimento
+- [x] Restituire conto e metodo dall’ultimo movimento compatibile del soggetto
+- [x] Precompilare conto e metodo quando il movimento precedente è già regolato
+- [x] Lasciare conto e metodo vuoti quando lo storico non contiene valori utili
+- [x] Mantenere conto e metodo sempre modificabili dopo la precompilazione
+- [x] Evitare sovrascritture dopo una modifica manuale del form
+- [x] Aggiornare il messaggio di precompilazione mostrato all’utente
+- [x] Aggiungere test backend e contratti UI di regressione
+- [x] Verificare a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della funzionalità
+
+## Fase 38 — Analisi Finanziaria e Filtri Avanzati Movimenti
+- [ ] Verificare pagina Analisi, route, grafici e aggregazioni finanziarie esistenti
+- [ ] Verificare filtri esistenti nella Lista Movimenti e relative query backend
+- [ ] Definire intervalli rapidi: mese, anno, periodo personalizzato e confronto precedente
+- [ ] Implementare KPI comparativi per entrate, uscite, utile, margine e variazioni percentuali
+- [ ] Implementare serie temporali mensili e annuali per entrate, uscite e risultato
+- [ ] Implementare analisi per fornitore/cliente, categoria e centro di costo
+- [ ] Implementare confronto tra due periodi con delta assoluti e percentuali
+- [ ] Implementare grafici chiari per andamento, composizione e concentrazione
+- [ ] Aggiungere insight deterministici su trend, concentrazione costi e variazioni rilevanti
+- [ ] Aggiungere selettori e filtri interattivi nella pagina Analisi
+- [ ] Rendere il pulsante Analisi correttamente collegato alla nuova schermata
+- [ ] Aggiungere filtri combinabili per soggetto, categoria, centro di costo, tipo e periodo nella Lista Movimenti
+- [ ] Mostrare filtri attivi come chip singolarmente rimovibili e azione Azzera filtri
+- [ ] Mantenere ricerca testuale e tab Entrate/Uscite compatibili con i nuovi filtri
+- [ ] Gestire stati vuoti e caricamento per analisi e movimenti filtrati
+- [ ] Aggiungere test backend e contratti UI di regressione
+- [ ] Verificare Analisi e Lista Movimenti a 390×844, suite Vitest, TypeScript e build
+- [ ] Salvare il checkpoint finale

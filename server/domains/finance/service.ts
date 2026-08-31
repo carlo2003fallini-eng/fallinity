@@ -260,7 +260,10 @@ export const financeService = {
   },
 
   async ultimoMovimentoPerSoggetto(companyId: string, soggettoId: string, tipo: "entrata" | "uscita") {
-    const doc = await repo.getLastDocumentoForSubject(companyId, soggettoId, tipo);
+    const [doc, ultimoPagamento] = await Promise.all([
+      repo.getLastDocumentoForSubject(companyId, soggettoId, tipo),
+      repo.getLastPaymentForSubject(companyId, soggettoId, tipo),
+    ]);
     if (!doc) return null;
     return {
       id: doc.id,
@@ -268,6 +271,8 @@ export const financeService = {
       tipo: doc.tipo,
       categoriaId: doc.categoriaId,
       centroCostoId: doc.centroCostoId,
+      contoId: ultimoPagamento?.contoId ?? doc.contoId ?? null,
+      metodoId: ultimoPagamento?.metodoId ?? doc.metodoId ?? null,
       dataDocumento: doc.dataDocumento,
       createdAt: doc.createdAt,
     };

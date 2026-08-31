@@ -16,6 +16,9 @@ describe.sequential("Finance — preferenze ultimo movimento per soggetto", () =
   let categoriaUltimaId = "";
   let centroPrimaId = "";
   let centroUltimoId = "";
+  let soggettoPagamentoId = "";
+  let contoId = "";
+  let metodoId = "";
 
   beforeAll(async () => {
     soggettoId = (await financeService.createSoggetto(actor, {
@@ -36,6 +39,17 @@ describe.sequential("Finance — preferenze ultimo movimento per soggetto", () =
     centroUltimoId = (await financeService.createCentroCosto(actor, {
       nome: `Centro ultimo ${RUN_ID}`,
     })).id;
+    soggettoPagamentoId = (await financeService.createSoggetto(actor, {
+      tipologia: "fornitore",
+      ragioneSociale: `Fornitore pagamenti ${RUN_ID}`,
+    })).id;
+    contoId = (await financeService.createConto(actor, {
+      nome: `Conto storico ${RUN_ID}`,
+      tipo: "bancario",
+      saldoIniziale: 100_000,
+      valuta: "EUR",
+    })).id;
+    metodoId = (await financeService.createMetodo(actor, `Bonifico storico ${RUN_ID}`)).id;
   });
 
   it("restituisce categoria e centro dell’ultimo movimento creato, non della data documento più recente", async () => {
@@ -68,6 +82,43 @@ describe.sequential("Finance — preferenze ultimo movimento per soggetto", () =
     expect(ultimo?.categoriaId).toBe(categoriaUltimaId);
     expect(ultimo?.centroCostoId).toBe(centroUltimoId);
     expect(ultimo?.tipo).toBe("uscita");
+    expect(ultimo?.contoId).toBeNull();
+    expect(ultimo?.metodoId).toBeNull();
+  });
+
+  it("combina classificazione più recente e ultimo conto/metodo realmente usati", async () => {
+    await financeService.creaMovimento(actor, {
+      tipo: "uscita",
+      tipoRegistrazione: "pagato_subito",
+      imponibile: 5_000,
+      aliquotaIva: 0,
+      importoIva: 0,
+      totale: 5_000,
+      dataDocumento: "2026-03-01",
+      categoriaId: categoriaPrimaId,
+      centroCostoId: centroPrimaId,
+      soggettoId: soggettoPagamentoId,
+      contoId,
+      metodoId,
+    });
+    await financeService.creaMovimento(actor, {
+      tipo: "uscita",
+      tipoRegistrazione: "documento",
+      imponibile: 6_000,
+      aliquotaIva: 0,
+      importoIva: 0,
+      totale: 6_000,
+      dataDocumento: "2026-03-02",
+      categoriaId: categoriaUltimaId,
+      centroCostoId: centroUltimoId,
+      soggettoId: soggettoPagamentoId,
+    });
+
+    const ultimo = await financeService.ultimoMovimentoPerSoggetto(COMPANY_ID, soggettoPagamentoId, "uscita");
+    expect(ultimo?.categoriaId).toBe(categoriaUltimaId);
+    expect(ultimo?.centroCostoId).toBe(centroUltimoId);
+    expect(ultimo?.contoId).toBe(contoId);
+    expect(ultimo?.metodoId).toBe(metodoId);
   });
 
   it("separa lo storico di entrate e uscite per lo stesso soggetto", async () => {

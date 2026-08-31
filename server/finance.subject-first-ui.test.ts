@@ -18,7 +18,14 @@ describe("Nuovo Movimento — soggetto prima e data persistente", () => {
     expect(source).toContain("movimenti.lastForSubject.useQuery");
     expect(source).toContain("setCategoriaId(ultimoMovimento.categoriaId");
     expect(source).toContain("setCentroCostoId(ultimoMovimento.centroCostoId");
+    expect(source).toContain("setContoId(ultimoMovimento.contoId");
+    expect(source).toContain("setMetodoId(ultimoMovimento.metodoId");
     expect(source).toContain("Puoi modificarli");
+  });
+
+  it("pulisce conto e metodo quando cambia soggetto per evitare dati del soggetto precedente", () => {
+    expect(source.match(/setContoId\(""\)/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(source.match(/setMetodoId\(""\)/g)?.length).toBeGreaterThanOrEqual(2);
   });
 
   it("blocca la classificazione fino alla selezione del soggetto", () => {
