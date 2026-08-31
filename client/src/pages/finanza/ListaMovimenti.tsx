@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MovimentoActions } from "@/components/finance/MovimentoActions";
 import {
   ArrowDownRight, ArrowUpRight, Search, Calendar, Receipt,
   Clock, CheckCircle2, XCircle, AlertTriangle,
@@ -144,38 +145,45 @@ export default function ListaMovimenti() {
               </div>
               <div className="space-y-2">
                 {items.map((m: any) => (
-                  <button
+                  <div
                     key={m.id}
-                    onClick={() => setLocation(`/finanza/movimento/${m.id}`)}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border hover:bg-accent/50 transition-colors text-left"
+                    className="flex w-full items-center rounded-xl border bg-card pr-1 transition-colors hover:bg-accent/50"
                   >
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                      m.tipo === "entrata" ? "bg-emerald-500/10" : "bg-red-500/10"
-                    }`}>
-                      {m.tipo === "entrata"
-                        ? <ArrowDownRight className="w-4 h-4 text-emerald-600" />
-                        : <ArrowUpRight className="w-4 h-4 text-red-600" />
-                      }
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {m.descrizione || m.tipoDocumento || (m.tipo === "entrata" ? "Entrata" : "Uscita")}
-                      </p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        {statoIcon[m.stato]}
-                        <span className="text-xs text-muted-foreground">{statoLabel[m.stato] || m.stato}</span>
-                        <span className="text-xs text-muted-foreground">• {fmtDate(m.dataDocumento)}</span>
+                    <button
+                      type="button"
+                      onClick={() => setLocation(`/finanza/movimento/${m.id}`)}
+                      className="flex min-w-0 flex-1 items-center gap-3 p-3 text-left"
+                      aria-label={`Apri ${m.descrizione || m.tipoDocumento || "movimento"}`}
+                    >
+                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                        m.tipo === "entrata" ? "bg-emerald-500/10" : "bg-red-500/10"
+                      }`}>
+                        {m.tipo === "entrata"
+                          ? <ArrowDownRight className="w-4 h-4 text-emerald-600" />
+                          : <ArrowUpRight className="w-4 h-4 text-red-600" />
+                        }
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-semibold" style={{ color: m.tipo === "entrata" ? GREEN : RED }}>
-                        {m.tipo === "entrata" ? "+" : "-"}{fmtCents(m.totale)}
-                      </p>
-                      {m.categoriaNome && (
-                        <Badge variant="outline" className="text-[10px] mt-0.5">{m.categoriaNome}</Badge>
-                      )}
-                    </div>
-                  </button>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">
+                          {m.descrizione || m.tipoDocumento || (m.tipo === "entrata" ? "Entrata" : "Uscita")}
+                        </p>
+                        <div className="mt-0.5 flex items-center gap-1.5">
+                          {statoIcon[m.stato]}
+                          <span className="text-xs text-muted-foreground">{statoLabel[m.stato] || m.stato}</span>
+                          <span className="text-xs text-muted-foreground">• {fmtDate(m.dataDocumento)}</span>
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className="text-sm font-semibold" style={{ color: m.tipo === "entrata" ? GREEN : RED }}>
+                          {m.tipo === "entrata" ? "+" : "-"}{fmtCents(m.totale)}
+                        </p>
+                        {m.categoriaNome && (
+                          <Badge variant="outline" className="mt-0.5 text-[10px]">{m.categoriaNome}</Badge>
+                        )}
+                      </div>
+                    </button>
+                    <MovimentoActions movimento={m} />
+                  </div>
                 ))}
               </div>
             </div>

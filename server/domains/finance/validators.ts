@@ -161,12 +161,35 @@ export const listMovimentiInput = z.object({
   offset: z.number().int().min(0).default(0),
 }).optional();
 
+export const updateMovimentoInput = z.object({
+  id: z.string(),
+  tipo: z.enum(["entrata", "uscita"]).optional(),
+  imponibile: z.number().int().min(0).optional(),
+  aliquotaIva: z.number().int().min(0).optional(),
+  importoIva: z.number().int().min(0).optional(),
+  totale: z.number().int().positive().optional(),
+  dataDocumento: z.string().optional(),
+  dataCompetenza: z.string().nullable().optional(),
+  dataScadenza: z.string().nullable().optional(),
+  categoriaId: z.string().min(1).optional(),
+  centroCostoId: z.string().nullable().optional(),
+  soggettoId: z.string().nullable().optional(),
+  tipoDocumento: z.string().nullable().optional(),
+  numero: z.string().nullable().optional(),
+  descrizione: z.string().nullable().optional(),
+  note: z.string().nullable().optional(),
+  riferimentoEsterno: z.string().nullable().optional(),
+});
+
 export const annullaMovimentoInput = z.object({
   id: z.string(),
   motivo: z.string().optional(),
 });
 
-export const deleteMovimentoInput = z.object({ id: z.string() });
+export const deleteMovimentoInput = z.object({
+  id: z.string(),
+  motivo: z.string().max(500).optional(),
+});
 
 export const seedInput = z.object({}).optional();
 
@@ -273,6 +296,7 @@ export const listRicorrenzeInput = z.object({
 
 // ── Type exports ──
 export type CreateMovimentoInput = z.infer<typeof createMovimentoInput>;
+export type UpdateMovimentoInput = z.infer<typeof updateMovimentoInput>;
 export type ListMovimentiInput = z.infer<typeof listMovimentiInput>;
 export type CreateCategoriaInput = z.infer<typeof createCategoriaInput>;
 export type CreateSoggettoInput = z.infer<typeof createSoggettoInput>;

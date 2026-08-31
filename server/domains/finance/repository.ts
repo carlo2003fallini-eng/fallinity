@@ -313,6 +313,127 @@ export const financeRepository = {
     return { success: true };
   },
 
+  async updateMovimentoCompleto(actor: ActorContext, id: string, data: {
+    documento: Record<string, unknown>;
+    registrazione: Record<string, unknown>;
+    scadenza?: Record<string, unknown>;
+  }) {
+    const db = await getDb();
+    if (!db) throw new Error("DB not available");
+
+    await db.transaction(async (tx) => {
+      await tx.update(documentiFinanziari)
+        .set(withUpdate(actor, data.documento) as any)
+        .where(and(
+          eq(documentiFinanziari.id, id),
+          eq(documentiFinanziari.companyId, actor.companyId),
+          isNull(documentiFinanziari.deletedAt),
+        ));
+
+      await tx.update(registrazioniEconomiche)
+        .set(withUpdate(actor, data.registrazione) as any)
+        .where(and(
+          eq(registrazioniEconomiche.documentoId, id),
+          eq(registrazioniEconomiche.companyId, actor.companyId),
+          isNull(registrazioniEconomiche.deletedAt),
+        ));
+
+      if (data.scadenza) {
+        await tx.update(scadenzeFinanziarie)
+          .set(withUpdate(actor, data.scadenza) as any)
+          .where(and(
+            eq(scadenzeFinanziarie.documentoId, id),
+            eq(scadenzeFinanziarie.companyId, actor.companyId),
+            isNull(scadenzeFinanziarie.deletedAt),
+          ));
+      }
+    });
+
+    return { success: true };
+  },
+
+  async eliminaMovimentoCompleto(actor: ActorContext, id: string, motivo?: string) {
+    const db = await getDb();
+    if (!db) throw new Error("DB not available");
+
+    return db.transaction(async (tx) => {
+      const docs = await tx.select().from(documentiFinanziari)
+        .where(and(
+          eq(documentiFinanziari.id, id),
+          eq(documentiFinanziari.companyId, actor.companyId),
+          isNull(documentiFinanziari.deletedAt),
+        ));
+      const doc = docs[0];
+      if (!doc) throw new Error("Movimento non trovato");
+
+      const pagamenti = await tx.select().from(pagamentiIncassi)
+        .where(and(
+          eq(pagamentiIncassi.documentoId, id),
+          eq(pagamentiIncassi.companyId, actor.companyId),
+          eq(pagamentiIncassi.stato, "confermato"),
+          isNull(pagamentiIncassi.deletedAt),
+        ));
+
+      let storniCreati = 0;
+      for (const pagamento of pagamenti) {
+        const conti = await tx.select().from(contiFin)
+          .where(and(
+            eq(contiFin.id, pagamento.contoId),
+            eq(contiFin.companyId, actor.companyId),
+            isNull(contiFin.deletedAt),
+          ));
+        const conto = conti[0];
+        if (!conto) throw new Error("Conto del pagamento non trovato");
+
+        const deltaStorno = doc.tipo === "entrata" ? -pagamento.importo : pagamento.importo;
+        const saldoDopo = conto.saldoAttuale + deltaStorno;
+        await tx.update(contiFin)
+          .set({ saldoAttuale: saldoDopo, updatedBy: actor.userUuid } as any)
+          .where(and(eq(contiFin.id, conto.id), eq(contiFin.companyId, actor.companyId)));
+
+        await tx.update(pagamentiIncassi)
+          .set(withUpdate(actor, {
+            stato: "annullato",
+            note: motivo ? `[ELIMINATO] ${motivo}` : "[ELIMINATO]",
+          }) as any)
+          .where(and(eq(pagamentiIncassi.id, pagamento.id), eq(pagamentiIncassi.companyId, actor.companyId)));
+
+        await tx.insert(movimentiCassa).values(withCreate(actor, {
+          contoId: conto.id,
+          tipo: doc.tipo === "entrata" ? "uscita" : "entrata",
+          importo: pagamento.importo,
+          data: new Date().toISOString().slice(0, 10),
+          saldoPrecedente: conto.saldoAttuale,
+          saldoDopo,
+          descrizione: `Storno eliminazione ${doc.codiceInterno ?? id}`,
+          documentoId: id,
+          pagamentoId: pagamento.id,
+          stato: "confermato",
+        }) as any);
+        storniCreati += 1;
+      }
+
+      const deletePayload = softDeletePayload(actor);
+      await tx.update(documentiFinanziari)
+        .set({ ...deletePayload, updatedBy: actor.userUuid, stato: "annullato" } as any)
+        .where(and(eq(documentiFinanziari.id, id), eq(documentiFinanziari.companyId, actor.companyId)));
+      await tx.update(registrazioniEconomiche)
+        .set(deletePayload as any)
+        .where(and(eq(registrazioniEconomiche.documentoId, id), eq(registrazioniEconomiche.companyId, actor.companyId), isNull(registrazioniEconomiche.deletedAt)));
+      await tx.update(scadenzeFinanziarie)
+        .set({ ...deletePayload, stato: "annullata" } as any)
+        .where(and(eq(scadenzeFinanziarie.documentoId, id), eq(scadenzeFinanziarie.companyId, actor.companyId), isNull(scadenzeFinanziarie.deletedAt)));
+      await tx.update(pagamentiIncassi)
+        .set(deletePayload as any)
+        .where(and(eq(pagamentiIncassi.documentoId, id), eq(pagamentiIncassi.companyId, actor.companyId), isNull(pagamentiIncassi.deletedAt)));
+      await tx.update(allegatiFinanziari)
+        .set(deletePayload as any)
+        .where(and(eq(allegatiFinanziari.documentoId, id), eq(allegatiFinanziari.companyId, actor.companyId), isNull(allegatiFinanziari.deletedAt)));
+
+      return { success: true, storniCreati };
+    });
+  },
+
   // ══════════════════════════════════════════════════════════════════════════
   // SCADENZE
   // ══════════════════════════════════════════════════════════════════════════

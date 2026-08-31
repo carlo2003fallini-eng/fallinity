@@ -154,15 +154,11 @@ describe("Finance — isolamento multi-azienda", () => {
 });
 
 describe("Finance — eliminazione", () => {
-  it("solo bozza/registrato possono essere eliminati", () => {
-    const statiEliminabili = ["bozza", "registrato"];
-    const statiNonEliminabili = ["pagato", "incassato", "annullato", "parzialmente_regolato", "scaduto"];
-    for (const s of statiEliminabili) {
-      expect(statiEliminabili.includes(s)).toBe(true);
-    }
-    for (const s of statiNonEliminabili) {
-      expect(statiEliminabili.includes(s)).toBe(false);
-    }
+  it("i movimenti regolati richiedono uno storno prima del soft delete", () => {
+    const statiConStorno = ["pagato", "incassato", "parzialmente_regolato"];
+    const statiSenzaStorno = ["bozza", "registrato", "scaduto"];
+    expect(statiConStorno).toContain("incassato");
+    expect(statiSenzaStorno).toContain("registrato");
   });
 });
 

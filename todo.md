@@ -1043,3 +1043,16 @@
 - [x] Aggiungere test backend e contratti UI di regressione
 - [x] Verificare modulo a 390×844, suite Vitest, TypeScript e build
 - [x] Salvare il checkpoint del modulo aggiornato
+
+## Fase 35 — Modifica ed Eliminazione Movimenti
+- [x] Verificare struttura Lista Movimenti, dettaglio, router e service finanziario
+- [x] Definire quali campi sono modificabili in base allo stato del movimento
+- [x] Implementare modifica atomica con ricalcolo IVA, residui e saldi
+- [x] Implementare eliminazione logica con storno sicuro delle registrazioni saldate
+- [x] Aggiungere menu azioni Modifica/Elimina direttamente nella lista
+- [x] Aggiungere form mobile di modifica precompilato
+- [x] Aggiungere conferma eliminazione con descrizione degli effetti
+- [x] Aggiornare lista, dashboard e conti dopo ogni operazione
+- [x] Aggiungere test backend e contratti UI di regressione
+- [x] Verificare a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della funzionalità

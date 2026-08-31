@@ -1,6 +1,6 @@
 import { financeRepository as repo } from "./repository";
 import type { ActorContext } from "../_core";
-import type { CreateMovimentoInput, RegistraPagamentoInput, CreaRateInput, CreaRicorrenzaInput } from "./validators";
+import type { CreateMovimentoInput, UpdateMovimentoInput, RegistraPagamentoInput, CreaRateInput, CreaRicorrenzaInput } from "./validators";
 import {
   CATEGORIE_USCITE_DEFAULT,
   CATEGORIE_ENTRATE_DEFAULT,
@@ -272,6 +272,87 @@ export const financeService = {
   },
 
   /**
+   * Modifica un movimento e riallinea registrazione economica e scadenza.
+   * Gli importi non sono modificabili dopo un pagamento/incasso: in quel caso
+   * restano modificabili solo classificazione, descrizione, note e riferimenti.
+   */
+  async modificaMovimento(actor: ActorContext, id: string, input: Omit<UpdateMovimentoInput, "id">) {
+    const doc = await repo.getDocumento(actor.companyId, id);
+    if (!doc) throw new Error("Movimento non trovato");
+    if (doc.stato === "annullato") throw new Error("Un movimento annullato non può essere modificato");
+
+    const pagamenti = await repo.listPagamenti(actor.companyId, id);
+    const pagamentiConfermati = pagamenti.filter((pagamento) => pagamento.stato === "confermato");
+    const scadenze = await repo.listScadenze(actor.companyId, id);
+    const campiFinanziari: Array<keyof Omit<UpdateMovimentoInput, "id">> = [
+      "tipo", "imponibile", "aliquotaIva", "importoIva", "totale",
+    ];
+    const modificaImporti = campiFinanziari.some((campo) => input[campo] !== undefined);
+
+    if (modificaImporti && pagamentiConfermati.length > 0) {
+      throw new Error("Gli importi non sono modificabili dopo un pagamento o un incasso. Elimina il movimento per creare lo storno, poi registralo nuovamente.");
+    }
+    if ((modificaImporti || input.dataScadenza !== undefined) && scadenze.length > 1) {
+      throw new Error("Il movimento ha più rate: modifica prima le singole scadenze dal dettaglio");
+    }
+
+    const tipo = input.tipo ?? doc.tipo;
+    const totale = input.totale ?? doc.totale;
+    const imponibile = input.imponibile ?? doc.imponibile;
+    const aliquotaIva = input.aliquotaIva ?? doc.aliquotaIva;
+    const importoIva = input.importoIva ?? doc.importoIva;
+
+    if (imponibile + importoIva !== totale) {
+      throw new Error("Imponibile e IVA devono corrispondere al totale");
+    }
+    if (totale < doc.totalePagato) {
+      throw new Error("Il totale non può essere inferiore all’importo già regolato");
+    }
+
+    const documento: Record<string, unknown> = {};
+    const campiDocumento = [
+      "tipo", "imponibile", "aliquotaIva", "importoIva", "totale",
+      "dataDocumento", "dataCompetenza", "categoriaId", "centroCostoId",
+      "soggettoId", "tipoDocumento", "numero", "descrizione", "note",
+      "riferimentoEsterno",
+    ] as const;
+    for (const campo of campiDocumento) {
+      if (input[campo] !== undefined) documento[campo] = input[campo];
+    }
+    if (modificaImporti) {
+      documento.residuo = totale - doc.totalePagato;
+      documento.stato = doc.totalePagato > 0 ? "parzialmente_regolato" : "registrato";
+    }
+
+    const registrazione = {
+      categoriaId: input.categoriaId ?? doc.categoriaId,
+      centroCostoId: input.centroCostoId !== undefined ? input.centroCostoId : doc.centroCostoId,
+      tipo: tipo === "entrata" ? "ricavo" : "costo",
+      importo: totale,
+      dataCompetenza: input.dataCompetenza ?? input.dataDocumento ?? doc.dataCompetenza ?? doc.dataDocumento,
+      descrizione: input.descrizione !== undefined ? input.descrizione : doc.descrizione,
+    };
+
+    let scadenza: Record<string, unknown> | undefined;
+    if (scadenze.length === 1 && (modificaImporti || input.dataScadenza !== undefined)) {
+      const dataScadenza = input.dataScadenza ?? String(scadenze[0].dataScadenza);
+      const residuo = totale - doc.totalePagato;
+      scadenza = {
+        importo: totale,
+        importoPagato: doc.totalePagato,
+        residuo,
+        dataScadenza,
+        stato: residuo === 0
+          ? (tipo === "entrata" ? "incassata" : "pagata")
+          : dataScadenza < new Date().toISOString().slice(0, 10) ? "scaduta" : "aperta",
+      };
+    }
+
+    await repo.updateMovimentoCompleto(actor, id, { documento, registrazione, scadenza });
+    return this.dettaglioMovimento(actor.companyId, id);
+  },
+
+  /**
    * Annulla un movimento (soft: cambia stato, non elimina).
    * Se era pagato_subito, storna il saldo del conto.
    */
@@ -308,16 +389,11 @@ export const financeService = {
     return { success: true };
   },
 
-  /**
-   * Elimina (soft delete) un movimento in bozza.
-   */
-  async deleteMovimento(actor: ActorContext, id: string) {
+  /** Elimina logicamente un movimento e storna in modo atomico gli importi regolati. */
+  async deleteMovimento(actor: ActorContext, id: string, motivo?: string) {
     const doc = await repo.getDocumento(actor.companyId, id);
-    if (!doc) throw new Error("Documento non trovato");
-    if (doc.stato !== "bozza" && doc.stato !== "registrato") {
-      throw new Error("Solo documenti in bozza o registrati possono essere eliminati. Usa annulla per documenti pagati.");
-    }
-    return repo.softDeleteDocumento(actor, id);
+    if (!doc) throw new Error("Movimento non trovato");
+    return repo.eliminaMovimentoCompleto(actor, id, motivo);
   },
 
   // ══════════════════════════════════════════════════════════════════════════

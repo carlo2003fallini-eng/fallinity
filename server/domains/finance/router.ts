@@ -29,6 +29,7 @@ import {
   createMetodoInput,
   updateMetodoInput,
   createMovimentoInput,
+  updateMovimentoInput,
   listMovimentiInput,
   annullaMovimentoInput,
   deleteMovimentoInput,
@@ -173,6 +174,11 @@ export const finanzaRouter = router({
       const actor = await getActor(ctx);
       return financeService.creaMovimento(actor, input);
     }),
+    update: protectedProcedure.input(updateMovimentoInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      const { id, ...data } = input;
+      return financeService.modificaMovimento(actor, id, data);
+    }),
     detail: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
       const actor = await getActor(ctx);
       return financeService.dettaglioMovimento(actor.companyId, input.id);
@@ -183,7 +189,7 @@ export const finanzaRouter = router({
     }),
     delete: protectedProcedure.input(deleteMovimentoInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);
-      return financeService.deleteMovimento(actor, input.id);
+      return financeService.deleteMovimento(actor, input.id, input.motivo);
     }),
   }),
 
