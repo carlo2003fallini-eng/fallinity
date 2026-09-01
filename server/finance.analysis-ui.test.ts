@@ -19,6 +19,29 @@ describe("Analisi finanziaria — contratto UI", () => {
     expect(analysisSource).toContain("Andamento annuale");
   });
 
+  it("mostra le date Custom solo nell’editor dedicato e le applica con Seleziona", () => {
+    expect(analysisSource).toContain("customEditorOpen &&");
+    expect(analysisSource).toContain("Periodo Custom");
+    expect(analysisSource).toContain("selezionaCustom");
+    expect(analysisSource).toContain("setDataInizio(customInizio)");
+    expect(analysisSource).toContain("setDataFine(customFine)");
+  });
+
+  it("apre Confronta in un pannello con valori draft, Indietro e Seleziona", () => {
+    expect(analysisSource).toContain("Confronta periodi");
+    expect(analysisSource).toContain("draftConfrontoInizio");
+    expect(analysisSource).toContain("draftConfrontoFine");
+    expect(analysisSource).toContain("selezionaConfronto");
+    expect(analysisSource).toContain("Indietro");
+    expect(analysisSource.match(/Seleziona/g)?.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("valida gli intervalli prima di aggiornare l’analisi", () => {
+    expect(analysisSource).toContain("intervalloValido");
+    expect(analysisSource).toContain('role="alert"');
+    expect(analysisSource).toContain("I dati cambieranno solo dopo la conferma");
+  });
+
   it("mostra KPI, grafici, dimensioni e insight finanziari", () => {
     expect(analysisSource).toContain("Sintesi del periodo");
     expect(analysisSource).toContain("Andamento entrate, uscite e risultato");

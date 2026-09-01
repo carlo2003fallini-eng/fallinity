@@ -1101,3 +1101,15 @@
 - [x] Aggiungere test backend e contratti UI di regressione
 - [x] Verificare Analisi e Lista Movimenti a 390×844, suite Vitest, TypeScript e build
 - [x] Salvare il checkpoint finale
+
+## Fase 39 — Selezione Periodi Custom e Pannello Confronta
+- [x] Verificare stato e gestione date nella pagina Analisi
+- [x] Mostrare i campi Da/A soltanto quando viene selezionato Custom
+- [x] Aggiungere conferma esplicita Seleziona al periodo Custom
+- [x] Trasformare Confronta in un comando/tab separato
+- [x] Aprire un pannello con Da, A, Confronta da e Confronta a
+- [x] Aggiungere pulsanti Indietro e Seleziona nel pannello confronto
+- [x] Applicare le date soltanto dopo conferma e validare gli intervalli
+- [x] Aggiungere test UI di regressione
+- [x] Verificare a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della modifica

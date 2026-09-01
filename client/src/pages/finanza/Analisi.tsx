@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowLeft,
@@ -151,6 +152,16 @@ export default function AnalisiPage() {
   const [dataFine, setDataFine] = useState(iniziale.fine);
   const [confrontoInizio, setConfrontoInizio] = useState(iniziale.precedente.inizio);
   const [confrontoFine, setConfrontoFine] = useState(iniziale.precedente.fine);
+  const [customEditorOpen, setCustomEditorOpen] = useState(false);
+  const [customInizio, setCustomInizio] = useState(iniziale.inizio);
+  const [customFine, setCustomFine] = useState(iniziale.fine);
+  const [customError, setCustomError] = useState("");
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [draftDataInizio, setDraftDataInizio] = useState(iniziale.inizio);
+  const [draftDataFine, setDraftDataFine] = useState(iniziale.fine);
+  const [draftConfrontoInizio, setDraftConfrontoInizio] = useState(iniziale.precedente.inizio);
+  const [draftConfrontoFine, setDraftConfrontoFine] = useState(iniziale.precedente.fine);
+  const [compareError, setCompareError] = useState("");
   const [granularita, setGranularita] = useState<"mese" | "anno">("mese");
   const [soggettoId, setSoggettoId] = useState("all");
   const [categoriaId, setCategoriaId] = useState("all");
@@ -175,8 +186,15 @@ export default function AnalisiPage() {
   const { data, isLoading, isError } = trpc.finanza.analytics.overview.useQuery(queryInput);
 
   function applicaPreset(next: Preset) {
+    if (next === "personalizzato") {
+      setCustomInizio(dataInizio);
+      setCustomFine(dataFine);
+      setCustomError("");
+      setCustomEditorOpen(true);
+      return;
+    }
     setPreset(next);
-    if (next === "personalizzato") return;
+    setCustomEditorOpen(false);
     const range = rangeForPreset(next);
     setDataInizio(range.inizio);
     setDataFine(range.fine);
@@ -185,16 +203,45 @@ export default function AnalisiPage() {
     setGranularita("mese");
   }
 
-  function aggiornaPeriodo(field: "inizio" | "fine", value: string) {
-    setPreset("personalizzato");
-    const nextInizio = field === "inizio" ? value : dataInizio;
-    const nextFine = field === "fine" ? value : dataFine;
-    if (field === "inizio") setDataInizio(value); else setDataFine(value);
-    if (nextInizio && nextFine) {
-      const prev = previousRange(new Date(`${nextInizio}T12:00:00`), new Date(`${nextFine}T12:00:00`));
-      setConfrontoInizio(prev.inizio);
-      setConfrontoFine(prev.fine);
+  function intervalloValido(inizio: string, fine: string) {
+    return Boolean(inizio && fine && inizio <= fine);
+  }
+
+  function selezionaCustom() {
+    if (!intervalloValido(customInizio, customFine)) {
+      setCustomError("Inserisci un intervallo valido: la data finale non può precedere quella iniziale.");
+      return;
     }
+    const prev = previousRange(new Date(`${customInizio}T12:00:00`), new Date(`${customFine}T12:00:00`));
+    setPreset("personalizzato");
+    setDataInizio(customInizio);
+    setDataFine(customFine);
+    setConfrontoInizio(prev.inizio);
+    setConfrontoFine(prev.fine);
+    setCustomEditorOpen(false);
+  }
+
+  function apriConfronto() {
+    setDraftDataInizio(dataInizio);
+    setDraftDataFine(dataFine);
+    setDraftConfrontoInizio(confrontoInizio);
+    setDraftConfrontoFine(confrontoFine);
+    setCompareError("");
+    setCompareOpen(true);
+  }
+
+  function selezionaConfronto() {
+    if (!intervalloValido(draftDataInizio, draftDataFine) || !intervalloValido(draftConfrontoInizio, draftConfrontoFine)) {
+      setCompareError("Controlla le date: ogni intervallo deve avere una data iniziale precedente o uguale alla finale.");
+      return;
+    }
+    setDataInizio(draftDataInizio);
+    setDataFine(draftDataFine);
+    setConfrontoInizio(draftConfrontoInizio);
+    setConfrontoFine(draftConfrontoFine);
+    setPreset("personalizzato");
+    setCustomEditorOpen(false);
+    setCompareOpen(false);
   }
 
   const filtriAttivi = [soggettoId, categoriaId, centroCostoId].filter((id) => id !== "all").length;
@@ -240,30 +287,73 @@ export default function AnalisiPage() {
                   key={key}
                   type="button"
                   onClick={() => applicaPreset(key)}
-                  className={`rounded-lg px-2 py-2 text-[11px] font-medium transition-colors ${preset === key ? "bg-amber-400 text-black" : "bg-muted text-muted-foreground"}`}
+                  className={`rounded-lg px-2 py-2 text-[11px] font-medium transition-colors ${(preset === key || (key === "personalizzato" && customEditorOpen)) ? "bg-amber-400 text-black" : "bg-muted text-muted-foreground"}`}
                 >
                   {key === "mese" ? "Mese" : key === "anno" ? "Anno" : key === "dodici_mesi" ? "12 mesi" : "Custom"}
                 </button>
               ))}
             </div>
+            {customEditorOpen && (
+              <div className="mt-4 space-y-3 rounded-xl border border-amber-400/25 bg-black/20 p-3">
+                <div>
+                  <p className="text-sm font-semibold">Periodo Custom</p>
+                  <p className="text-xs text-muted-foreground">Scegli le date da usare nell’analisi.</p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div><Label className="text-xs">Da</Label><Input type="date" value={customInizio} onChange={(event) => { setCustomInizio(event.target.value); setCustomError(""); }} className="mt-1" /></div>
+                  <div><Label className="text-xs">A</Label><Input type="date" value={customFine} onChange={(event) => { setCustomFine(event.target.value); setCustomError(""); }} className="mt-1" /></div>
+                </div>
+                {customError && <p role="alert" className="text-xs leading-relaxed text-red-400">{customError}</p>}
+                <div className="grid grid-cols-2 gap-2">
+                  <Button type="button" variant="outline" onClick={() => setCustomEditorOpen(false)}><ArrowLeft className="mr-2 size-4" />Indietro</Button>
+                  <Button type="button" onClick={selezionaCustom}>Seleziona</Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Periodi da confrontare</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label className="text-xs">Da</Label><Input type="date" value={dataInizio} onChange={(e) => aggiornaPeriodo("inizio", e.target.value)} className="mt-1" /></div>
-              <div><Label className="text-xs">A</Label><Input type="date" value={dataFine} onChange={(e) => aggiornaPeriodo("fine", e.target.value)} className="mt-1" /></div>
-              <div><Label className="text-xs">Confronta da</Label><Input type="date" value={confrontoInizio} onChange={(e) => setConfrontoInizio(e.target.value)} className="mt-1" /></div>
-              <div><Label className="text-xs">Confronta a</Label><Input type="date" value={confrontoFine} onChange={(e) => setConfrontoFine(e.target.value)} className="mt-1" /></div>
-            </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Card>
+            <CardContent className="p-2">
             <Select value={granularita} onValueChange={(value) => setGranularita(value as "mese" | "anno")}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="mese">Andamento mensile</SelectItem><SelectItem value="anno">Andamento annuale</SelectItem></SelectContent>
             </Select>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+          <Button type="button" variant="outline" className="h-full min-h-14 bg-card" onClick={apriConfronto}><Scale className="mr-2 size-4 text-amber-300" />Confronta</Button>
+        </div>
+
+        <Sheet open={compareOpen} onOpenChange={setCompareOpen}>
+          <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto rounded-t-2xl pb-[calc(1rem+env(safe-area-inset-bottom))]">
+            <SheetHeader className="text-left">
+              <SheetTitle>Confronta periodi</SheetTitle>
+              <SheetDescription>Seleziona il periodo principale e quello con cui confrontarlo. I dati cambieranno solo dopo la conferma.</SheetDescription>
+            </SheetHeader>
+            <div className="space-y-5 py-5">
+              <div className="space-y-3 rounded-xl border p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-amber-300">Periodo analizzato</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div><Label className="text-xs">Da</Label><Input type="date" value={draftDataInizio} onChange={(event) => { setDraftDataInizio(event.target.value); setCompareError(""); }} className="mt-1" /></div>
+                  <div><Label className="text-xs">A</Label><Input type="date" value={draftDataFine} onChange={(event) => { setDraftDataFine(event.target.value); setCompareError(""); }} className="mt-1" /></div>
+                </div>
+              </div>
+              <div className="space-y-3 rounded-xl border p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-blue-400">Periodo di confronto</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div><Label className="text-xs">Confronta da</Label><Input type="date" value={draftConfrontoInizio} onChange={(event) => { setDraftConfrontoInizio(event.target.value); setCompareError(""); }} className="mt-1" /></div>
+                  <div><Label className="text-xs">Confronta a</Label><Input type="date" value={draftConfrontoFine} onChange={(event) => { setDraftConfrontoFine(event.target.value); setCompareError(""); }} className="mt-1" /></div>
+                </div>
+              </div>
+              {compareError && <p role="alert" className="text-sm leading-relaxed text-red-400">{compareError}</p>}
+            </div>
+            <SheetFooter className="grid grid-cols-2 gap-2">
+              <Button type="button" variant="outline" onClick={() => setCompareOpen(false)}><ArrowLeft className="mr-2 size-4" />Indietro</Button>
+              <Button type="button" onClick={selezionaConfronto}>Seleziona</Button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
