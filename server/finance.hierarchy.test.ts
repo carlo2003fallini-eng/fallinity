@@ -86,4 +86,45 @@ describe.sequential("Finance — gerarchia centri e sottocategorie", () => {
     expect(await financeService.listCategorieCentri(`${COMPANY_ID}-other`)).toEqual([]);
     expect(await financeService.listCategorie(`${COMPANY_ID}-other`, "uscita", centroStallaId)).toEqual([]);
   });
+
+  it("sostituisce in blocco le sottocategorie di una categoria del centro", async () => {
+    const risultato = await financeService.replaceCategoriaCentroSottocategorie(
+      actor,
+      categoriaStallaId,
+      [mangimiId, sementiId, sementiId],
+    );
+
+    expect(risultato.totale).toBe(2);
+    expect(risultato.aggiunte).toContain(sementiId);
+
+    const entrambe = await financeService.listCategorie(COMPANY_ID, "uscita", centroStallaId);
+    expect(entrambe.map((item) => item.id)).toEqual(expect.arrayContaining([mangimiId, sementiId]));
+
+    const ridotto = await financeService.replaceCategoriaCentroSottocategorie(actor, categoriaStallaId, [sementiId]);
+    expect(ridotto.rimosse).toContain(mangimiId);
+
+    const correlate = await financeService.listCategorie(COMPANY_ID, "uscita", centroStallaId);
+    expect(correlate.map((item) => item.id)).toContain(sementiId);
+    expect(correlate.map((item) => item.id)).not.toContain(mangimiId);
+  });
+
+  it("impedisce alla gestione bulk di collegare record di un’altra azienda", async () => {
+    const actorAltro: ActorContext = {
+      companyId: `${COMPANY_ID}-other`,
+      userId: 2,
+      userUuid: `user-other-${RUN_ID}`,
+    };
+    const sottocategoriaAltra = (await financeService.createCategoria(actorAltro, {
+      nome: `Sottocategoria altra ${RUN_ID}`,
+      tipo: "uscita",
+    })).id;
+
+    await expect(
+      financeService.replaceCategoriaCentroSottocategorie(actor, categoriaStallaId, [sottocategoriaAltra]),
+    ).rejects.toThrow("altra azienda");
+
+    await expect(
+      financeService.replaceCategoriaCentroSottocategorie(actorAltro, categoriaStallaId, []),
+    ).rejects.toThrow("non valida");
+  });
 });

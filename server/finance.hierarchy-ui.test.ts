@@ -28,6 +28,24 @@ describe("Finance — contratto UI gerarchia classificazione", () => {
     expect(sottocategorie).toContain("categoriaCentroIds");
   });
 
+  it("offre una gestione in blocco ricercabile con selezione multipla", () => {
+    expect(centri).toContain("Gestisci relazioni in blocco");
+    expect(centri).toContain("replaceSottocategorie");
+    expect(centri).toContain("Seleziona tutte");
+    expect(centri).toContain("Deseleziona");
+    expect(centri).toContain('role="group"');
+    expect(centri).toContain("bulkSearch");
+  });
+
+  it("mostra il riepilogo e richiede conferma prima del salvataggio bulk", () => {
+    expect(centri).toContain("bulkAggiunte");
+    expect(centri).toContain("bulkRimosse");
+    expect(centri).toContain("Rivedi modifiche");
+    expect(centri).toContain("Conferma relazioni");
+    expect(centri).toContain("Conferma e applica");
+    expect(centri).toContain("I movimenti storici non verranno modificati");
+  });
+
   it("espone filtri gerarchici in Lista e Analisi", () => {
     expect(listaMovimenti).toContain("Categoria del centro");
     expect(listaMovimenti).toContain("Sottocategoria");

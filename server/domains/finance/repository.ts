@@ -165,6 +165,24 @@ export const financeRepository = {
       }
     });
   },
+  async replaceSottocategorieForCategoriaCentro(actor: ActorContext, categoriaCentroId: string, sottocategoriaIds: string[]) {
+    const db = await getDb();
+    if (!db) throw new Error("DB not available");
+    await db.transaction(async (tx) => {
+      await tx.update(categorieCentroSottocategorie).set(softDeletePayload(actor) as any).where(and(
+        eq(categorieCentroSottocategorie.companyId, actor.companyId),
+        eq(categorieCentroSottocategorie.categoriaCentroId, categoriaCentroId),
+        isNull(categorieCentroSottocategorie.deletedAt),
+      ));
+      for (const sottocategoriaId of sottocategoriaIds) {
+        await tx.insert(categorieCentroSottocategorie).values(withCreate(actor, {
+          id: newId(), categoriaCentroId, sottocategoriaId,
+        }) as any).onDuplicateKeyUpdate({
+          set: { deletedAt: null, deletedBy: null, updatedAt: new Date(), updatedBy: actor.userUuid } as any,
+        });
+      }
+    });
+  },
   async isSottocategoriaAllowed(companyId: string, categoriaCentroId: string, sottocategoriaId: string) {
     const db = await getDb();
     if (!db) return false;

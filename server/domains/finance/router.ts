@@ -21,6 +21,7 @@ import {
   listCategorieInput,
   createCategoriaCentroInput,
   updateCategoriaCentroInput,
+  bulkCategoriaCentroRelationsInput,
   createCentroCostoInput,
   updateCentroCostoInput,
   createSoggettoInput,
@@ -109,6 +110,10 @@ export const finanzaRouter = router({
       const actor = await getActor(ctx);
       const { id, ...data } = input;
       return financeService.updateCategoriaCentro(actor, id, data);
+    }),
+    replaceSottocategorie: protectedProcedure.input(bulkCategoriaCentroRelationsInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return financeService.replaceCategoriaCentroSottocategorie(actor, input.categoriaCentroId, input.sottocategoriaIds);
     }),
   }),
 

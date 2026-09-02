@@ -1130,3 +1130,17 @@
 - [x] Aggiungere test di migrazione, relazioni, isolamento aziendale e contratti UI
 - [x] Verificare flussi Entrata/Uscita a 390×844, suite Vitest, TypeScript e build
 - [x] Salvare il checkpoint della nuova gerarchia
+
+## Fase 41 — Gestione Relazioni in Blocco
+- [x] Verificare procedure e interfacce esistenti per le relazioni categoria-sottocategoria
+- [x] Definire input bulk con categoria del centro e lista univoca di sottocategorie
+- [x] Implementare sostituzione atomica delle relazioni con isolamento multi-azienda
+- [x] Proteggere dati storici e impedire collegamenti a categorie o sottocategorie di altre aziende
+- [x] Aggiungere comando “Gestisci relazioni in blocco” nelle impostazioni
+- [x] Aggiungere ricerca, checkbox, seleziona tutte e deseleziona tutte
+- [x] Mostrare relazioni correnti, conteggio selezionato e riepilogo delle modifiche
+- [x] Richiedere conferma prima di applicare aggiunte e rimozioni
+- [x] Aggiornare immediatamente form movimenti, filtri e conteggi dopo il salvataggio
+- [x] Aggiungere test backend e contratti UI di regressione
+- [x] Verificare flusso a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della funzionalità

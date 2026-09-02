@@ -68,6 +68,10 @@ export const updateCategoriaCentroInput = z.object({
   attivo: z.boolean().optional(),
   ordine: z.number().int().optional(),
 });
+export const bulkCategoriaCentroRelationsInput = z.object({
+  categoriaCentroId: z.string().min(1),
+  sottocategoriaIds: z.array(z.string().min(1)).max(500),
+});
 
 // ── Centri di costo ──
 export const createCentroCostoInput = z.object({

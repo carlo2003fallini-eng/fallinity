@@ -106,6 +106,31 @@ export const financeService = {
   async updateCategoriaCentro(actor: ActorContext, id: string, data: Record<string, unknown>) {
     return repo.updateCategoriaCentro(actor, id, data);
   },
+  async replaceCategoriaCentroSottocategorie(actor: ActorContext, categoriaCentroId: string, sottocategoriaIds: string[]) {
+    const categoriaCentro = await repo.getCategoriaCentro(actor.companyId, categoriaCentroId);
+    if (!categoriaCentro || categoriaCentro.attivo === false) throw new Error("Categoria del centro non valida o archiviata");
+
+    const idsUnivoci = Array.from(new Set(sottocategoriaIds));
+    const sottocategorie = await Promise.all(idsUnivoci.map((id) => repo.getCategoria(actor.companyId, id)));
+    if (sottocategorie.some((item) => !item || item.attivo === false)) {
+      throw new Error("Una o più sottocategorie non sono valide o appartengono a un'altra azienda");
+    }
+
+    const relazioniPrima = (await repo.listCategoriaCentroRelations(actor.companyId))
+      .filter((relazione) => relazione.categoriaCentroId === categoriaCentroId)
+      .map((relazione) => relazione.sottocategoriaId);
+    const prima = new Set(relazioniPrima);
+    const dopo = new Set(idsUnivoci);
+
+    await repo.replaceSottocategorieForCategoriaCentro(actor, categoriaCentroId, idsUnivoci);
+
+    return {
+      categoriaCentroId,
+      totale: idsUnivoci.length,
+      aggiunte: idsUnivoci.filter((id) => !prima.has(id)),
+      rimosse: relazioniPrima.filter((id) => !dopo.has(id)),
+    };
+  },
 
   // ══════════════════════════════════════════════════════════════════════════
   // CENTRI DI COSTO
