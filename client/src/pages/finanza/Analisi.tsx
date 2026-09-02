@@ -48,7 +48,7 @@ const PURPLE = "#a78bfa";
 const COLORS = [GREEN, GOLD, BLUE, PURPLE, RED, "#2dd4bf", "#fb923c", "#f472b6"];
 
 type Preset = "mese" | "anno" | "dodici_mesi" | "personalizzato";
-type Dimensione = "categorie" | "soggetti" | "centri";
+type Dimensione = "categorie" | "categorie_centri" | "soggetti" | "centri";
 
 function isoDate(date: Date) {
   const y = date.getFullYear();
@@ -165,12 +165,19 @@ export default function AnalisiPage() {
   const [granularita, setGranularita] = useState<"mese" | "anno">("mese");
   const [soggettoId, setSoggettoId] = useState("all");
   const [categoriaId, setCategoriaId] = useState("all");
+  const [categoriaCentroId, setCategoriaCentroId] = useState("all");
   const [centroCostoId, setCentroCostoId] = useState("all");
   const [dimensione, setDimensione] = useState<Dimensione>("categorie");
 
   const { data: soggetti = [] } = trpc.finanza.soggetti.list.useQuery(undefined);
-  const { data: categorie = [] } = trpc.finanza.categorie.list.useQuery(undefined);
   const { data: centriCosto = [] } = trpc.finanza.centriCosto.list.useQuery();
+  const { data: categorieCentri = [] } = trpc.finanza.categorieCentri.list.useQuery();
+  const categoryQueryInput = useMemo(() => ({
+    centroCostoId: centroCostoId === "all" ? undefined : centroCostoId,
+    categoriaCentroId: centroCostoId === "all" && categoriaCentroId !== "all" ? categoriaCentroId : undefined,
+  }), [centroCostoId, categoriaCentroId]);
+  const { data: categorie = [] } = trpc.finanza.categorie.list.useQuery(categoryQueryInput);
+  const centriFiltrati = useMemo(() => (centriCosto as any[]).filter((centro) => categoriaCentroId === "all" || centro.categoriaCentroId === categoriaCentroId), [centriCosto, categoriaCentroId]);
 
   const queryInput = useMemo(() => ({
     dataInizio,
@@ -180,8 +187,9 @@ export default function AnalisiPage() {
     granularita,
     soggettoId: soggettoId === "all" ? undefined : soggettoId,
     categoriaId: categoriaId === "all" ? undefined : categoriaId,
+    categoriaCentroId: categoriaCentroId === "all" ? undefined : categoriaCentroId,
     centroCostoId: centroCostoId === "all" ? undefined : centroCostoId,
-  }), [dataInizio, dataFine, confrontoInizio, confrontoFine, granularita, soggettoId, categoriaId, centroCostoId]);
+  }), [dataInizio, dataFine, confrontoInizio, confrontoFine, granularita, soggettoId, categoriaId, categoriaCentroId, centroCostoId]);
 
   const { data, isLoading, isError } = trpc.finanza.analytics.overview.useQuery(queryInput);
 
@@ -244,16 +252,16 @@ export default function AnalisiPage() {
     setCompareOpen(false);
   }
 
-  const filtriAttivi = [soggettoId, categoriaId, centroCostoId].filter((id) => id !== "all").length;
+  const filtriAttivi = [soggettoId, categoriaCentroId, centroCostoId, categoriaId].filter((id) => id !== "all").length;
   const comparisonRows = data ? [
     { label: "Entrate", current: data.kpi.entrate.valore, previous: data.kpi.entrate.precedente, difference: data.kpi.entrate.differenza },
     { label: "Uscite", current: data.kpi.uscite.valore, previous: data.kpi.uscite.precedente, difference: data.kpi.uscite.differenza },
     { label: "Risultato", current: data.kpi.utile.valore, previous: data.kpi.utile.precedente, difference: data.kpi.utile.differenza },
   ] : [];
   const dimensionData = data ? (
-    dimensione === "categorie" ? data.categorie : dimensione === "soggetti" ? data.soggetti : data.centriCosto
+    dimensione === "categorie" ? data.sottocategorie : dimensione === "categorie_centri" ? data.categorieCentri : dimensione === "soggetti" ? data.soggetti : data.centriCosto
   ).slice(0, 8).map((item: any) => ({ ...item, valore: item.totale })) : [];
-  const pieData = data?.categorie.filter((item: any) => item.tipo === "uscita").slice(0, 8) ?? [];
+  const pieData = data?.sottocategorie.filter((item: any) => item.tipo === "uscita").slice(0, 8) ?? [];
 
   return (
     <div className="min-h-screen bg-background pb-28">
@@ -358,20 +366,24 @@ export default function AnalisiPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm">Filtri analisi</CardTitle>
-            {filtriAttivi > 0 && <Button variant="ghost" size="sm" onClick={() => { setSoggettoId("all"); setCategoriaId("all"); setCentroCostoId("all"); }}><FilterX className="mr-1 size-4" />Azzera</Button>}
+            {filtriAttivi > 0 && <Button variant="ghost" size="sm" onClick={() => { setSoggettoId("all"); setCategoriaId("all"); setCategoriaCentroId("all"); setCentroCostoId("all"); }}><FilterX className="mr-1 size-4" />Azzera</Button>}
           </CardHeader>
-          <CardContent className="grid gap-2 sm:grid-cols-3">
+          <CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             <Select value={soggettoId} onValueChange={setSoggettoId}>
               <SelectTrigger><SelectValue placeholder="Tutti i soggetti" /></SelectTrigger>
               <SelectContent><SelectItem value="all">Tutti i soggetti</SelectItem>{(soggetti as any[]).map((s) => <SelectItem key={s.id} value={s.id}>{s.nomeBreve || s.ragioneSociale}</SelectItem>)}</SelectContent>
             </Select>
-            <Select value={categoriaId} onValueChange={setCategoriaId}>
-              <SelectTrigger><SelectValue placeholder="Tutte le categorie" /></SelectTrigger>
-              <SelectContent><SelectItem value="all">Tutte le categorie</SelectItem>{(categorie as any[]).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
+            <Select value={categoriaCentroId} onValueChange={(value) => { setCategoriaCentroId(value); setCentroCostoId("all"); setCategoriaId("all"); }}>
+              <SelectTrigger><SelectValue placeholder="Categorie dei centri" /></SelectTrigger>
+              <SelectContent><SelectItem value="all">Tutte le categorie dei centri</SelectItem>{(categorieCentri as any[]).filter((c) => c.attivo !== false).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
             </Select>
-            <Select value={centroCostoId} onValueChange={setCentroCostoId}>
+            <Select value={centroCostoId} onValueChange={(value) => { setCentroCostoId(value); setCategoriaId("all"); const centro = (centriCosto as any[]).find((item) => item.id === value); if (centro?.categoriaCentroId) setCategoriaCentroId(centro.categoriaCentroId); }}>
               <SelectTrigger><SelectValue placeholder="Tutti i centri" /></SelectTrigger>
-              <SelectContent><SelectItem value="all">Tutti i centri di costo</SelectItem>{(centriCosto as any[]).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
+              <SelectContent><SelectItem value="all">Tutti i centri di costo</SelectItem>{centriFiltrati.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
+            </Select>
+            <Select value={categoriaId} onValueChange={setCategoriaId}>
+              <SelectTrigger><SelectValue placeholder="Tutte le sottocategorie" /></SelectTrigger>
+              <SelectContent><SelectItem value="all">Tutte le sottocategorie</SelectItem>{(categorie as any[]).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
             </Select>
           </CardContent>
         </Card>
@@ -442,8 +454,8 @@ export default function AnalisiPage() {
               <Card>
                 <CardHeader className="pb-2"><CardTitle className="text-sm">Confronta dimensioni</CardTitle></CardHeader>
                 <CardContent>
-                  <div className="mb-3 grid grid-cols-3 gap-2">
-                    {(["categorie", "soggetti", "centri"] as Dimensione[]).map((item) => <button key={item} type="button" onClick={() => setDimensione(item)} className={`rounded-lg px-2 py-2 text-xs font-medium ${dimensione === item ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{item === "categorie" ? "Categorie" : item === "soggetti" ? "Soggetti" : "Centri"}</button>)}
+                  <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    {(["categorie", "categorie_centri", "soggetti", "centri"] as Dimensione[]).map((item) => <button key={item} type="button" onClick={() => setDimensione(item)} className={`rounded-lg px-2 py-2 text-xs font-medium ${dimensione === item ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{item === "categorie" ? "Sottocategorie" : item === "categorie_centri" ? "Categorie centri" : item === "soggetti" ? "Soggetti" : "Centri"}</button>)}
                   </div>
                   {dimensionData.length ? <div className="h-64"><ResponsiveContainer width="100%" height="100%"><BarChart data={dimensionData} layout="vertical" margin={{ top: 0, right: 8, left: 10, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(255,255,255,.08)" /><XAxis type="number" tickFormatter={fmtCompact} tick={{ fill: "#8a8a8a", fontSize: 10 }} axisLine={false} tickLine={false} /><YAxis type="category" dataKey="nome" width={90} tick={{ fill: "#a3a3a3", fontSize: 10 }} axisLine={false} tickLine={false} /><Tooltip formatter={(value: number) => fmtMoney(value)} /><Bar dataKey="valore" name="Totale" fill={BLUE} radius={[0, 4, 4, 0]} /></BarChart></ResponsiveContainer></div> : <p className="py-12 text-center text-sm text-muted-foreground">Nessun dato per il confronto.</p>}
                 </CardContent>

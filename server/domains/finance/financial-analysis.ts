@@ -2,6 +2,7 @@ import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   categorieFinanziarie,
+  categorieCentriCosto,
   centriDiCosto,
   documentiFinanziari,
   soggetti,
@@ -18,6 +19,7 @@ export const financialAnalysisInput = z.object({
   granularita: z.enum(["mese", "anno"]).default("mese"),
   soggettoId: z.string().optional(),
   categoriaId: z.string().optional(),
+  categoriaCentroId: z.string().optional(),
   centroCostoId: z.string().optional(),
 });
 
@@ -55,6 +57,12 @@ function condizioniBase(companyId: string, input: FinancialAnalysisInput, inizio
   ];
   if (input.soggettoId) condizioni.push(eq(documentiFinanziari.soggettoId, input.soggettoId));
   if (input.categoriaId) condizioni.push(eq(documentiFinanziari.categoriaId, input.categoriaId));
+  if (input.categoriaCentroId) condizioni.push(sql`${documentiFinanziari.centroCostoId} IN (
+    SELECT ${centriDiCosto.id} FROM ${centriDiCosto}
+    WHERE ${centriDiCosto.companyId} = ${companyId}
+      AND ${centriDiCosto.categoriaCentroId} = ${input.categoriaCentroId}
+      AND ${centriDiCosto.deletedAt} IS NULL
+  )`);
   if (input.centroCostoId) condizioni.push(eq(documentiFinanziari.centroCostoId, input.centroCostoId));
   return condizioni;
 }
@@ -126,7 +134,32 @@ async function distribuzioneCategorie(companyId: string, input: FinancialAnalysi
     .groupBy(categorieFinanziarie.id, categorieFinanziarie.nome, categorieFinanziarie.colore, documentiFinanziari.tipo)
     .orderBy(desc(sql`COALESCE(SUM(${documentiFinanziari.totale}), 0)`))
     .limit(12);
-  return rows.map((row) => ({ ...row, nome: row.nome ?? "Senza categoria", totale: Number(row.totale), movimenti: Number(row.movimenti) }));
+  return rows.map((row) => ({ ...row, nome: row.nome ?? "Senza sottocategoria", totale: Number(row.totale), movimenti: Number(row.movimenti) }));
+}
+
+async function distribuzioneCategorieCentri(companyId: string, input: FinancialAnalysisInput) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select({
+    id: categorieCentriCosto.id,
+    nome: categorieCentriCosto.nome,
+    colore: categorieCentriCosto.colore,
+    totale: sql<number>`COALESCE(SUM(${documentiFinanziari.totale}), 0)`,
+    movimenti: sql<number>`COUNT(${documentiFinanziari.id})`,
+  }).from(documentiFinanziari)
+    .leftJoin(centriDiCosto, and(
+      eq(centriDiCosto.id, documentiFinanziari.centroCostoId),
+      eq(centriDiCosto.companyId, documentiFinanziari.companyId),
+    ))
+    .leftJoin(categorieCentriCosto, and(
+      eq(categorieCentriCosto.id, centriDiCosto.categoriaCentroId),
+      eq(categorieCentriCosto.companyId, documentiFinanziari.companyId),
+    ))
+    .where(and(...condizioniBase(companyId, input, input.dataInizio, input.dataFine)))
+    .groupBy(categorieCentriCosto.id, categorieCentriCosto.nome, categorieCentriCosto.colore)
+    .orderBy(desc(sql`COALESCE(SUM(${documentiFinanziari.totale}), 0)`))
+    .limit(10);
+  return rows.map((row) => ({ ...row, nome: row.nome ?? "Senza categoria del centro", totale: Number(row.totale), movimenti: Number(row.movimenti) }));
 }
 
 async function distribuzioneSoggetti(companyId: string, input: FinancialAnalysisInput) {
@@ -199,11 +232,12 @@ export function creaInsightFinanziari(attuale: Totals, precedente: Totals, categ
 }
 
 export async function financialAnalysisOverview(companyId: string, input: FinancialAnalysisInput) {
-  const [attuale, precedente, trend, categorie, soggettiDati, centriCosto] = await Promise.all([
+  const [attuale, precedente, trend, categorie, categorieCentri, soggettiDati, centriCosto] = await Promise.all([
     totaliPeriodo(companyId, input, input.dataInizio, input.dataFine),
     totaliPeriodo(companyId, input, input.confrontoInizio, input.confrontoFine),
     trendPeriodo(companyId, input),
     distribuzioneCategorie(companyId, input),
+    distribuzioneCategorieCentri(companyId, input),
     distribuzioneSoggetti(companyId, input),
     distribuzioneCentri(companyId, input),
   ]);
@@ -224,6 +258,8 @@ export async function financialAnalysisOverview(companyId: string, input: Financ
     },
     trend,
     categorie,
+    sottocategorie: categorie,
+    categorieCentri,
     soggetti: soggettiDati,
     centriCosto,
     insight: creaInsightFinanziari(attuale, precedente, categorie as any, soggettiDati as any),

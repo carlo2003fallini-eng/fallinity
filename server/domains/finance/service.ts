@@ -9,6 +9,28 @@ import {
   FREQUENZA_MESI,
 } from "./types";
 
+async function validaClassificazione(actor: ActorContext, tipo: "entrata" | "uscita", centroCostoId: string | null | undefined, sottocategoriaId: string) {
+  const sottocategoria = await repo.getCategoria(actor.companyId, sottocategoriaId);
+  if (!sottocategoria || sottocategoria.attivo === false) throw new Error("Sottocategoria non valida o archiviata");
+  if (sottocategoria.tipo !== "entrambi" && sottocategoria.tipo !== tipo) {
+    throw new Error(`La sottocategoria selezionata non è utilizzabile per una ${tipo}`);
+  }
+  if (!centroCostoId) return;
+  const centro = await repo.getCentroCosto(actor.companyId, centroCostoId);
+  if (!centro || centro.attivo === false) throw new Error("Centro di costo non valido o archiviato");
+  if (!centro.categoriaCentroId) throw new Error("Il centro di costo non ha una categoria associata");
+  const consentita = await repo.isSottocategoriaAllowed(actor.companyId, centro.categoriaCentroId, sottocategoriaId);
+  if (!consentita) {
+    const relazioni = await repo.listCategoriaCentroRelations(actor.companyId);
+    const configurata = relazioni.some((relazione) => relazione.sottocategoriaId === sottocategoriaId);
+    if (!configurata) {
+      await repo.replaceCategoriaCentroRelations(actor, sottocategoriaId, [centro.categoriaCentroId]);
+      return;
+    }
+  }
+  if (!consentita) throw new Error("La sottocategoria non è correlata alla categoria del centro di costo selezionato");
+}
+
 /**
  * FINANCE — Service
  * Logica di business: calcolo IVA, gestione saldo conti, workflow stati,
@@ -48,28 +70,71 @@ export const financeService = {
   // ══════════════════════════════════════════════════════════════════════════
   // CATEGORIE
   // ══════════════════════════════════════════════════════════════════════════
-  async listCategorie(companyId: string, tipo?: string) {
-    return repo.listCategorie(companyId, tipo);
+  async listCategorie(companyId: string, tipo?: string, centroCostoId?: string, categoriaCentroId?: string) {
+    const [categorie, relazioni] = await Promise.all([
+      repo.listCategorie(companyId, tipo, centroCostoId, categoriaCentroId),
+      repo.listCategoriaCentroRelations(companyId),
+    ]);
+    return categorie.map((categoria) => ({
+      ...categoria,
+      categoriaCentroIds: relazioni.filter((relazione) => relazione.sottocategoriaId === categoria.id).map((relazione) => relazione.categoriaCentroId),
+    }));
   },
   async createCategoria(actor: ActorContext, data: Record<string, unknown>) {
+    const { categoriaCentroIds = [], ...categoria } = data as Record<string, unknown> & { categoriaCentroIds?: string[] };
+    for (const categoriaCentroId of categoriaCentroIds) {
+      if (!await repo.getCategoriaCentro(actor.companyId, categoriaCentroId)) throw new Error("Categoria del centro non valida");
+    }
     const codice = (data.codice as string) || `CAT-${Date.now().toString(36).toUpperCase()}`;
-    return repo.insertCategoria(actor, { ...data, codice });
+    const result = await repo.insertCategoria(actor, { ...categoria, codice });
+    if (categoriaCentroIds.length) await repo.replaceCategoriaCentroRelations(actor, result.id, categoriaCentroIds);
+    return result;
   },
   async updateCategoria(actor: ActorContext, id: string, data: Record<string, unknown>) {
-    return repo.updateCategoria(actor, id, data);
+    const { categoriaCentroIds, ...categoria } = data as Record<string, unknown> & { categoriaCentroIds?: string[] };
+    await repo.updateCategoria(actor, id, categoria);
+    if (categoriaCentroIds) await repo.replaceCategoriaCentroRelations(actor, id, categoriaCentroIds);
+    return { success: true };
+  },
+  async listCategorieCentri(companyId: string) {
+    return repo.listCategorieCentri(companyId);
+  },
+  async createCategoriaCentro(actor: ActorContext, data: Record<string, unknown>) {
+    const codice = (data.codice as string) || `CC-${Date.now().toString(36).toUpperCase()}`;
+    return repo.insertCategoriaCentro(actor, { ...data, codice });
+  },
+  async updateCategoriaCentro(actor: ActorContext, id: string, data: Record<string, unknown>) {
+    return repo.updateCategoriaCentro(actor, id, data);
   },
 
   // ══════════════════════════════════════════════════════════════════════════
   // CENTRI DI COSTO
   // ══════════════════════════════════════════════════════════════════════════
   async listCentriCosto(companyId: string) {
-    return repo.listCentriCosto(companyId);
+    const [centri, categorie] = await Promise.all([
+      repo.listCentriCosto(companyId),
+      repo.listCategorieCentri(companyId),
+    ]);
+    const nomiCategorie = new Map(categorie.map((categoria) => [categoria.id, categoria.nome]));
+    return centri.map((centro) => ({ ...centro, categoriaCentroNome: centro.categoriaCentroId ? nomiCategorie.get(centro.categoriaCentroId) ?? null : null }));
   },
   async createCentroCosto(actor: ActorContext, data: Record<string, unknown>) {
+    let categoriaCentroId = data.categoriaCentroId ? String(data.categoriaCentroId) : "";
+    if (categoriaCentroId && !await repo.getCategoriaCentro(actor.companyId, categoriaCentroId)) throw new Error("Categoria del centro non valida");
+    if (!categoriaCentroId) {
+      const categoria = await this.createCategoriaCentro(actor, {
+        nome: String(data.nome),
+        codice: `CC-${Date.now().toString(36).toUpperCase()}`,
+        descrizione: "Creata automaticamente con il centro di costo",
+        colore: data.colore,
+      });
+      categoriaCentroId = categoria.id;
+    }
     const codice = (data.codice as string) || `CDC-${Date.now().toString(36).toUpperCase()}`;
-    return repo.insertCentroCosto(actor, { ...data, codice });
+    return repo.insertCentroCosto(actor, { ...data, categoriaCentroId, codice });
   },
   async updateCentroCosto(actor: ActorContext, id: string, data: Record<string, unknown>) {
+    if (data.categoriaCentroId && !await repo.getCategoriaCentro(actor.companyId, String(data.categoriaCentroId))) throw new Error("Categoria del centro non valida");
     return repo.updateCentroCosto(actor, id, data);
   },
 
@@ -145,6 +210,7 @@ export const financeService = {
    * 2. "documento" → crea documento + scadenza (saldo invariato finché non si registra il pagamento)
    */
   async creaMovimento(actor: ActorContext, input: CreateMovimentoInput) {
+    await validaClassificazione(actor, input.tipo, input.centroCostoId, input.categoriaId);
     // 1. Crea il documento finanziario
     const statoIniziale = input.tipoRegistrazione === "pagato_subito"
       ? (input.tipo === "entrata" ? "incassato" : "pagato")
@@ -316,6 +382,9 @@ export const financeService = {
     }
 
     const tipo = input.tipo ?? doc.tipo;
+    const centroCostoId = input.centroCostoId !== undefined ? input.centroCostoId : doc.centroCostoId;
+    const sottocategoriaId = input.categoriaId ?? doc.categoriaId;
+    await validaClassificazione(actor, tipo, centroCostoId, sottocategoriaId);
     const totale = input.totale ?? doc.totale;
     const imponibile = input.imponibile ?? doc.imponibile;
     const aliquotaIva = input.aliquotaIva ?? doc.aliquotaIva;
@@ -829,9 +898,41 @@ export const financeService = {
     const existingCdcCodes = new Set((existingCdc as any[]).map((c: any) => c.codice));
     for (const cdc of CENTRI_COSTO_DEFAULT) {
       if (!existingCdcCodes.has(cdc.codice)) {
-        await repo.insertCentroCosto(actor, { ...cdc, attivo: true });
+        await this.createCentroCosto(actor, { ...cdc, attivo: true });
         inserted++;
       }
+    }
+
+    // Collega le sottocategorie ancora prive di relazioni alle categorie dei
+    // centri più pertinenti. Non sovrascrive mai configurazioni già esistenti.
+    const [categorieAggiornate, centriAggiornati, relazioni] = await Promise.all([
+      repo.listCategorie(actor.companyId),
+      this.listCentriCosto(actor.companyId),
+      repo.listCategoriaCentroRelations(actor.companyId),
+    ]);
+    const categorieGiaCollegate = new Set(relazioni.map((relazione) => relazione.sottocategoriaId));
+    const paroleChiave: Array<{ termini: string[]; centri: string[] }> = [
+      { termini: ["alimentazione", "mangim"], centri: ["alimentazione", "stalla"] },
+      { termini: ["farmac", "veterin", "sanità"], centri: ["sanità animale", "stalla"] },
+      { termini: ["carbur", "manutenzione", "ricamb"], centri: ["officina", "macchinari"] },
+      { termini: ["sement", "concim", "coltur", "pac", "contoter"], centri: ["campi"] },
+      { termini: ["latte"], centri: ["produzione latte", "stalla"] },
+      { termini: ["animal"], centri: ["stalla"] },
+      { termini: ["energia"], centri: ["energia"] },
+      { termini: ["personale"], centri: ["personale"] },
+      { termini: ["invest", "leasing", "mutu"], centri: ["investimenti"] },
+      { termini: ["amministr", "assicura", "impost", "consul"], centri: ["amministrazione"] },
+    ];
+    for (const sottocategoria of categorieAggiornate) {
+      if (categorieGiaCollegate.has(sottocategoria.id)) continue;
+      const nome = sottocategoria.nome.toLowerCase();
+      const regola = paroleChiave.find((item) => item.termini.some((termine) => nome.includes(termine)));
+      const nomiTarget = regola?.centri ?? ["altro"];
+      const categoriaCentroIds = (centriAggiornati as any[])
+        .filter((centro) => nomiTarget.includes(String(centro.nome).toLowerCase()))
+        .map((centro) => centro.categoriaCentroId)
+        .filter(Boolean);
+      if (categoriaCentroIds.length) await repo.replaceCategoriaCentroRelations(actor, sottocategoria.id, categoriaCentroIds);
     }
 
     // Metodi di pagamento — inserisci solo quelli mancanti

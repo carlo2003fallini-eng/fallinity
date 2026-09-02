@@ -34,19 +34,40 @@ export const createCategoriaInput = z.object({
   colore: z.string().optional(),
   icona: z.string().optional(),
   parentId: z.string().optional(),
+  categoriaCentroIds: z.array(z.string().min(1)).optional(),
   ordine: z.number().int().optional(),
 });
 export const updateCategoriaInput = z.object({
   id: z.string(),
   nome: z.string().min(1).optional(),
+  tipo: z.enum(["entrata", "uscita", "entrambi"]).optional(),
   colore: z.string().optional(),
   icona: z.string().optional(),
   attivo: z.boolean().optional(),
+  categoriaCentroIds: z.array(z.string().min(1)).optional(),
   ordine: z.number().int().optional(),
 });
 export const listCategorieInput = z.object({
   tipo: z.enum(["entrata", "uscita", "entrambi"]).optional(),
+  centroCostoId: z.string().optional(),
+  categoriaCentroId: z.string().optional(),
 }).optional();
+
+export const createCategoriaCentroInput = z.object({
+  nome: z.string().min(1),
+  codice: z.string().optional(),
+  descrizione: z.string().optional(),
+  colore: z.string().optional(),
+  ordine: z.number().int().optional(),
+});
+export const updateCategoriaCentroInput = z.object({
+  id: z.string(),
+  nome: z.string().min(1).optional(),
+  descrizione: z.string().nullable().optional(),
+  colore: z.string().optional(),
+  attivo: z.boolean().optional(),
+  ordine: z.number().int().optional(),
+});
 
 // ── Centri di costo ──
 export const createCentroCostoInput = z.object({
@@ -54,12 +75,14 @@ export const createCentroCostoInput = z.object({
   codice: z.string().optional(),
   descrizione: z.string().optional(),
   colore: z.string().optional(),
+  categoriaCentroId: z.string().optional(),
 });
 export const updateCentroCostoInput = z.object({
   id: z.string(),
   nome: z.string().min(1).optional(),
   descrizione: z.string().optional(),
   colore: z.string().optional(),
+  categoriaCentroId: z.string().nullable().optional(),
   attivo: z.boolean().optional(),
 });
 
@@ -151,6 +174,7 @@ export const listMovimentiInput = z.object({
   tipo: z.enum(["entrata", "uscita"]).optional(),
   stato: z.string().optional(),
   categoriaId: z.string().optional(),
+  categoriaCentroId: z.string().optional(),
   centroCostoId: z.string().optional(),
   contoId: z.string().optional(),
   soggettoId: z.string().optional(),

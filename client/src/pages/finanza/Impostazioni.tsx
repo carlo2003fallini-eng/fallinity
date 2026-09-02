@@ -21,6 +21,7 @@ export default function ImpostazioniFinanza() {
 
   // Fetch counts
   const { data: categorie = [] } = trpc.finanza.categorie.list.useQuery({});
+  const { data: categorieCentri = [] } = trpc.finanza.categorieCentri.list.useQuery();
   const { data: soggettiList = [] } = trpc.finanza.soggetti.list.useQuery({});
   const { data: centriCosto = [] } = trpc.finanza.centriCosto.list.useQuery();
   const { data: conti = [] } = trpc.finanza.conti.list.useQuery();
@@ -29,8 +30,8 @@ export default function ImpostazioniFinanza() {
   const cards: SettingCard[] = [
     {
       icon: Tag,
-      title: "Categorie e sottocategorie",
-      description: "Organizza entrate e uscite per tipologia",
+      title: "Sottocategorie",
+      description: "Collega ogni voce alle categorie dei centri",
       path: "/finanza/impostazioni/categorie",
       color: "oklch(0.65 0.18 142)",
       count: categorie.length,
@@ -45,8 +46,8 @@ export default function ImpostazioniFinanza() {
     },
     {
       icon: Target,
-      title: "Centri di costo",
-      description: "Ripartisci le spese per area aziendale",
+      title: "Centri e categorie",
+      description: `${categorieCentri.length} categorie · assegna ogni centro alla sua categoria`,
       path: "/finanza/impostazioni/centri-costo",
       color: "oklch(0.72 0.15 75)",
       count: centriCosto.length,

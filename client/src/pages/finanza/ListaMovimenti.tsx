@@ -54,13 +54,20 @@ export default function ListaMovimenti() {
   const [search, setSearch] = useState("");
   const [soggettoId, setSoggettoId] = useState("all");
   const [categoriaId, setCategoriaId] = useState("all");
+  const [categoriaCentroId, setCategoriaCentroId] = useState("all");
   const [centroCostoId, setCentroCostoId] = useState("all");
   const [dataInizio, setDataInizio] = useState("");
   const [dataFine, setDataFine] = useState("");
 
   const { data: soggetti = [] } = trpc.finanza.soggetti.list.useQuery(undefined);
-  const { data: categorie = [] } = trpc.finanza.categorie.list.useQuery(undefined);
+  const categoryQueryInput = useMemo(() => ({
+    centroCostoId: centroCostoId === "all" ? undefined : centroCostoId,
+    categoriaCentroId: centroCostoId === "all" && categoriaCentroId !== "all" ? categoriaCentroId : undefined,
+  }), [centroCostoId, categoriaCentroId]);
+  const { data: categorie = [] } = trpc.finanza.categorie.list.useQuery(categoryQueryInput);
+  const { data: categorieCentri = [] } = trpc.finanza.categorieCentri.list.useQuery();
   const { data: centriCosto = [] } = trpc.finanza.centriCosto.list.useQuery();
+  const centriFiltrati = useMemo(() => (centriCosto as any[]).filter((centro) => categoriaCentroId === "all" || centro.categoriaCentroId === categoriaCentroId), [centriCosto, categoriaCentroId]);
 
   const tipoFilter: "entrata" | "uscita" | undefined = tab === "entrate" ? "entrata" : tab === "uscite" ? "uscita" : undefined;
   const queryInput = useMemo(() => ({
@@ -69,10 +76,11 @@ export default function ListaMovimenti() {
     search: search || undefined,
     soggettoId: soggettoId === "all" ? undefined : soggettoId,
     categoriaId: categoriaId === "all" ? undefined : categoriaId,
+    categoriaCentroId: categoriaCentroId === "all" ? undefined : categoriaCentroId,
     centroCostoId: centroCostoId === "all" ? undefined : centroCostoId,
     dataInizio: dataInizio || undefined,
     dataFine: dataFine || undefined,
-  }), [tipoFilter, tab, search, soggettoId, categoriaId, centroCostoId, dataInizio, dataFine]);
+  }), [tipoFilter, tab, search, soggettoId, categoriaId, categoriaCentroId, centroCostoId, dataInizio, dataFine]);
   const { data: movimenti = [], isLoading } = trpc.finanza.movimenti.list.useQuery(queryInput);
 
   const labelFor = (items: any[], id: string, fallback: string) => {
@@ -81,8 +89,9 @@ export default function ListaMovimenti() {
   };
   const activeFilters = [
     soggettoId !== "all" ? { key: "soggetto", label: labelFor(soggetti as any[], soggettoId, "Soggetto"), clear: () => setSoggettoId("all") } : null,
-    categoriaId !== "all" ? { key: "categoria", label: labelFor(categorie as any[], categoriaId, "Categoria"), clear: () => setCategoriaId("all") } : null,
+    categoriaCentroId !== "all" ? { key: "categoriaCentro", label: labelFor(categorieCentri as any[], categoriaCentroId, "Categoria del centro"), clear: () => { setCategoriaCentroId("all"); setCentroCostoId("all"); setCategoriaId("all"); } } : null,
     centroCostoId !== "all" ? { key: "centro", label: labelFor(centriCosto as any[], centroCostoId, "Centro di costo"), clear: () => setCentroCostoId("all") } : null,
+    categoriaId !== "all" ? { key: "sottocategoria", label: labelFor(categorie as any[], categoriaId, "Sottocategoria"), clear: () => setCategoriaId("all") } : null,
     dataInizio ? { key: "inizio", label: `Dal ${fmtDate(dataInizio)}`, clear: () => setDataInizio("") } : null,
     dataFine ? { key: "fine", label: `Al ${fmtDate(dataFine)}`, clear: () => setDataFine("") } : null,
   ].filter(Boolean) as Array<{ key: string; label: string; clear: () => void }>;
@@ -90,6 +99,7 @@ export default function ListaMovimenti() {
   const clearFilters = () => {
     setSoggettoId("all");
     setCategoriaId("all");
+    setCategoriaCentroId("all");
     setCentroCostoId("all");
     setDataInizio("");
     setDataFine("");
@@ -153,7 +163,7 @@ export default function ListaMovimenti() {
         <div className="relative min-w-0 flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Descrizione, fornitore, categoria..."
+            placeholder="Descrizione, fornitore, centro, sottocategoria..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -180,17 +190,24 @@ export default function ListaMovimenti() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Categoria</Label>
-                <Select value={categoriaId} onValueChange={setCategoriaId}>
-                  <SelectTrigger><SelectValue placeholder="Tutte le categorie" /></SelectTrigger>
-                  <SelectContent><SelectItem value="all">Tutte le categorie</SelectItem>{(categorie as any[]).map((item) => <SelectItem key={item.id} value={item.id}>{item.nome}</SelectItem>)}</SelectContent>
+                <Label>Categoria del centro</Label>
+                <Select value={categoriaCentroId} onValueChange={(value) => { setCategoriaCentroId(value); setCentroCostoId("all"); setCategoriaId("all"); }}>
+                  <SelectTrigger><SelectValue placeholder="Tutte le categorie dei centri" /></SelectTrigger>
+                  <SelectContent><SelectItem value="all">Tutte le categorie dei centri</SelectItem>{(categorieCentri as any[]).filter((item) => item.attivo !== false).map((item) => <SelectItem key={item.id} value={item.id}>{item.nome}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
                 <Label>Centro di costo</Label>
-                <Select value={centroCostoId} onValueChange={setCentroCostoId}>
+                <Select value={centroCostoId} onValueChange={(value) => { setCentroCostoId(value); setCategoriaId("all"); const centro = (centriCosto as any[]).find((item) => item.id === value); if (centro?.categoriaCentroId) setCategoriaCentroId(centro.categoriaCentroId); }}>
                   <SelectTrigger><SelectValue placeholder="Tutti i centri" /></SelectTrigger>
-                  <SelectContent><SelectItem value="all">Tutti i centri di costo</SelectItem>{(centriCosto as any[]).map((item) => <SelectItem key={item.id} value={item.id}>{item.nome}</SelectItem>)}</SelectContent>
+                  <SelectContent><SelectItem value="all">Tutti i centri di costo</SelectItem>{centriFiltrati.map((item) => <SelectItem key={item.id} value={item.id}>{item.nome}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Sottocategoria</Label>
+                <Select value={categoriaId} onValueChange={setCategoriaId}>
+                  <SelectTrigger><SelectValue placeholder="Tutte le sottocategorie" /></SelectTrigger>
+                  <SelectContent><SelectItem value="all">Tutte le sottocategorie</SelectItem>{(categorie as any[]).map((item) => <SelectItem key={item.id} value={item.id}>{item.nome}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -266,7 +283,7 @@ export default function ListaMovimenti() {
                         <p className="truncate text-sm font-medium">
                           {m.descrizione || m.tipoDocumento || (m.tipo === "entrata" ? "Entrata" : "Uscita")}
                         </p>
-                        {m.soggettoNome && <p className="truncate text-xs text-muted-foreground">{m.soggettoNome}{m.centroCostoNome ? ` · ${m.centroCostoNome}` : ""}</p>}
+                        {m.soggettoNome && <p className="truncate text-xs text-muted-foreground">{m.soggettoNome}{m.categoriaCentroNome ? ` · ${m.categoriaCentroNome}` : ""}{m.centroCostoNome ? ` / ${m.centroCostoNome}` : ""}</p>}
                         <div className="mt-0.5 flex items-center gap-1.5">
                           {statoIcon[m.stato]}
                           <span className="text-xs text-muted-foreground">{statoLabel[m.stato] || m.stato}</span>
@@ -277,8 +294,8 @@ export default function ListaMovimenti() {
                         <p className="text-sm font-semibold" style={{ color: m.tipo === "entrata" ? GREEN : RED }}>
                           {m.tipo === "entrata" ? "+" : "-"}{fmtCents(m.totale)}
                         </p>
-                        {m.categoriaNome && (
-                          <Badge variant="outline" className="mt-0.5 text-[10px]">{m.categoriaNome}</Badge>
+                        {m.sottocategoriaNome && (
+                          <Badge variant="outline" className="mt-0.5 text-[10px]">{m.sottocategoriaNome}</Badge>
                         )}
                       </div>
                     </button>

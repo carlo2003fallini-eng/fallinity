@@ -1113,3 +1113,20 @@
 - [x] Aggiungere test UI di regressione
 - [x] Verificare a 390×844, suite Vitest, TypeScript e build
 - [x] Salvare il checkpoint della modifica
+
+## Fase 40 — Gerarchia Centro di Costo, Categoria e Sottocategoria
+- [x] Mappare schema, dati esistenti e utilizzi dell’attuale categoria finanziaria
+- [x] Definire categoria del centro di costo e relazione con le sottocategorie
+- [x] Migrare le categorie esistenti a sottocategorie senza perdere collegamenti ai movimenti
+- [x] Aggiornare schema Drizzle e database con vincoli multi-azienda e soft delete
+- [x] Aggiornare validator, repository, service e router Finanza
+- [x] Aggiornare Impostazioni Centri di costo per gestire categorie correlate
+- [x] Aggiornare Impostazioni Categorie per presentarle come sottocategorie
+- [x] Applicare selezione Centro di costo → Categoria → Sottocategoria in Nuovo Movimento
+- [x] Filtrare le sottocategorie proposte in base alla categoria del centro selezionata
+- [x] Aggiornare Modifica Movimento e precompilazione per soggetto
+- [x] Aggiornare Lista Movimenti, filtri, Analisi, Dashboard e Report
+- [x] Gestire movimenti storici senza relazione completa con fallback leggibile
+- [x] Aggiungere test di migrazione, relazioni, isolamento aziendale e contratti UI
+- [x] Verificare flussi Entrata/Uscita a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della nuova gerarchia

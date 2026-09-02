@@ -7,11 +7,14 @@ const source = readFileSync(
 );
 
 describe("Nuovo Movimento — soggetto prima e data persistente", () => {
-  it("mostra Cliente/Fornitore prima della Categoria", () => {
+  it("mostra Cliente/Fornitore prima di Centro e Sottocategoria", () => {
     const subjectPosition = source.indexOf('label={`${tipo === "entrata" ? "Cliente" : "Fornitore"} *`}');
-    const categoryPosition = source.indexOf('label="Categoria *"');
+    const centerPosition = source.indexOf("Centro di costo *");
+    const categoryPosition = source.indexOf('label="Sottocategoria *"');
     expect(subjectPosition).toBeGreaterThan(-1);
+    expect(centerPosition).toBeGreaterThan(subjectPosition);
     expect(categoryPosition).toBeGreaterThan(subjectPosition);
+    expect(categoryPosition).toBeGreaterThan(centerPosition);
   });
 
   it("usa l’ultimo movimento del soggetto per categoria e centro di costo", () => {
@@ -29,8 +32,10 @@ describe("Nuovo Movimento — soggetto prima e data persistente", () => {
   });
 
   it("blocca la classificazione fino alla selezione del soggetto", () => {
-    expect(source.match(/disabled=\{!soggettoId\}/g)?.length).toBeGreaterThanOrEqual(2);
-    expect(source).toContain("!soggettoId || !categoriaId");
+    expect(source).toContain("disabled={!soggettoId}");
+    expect(source).toContain("disabled={!centroCostoId || categorieQuery.isFetching}");
+    expect(source).toContain("!centroCostoId");
+    expect(source).toContain("!categoriaId");
   });
 
   it("salva e ripristina la data senza reimpostarla dopo il salvataggio", () => {

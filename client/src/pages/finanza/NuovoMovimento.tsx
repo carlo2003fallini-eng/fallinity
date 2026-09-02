@@ -77,8 +77,11 @@ export default function NuovoMovimento() {
   const lastAppliedPreferenceKeyRef = useRef("");
 
   // Queries
-  const { data: categorie = [] } = trpc.finanza.categorie.list.useQuery({ tipo });
   const { data: centriCosto = [] } = trpc.finanza.centriCosto.list.useQuery();
+  const { data: categorieCentri = [] } = trpc.finanza.categorieCentri.list.useQuery();
+  const categorieInput = useMemo(() => ({ tipo, centroCostoId: centroCostoId || undefined }), [tipo, centroCostoId]);
+  const categorieQuery = trpc.finanza.categorie.list.useQuery(categorieInput, { enabled: Boolean(centroCostoId) });
+  const categorie = categorieQuery.data ?? [];
   const { data: conti = [] } = trpc.finanza.conti.list.useQuery();
   const { data: metodi = [] } = trpc.finanza.metodi.list.useQuery();
   const { data: soggettiList = [] } = trpc.finanza.soggetti.list.useQuery({
@@ -114,6 +117,11 @@ export default function NuovoMovimento() {
     setSubjectDefaultsStatus("applied");
   }, [soggettoId, tipo, subjectHistoryQuery.data, subjectHistoryQuery.isFetched, subjectHistoryQuery.isFetching]);
 
+  useEffect(() => {
+    if (!centroCostoId || !categoriaId || !categorieQuery.isFetched || categorieQuery.isFetching) return;
+    if (!(categorie as any[]).some((categoria: any) => categoria.id === categoriaId)) setCategoriaId("");
+  }, [centroCostoId, categoriaId, categorie, categorieQuery.isFetched, categorieQuery.isFetching]);
+
   // ── Seed automatico al primo accesso (se nessuna categoria presente) ──
   const seedMut = trpc.finanza.seed.useMutation({
     onSuccess: (data) => {
@@ -125,10 +133,10 @@ export default function NuovoMovimento() {
     },
   });
   useEffect(() => {
-    if ((categorie as any[]).length === 0 && !seedMut.isPending && !seedMut.isSuccess) {
+    if ((centriCosto as any[]).length === 0 && !seedMut.isPending && !seedMut.isSuccess) {
       seedMut.mutate({});
     }
-  }, [categorie]);
+  }, [centriCosto]);
 
   // Calcoli IVA
   const importoCents = useMemo(() => {
@@ -143,6 +151,7 @@ export default function NuovoMovimento() {
   }, [importoCents, aliquotaIva]);
 
   const contoSelezionato = useMemo(() => (conti as any[]).find((c: any) => c.id === contoId), [conti, contoId]);
+  const centroSelezionato = useMemo(() => (centriCosto as any[]).find((c: any) => c.id === centroCostoId), [centriCosto, centroCostoId]);
 
   // Mutations
   const createMutation = trpc.finanza.movimenti.create.useMutation({
@@ -171,7 +180,7 @@ export default function NuovoMovimento() {
     onSuccess: () => { utils.finanza.soggetti.invalidate(); },
   });
   const createCentroCostoMut = trpc.finanza.centriCosto.create.useMutation({
-    onSuccess: () => { utils.finanza.centriCosto.invalidate(); },
+    onSuccess: () => { utils.finanza.centriCosto.invalidate(); utils.finanza.categorie.invalidate(); },
   });
   const createContoMut = trpc.finanza.conti.create.useMutation({
     onSuccess: () => { utils.finanza.conti.invalidate(); },
@@ -193,8 +202,12 @@ export default function NuovoMovimento() {
 
   const centriCostoOptions: SelectOption[] = useMemo(() =>
     (centriCosto as any[]).filter((c: any) => c.attivo !== false).map((c: any) => ({
-      id: c.id, label: c.nome, sublabel: c.codice, color: c.colore,
+      id: c.id, label: c.nome, sublabel: c.categoriaCentroNome || c.codice, color: c.colore,
     })), [centriCosto]);
+
+  const categorieCentroOptions = useMemo(() =>
+    (categorieCentri as any[]).filter((categoria: any) => categoria.attivo !== false).map((categoria: any) => ({ value: categoria.id, label: categoria.nome })),
+  [categorieCentri]);
 
   const contiOptions: SelectOption[] = useMemo(() =>
     (conti as any[]).filter((c: any) => c.attivo !== false).map((c: any) => ({
@@ -229,9 +242,15 @@ export default function NuovoMovimento() {
     lastAppliedPreferenceKeyRef.current = "";
   }, [soggettoId]);
 
+  const handleCentroCostoChange = useCallback((nextCentroCostoId: string) => {
+    setCentroCostoId(nextCentroCostoId);
+    setCategoriaId("");
+  }, []);
+
   const handleSubmit = useCallback(() => {
     if (!soggettoId) { toast.error(`Seleziona ${tipo === "entrata" ? "un cliente" : "un fornitore"}`); return; }
-    if (!categoriaId) { toast.error("Seleziona una categoria"); return; }
+    if (!centroCostoId) { toast.error("Seleziona un centro di costo"); return; }
+    if (!categoriaId) { toast.error("Seleziona una sottocategoria"); return; }
     if (importoCents <= 0) { toast.error("Inserisci un importo valido"); return; }
     if (tipoRegistrazione === "pagato_subito" && !contoId) { toast.error("Seleziona un conto"); return; }
 
@@ -402,45 +421,75 @@ export default function NuovoMovimento() {
         {soggettoId && subjectHistoryQuery.isFetching && (
           <div className="-mt-3 flex items-center gap-2 text-xs text-muted-foreground">
             <Loader2 className="size-3.5 animate-spin" />
-            Cerco categoria e centro di costo usati l’ultima volta…
+            Cerco centro, sottocategoria, conto e metodo usati l’ultima volta…
           </div>
         )}
         {soggettoId && !subjectHistoryQuery.isFetching && subjectDefaultsStatus === "applied" && (
           <div className="-mt-3 flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
             <History className="mt-0.5 size-3.5 shrink-0 text-primary" />
-            <span>Categoria, centro di costo, conto e metodo disponibili sono stati precompilati dallo storico di questo {tipo === "entrata" ? "cliente" : "fornitore"}. Puoi modificarli.</span>
+            <span>Centro di costo, sottocategoria, conto e metodo disponibili sono stati precompilati dallo storico di questo {tipo === "entrata" ? "cliente" : "fornitore"}. Puoi modificarli.</span>
           </div>
         )}
         {soggettoId && !subjectHistoryQuery.isFetching && subjectDefaultsStatus === "none" && (
           <div className="-mt-3 flex items-start gap-2 rounded-lg border border-border/50 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
             <History className="mt-0.5 size-3.5 shrink-0" />
-            <span>Nessun movimento precedente: scegli categoria e, se serve, centro di costo.</span>
+            <span>Nessun movimento precedente: scegli il centro di costo e poi una delle sottocategorie correlate.</span>
           </div>
         )}
 
-        {/* ── Categoria suggerita dallo storico del soggetto ── */}
+        {/* ── Centro e classificazione correlata ── */}
+        <div>
+          <div className="mb-1 flex items-center gap-1.5">
+            <Label className="text-xs text-muted-foreground">Centro di costo *</Label>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" onClick={() => setShowHelpCdc(!showHelpCdc)} className="rounded-full p-0.5 hover:bg-white/5">
+                  <HelpCircle className="size-3.5 text-muted-foreground/60" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[280px] text-xs">Il centro identifica dove attribuire il movimento. La sua categoria determina le sottocategorie disponibili.</TooltipContent>
+            </Tooltip>
+          </div>
+          {showHelpCdc && <div className="mb-2 rounded-lg border border-blue-500/20 bg-blue-500/5 p-2.5 text-xs leading-relaxed text-blue-300/80">Scegli prima il centro di costo: vedrai soltanto le sottocategorie collegate alla categoria assegnata a quel centro.</div>}
+          <SelectWithQuickCreate
+            label=""
+            value={centroCostoId}
+            onChange={handleCentroCostoChange}
+            options={centriCostoOptions}
+            disabled={!soggettoId}
+            placeholder={soggettoId ? "Seleziona centro di costo" : `Prima seleziona ${tipo === "entrata" ? "il cliente" : "il fornitore"}`}
+            quickCreateTitle="Nuovo centro di costo"
+            quickCreateFields={[
+              { key: "nome", label: "Nome", placeholder: "es. Stalla", required: true },
+              { key: "categoriaCentroId", label: "Categoria del centro", type: "select", options: categorieCentroOptions, required: true },
+              { key: "codice", label: "Codice", placeholder: "CDC-XXX" },
+            ]}
+            onQuickCreate={async (data) => {
+              if (!data.categoriaCentroId) throw new Error("Categoria del centro obbligatoria");
+              const result = await createCentroCostoMut.mutateAsync({ nome: data.nome, codice: data.codice || undefined, categoriaCentroId: data.categoriaCentroId });
+              toast.success("Centro di costo creato");
+              return result.id;
+            }}
+            managePath="/finanza/impostazioni/centri-costo"
+            onManage={() => setLocation("/finanza/impostazioni/centri-costo")}
+            searchable
+          />
+          {centroSelezionato?.categoriaCentroNome && <div className="mt-2"><Badge variant="secondary" className="text-[10px]">Categoria: {centroSelezionato.categoriaCentroNome}</Badge></div>}
+        </div>
+
         <SelectWithQuickCreate
-          label="Categoria *"
+          label="Sottocategoria *"
           value={categoriaId}
           onChange={setCategoriaId}
           options={categorieOptions}
-          disabled={!soggettoId}
-          placeholder={soggettoId ? "Seleziona categoria" : `Prima seleziona ${tipo === "entrata" ? "il cliente" : "il fornitore"}`}
-          quickCreateTitle="Nuova categoria"
-          quickCreateFields={[
-            { key: "nome", label: "Nome", placeholder: "es. Carburanti", required: true },
-            { key: "tipo", label: "Tipo", type: "select", options: [
-              { value: "entrata", label: "Entrata" },
-              { value: "uscita", label: "Uscita" },
-              { value: "entrambi", label: "Entrambi" },
-            ], required: true },
-          ]}
+          disabled={!centroCostoId || categorieQuery.isFetching}
+          placeholder={!centroCostoId ? "Prima seleziona il centro di costo" : categorieQuery.isFetching ? "Caricamento sottocategorie…" : categorieOptions.length ? "Seleziona sottocategoria" : "Nessuna sottocategoria correlata"}
+          quickCreateTitle="Nuova sottocategoria"
+          quickCreateFields={[{ key: "nome", label: "Nome", placeholder: "es. Carburanti", required: true }]}
           onQuickCreate={async (data) => {
-            const result = await createCategoriaMut.mutateAsync({
-              nome: data.nome,
-              tipo: (data.tipo as "entrata" | "uscita" | "entrambi") || tipo,
-            });
-            toast.success("Categoria creata");
+            if (!centroSelezionato?.categoriaCentroId) throw new Error("Il centro non ha una categoria associata");
+            const result = await createCategoriaMut.mutateAsync({ nome: data.nome, tipo, categoriaCentroIds: [centroSelezionato.categoriaCentroId] });
+            toast.success("Sottocategoria creata e collegata");
             return result.id;
           }}
           managePath="/finanza/impostazioni/categorie"
@@ -498,58 +547,6 @@ export default function NuovoMovimento() {
             )}
           </>
         )}
-
-        {/* ── Centro di costo (FACOLTATIVO) con icona aiuto ── */}
-        <div>
-          <div className="flex items-center gap-1.5 mb-1">
-            <Label className="text-xs text-muted-foreground">Centro di costo</Label>
-            <Badge variant="outline" className="text-[9px] px-1 py-0 text-muted-foreground border-muted-foreground/30">facoltativo</Badge>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={() => setShowHelpCdc(!showHelpCdc)}
-                  className="p-0.5 rounded-full hover:bg-white/5 transition-colors"
-                >
-                  <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/60" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-[280px] text-xs leading-relaxed">
-                Il centro di costo è una sottocategoria interna per capire dove finiscono i soldi, ad esempio stalla, mungitura, officina. Non influisce su pagamenti o movimenti di denaro, serve solo per analisi e report.
-              </TooltipContent>
-            </Tooltip>
-          </div>
-          {/* Help text visibile su mobile (tap) */}
-          {showHelpCdc && (
-            <div className="mb-2 p-2.5 rounded-lg bg-blue-500/5 border border-blue-500/20 text-xs text-blue-300/80 leading-relaxed">
-              Il centro di costo è una sottocategoria interna per capire dove finiscono i soldi, ad esempio stalla, mungitura, officina. Non influisce su pagamenti o movimenti di denaro, serve solo per analisi e report.
-            </div>
-          )}
-          <SelectWithQuickCreate
-            label=""
-            value={centroCostoId}
-            onChange={setCentroCostoId}
-            options={centriCostoOptions}
-            disabled={!soggettoId}
-            placeholder="Nessuno (opzionale)"
-            quickCreateTitle="Nuovo centro di costo"
-            quickCreateFields={[
-              { key: "nome", label: "Nome", placeholder: "es. Stalla", required: true },
-              { key: "codice", label: "Codice", placeholder: "CDC-XXX" },
-            ]}
-            onQuickCreate={async (data) => {
-              const result = await createCentroCostoMut.mutateAsync({
-                nome: data.nome,
-                codice: data.codice || undefined,
-              });
-              toast.success("Centro di costo creato");
-              return result.id;
-            }}
-            managePath="/finanza/impostazioni/centri-costo"
-            onManage={() => setLocation("/finanza/impostazioni/centri-costo")}
-            searchable
-          />
-        </div>
 
         {/* ── Scadenza (per documento) ── */}
         {tipoRegistrazione === "documento" && (

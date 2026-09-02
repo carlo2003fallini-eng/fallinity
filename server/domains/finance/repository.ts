@@ -3,6 +3,8 @@ import { getDb } from "../../db";
 import {
   transazioni,
   categorieFinanziarie,
+  categorieCentriCosto,
+  categorieCentroSottocategorie,
   centriDiCosto,
   soggetti,
   contiFin,
@@ -97,14 +99,39 @@ export const financeRepository = {
   // ══════════════════════════════════════════════════════════════════════════
   // CATEGORIE FINANZIARIE
   // ══════════════════════════════════════════════════════════════════════════
-  async listCategorie(companyId: string, tipo?: string) {
+  async listCategorie(companyId: string, tipo?: string, centroCostoId?: string, categoriaCentroId?: string) {
     const db = await getDb();
     if (!db) return [];
     const conds: any[] = [eq(categorieFinanziarie.companyId, companyId), isNull(categorieFinanziarie.deletedAt)];
     if (tipo && tipo !== "entrambi") {
       conds.push(or(eq(categorieFinanziarie.tipo, tipo as any), eq(categorieFinanziarie.tipo, "entrambi")));
     }
-    return db.select().from(categorieFinanziarie).where(and(...conds)).orderBy(asc(categorieFinanziarie.ordine));
+    const categorie = await db.select().from(categorieFinanziarie).where(and(...conds)).orderBy(asc(categorieFinanziarie.ordine));
+    let categoriaId = categoriaCentroId;
+    if (!categoriaId && centroCostoId) {
+      const centro = await this.getCentroCosto(companyId, centroCostoId);
+      categoriaId = centro?.categoriaCentroId ?? undefined;
+    }
+    if (!categoriaId) return categorie;
+    const relazioni = await db.select({ sottocategoriaId: categorieCentroSottocategorie.sottocategoriaId })
+      .from(categorieCentroSottocategorie)
+      .where(and(
+        eq(categorieCentroSottocategorie.companyId, companyId),
+        eq(categorieCentroSottocategorie.categoriaCentroId, categoriaId),
+        isNull(categorieCentroSottocategorie.deletedAt),
+      ));
+    const idsConsentiti = new Set(relazioni.map((relazione) => relazione.sottocategoriaId));
+    return categorie.filter((categoria) => idsConsentiti.has(categoria.id));
+  },
+  async getCategoria(companyId: string, id: string) {
+    const db = await getDb();
+    if (!db) return null;
+    const rows = await db.select().from(categorieFinanziarie).where(and(
+      eq(categorieFinanziarie.companyId, companyId),
+      eq(categorieFinanziarie.id, id),
+      isNull(categorieFinanziarie.deletedAt),
+    )).limit(1);
+    return rows[0] ?? null;
   },
   async insertCategoria(actor: ActorContext, data: Record<string, unknown>) {
     const db = await getDb();
@@ -120,6 +147,84 @@ export const financeRepository = {
       .where(and(eq(categorieFinanziarie.id, id), eq(categorieFinanziarie.companyId, actor.companyId)));
     return { success: true };
   },
+  async replaceCategoriaCentroRelations(actor: ActorContext, sottocategoriaId: string, categoriaCentroIds: string[]) {
+    const db = await getDb();
+    if (!db) throw new Error("DB not available");
+    await db.transaction(async (tx) => {
+      await tx.update(categorieCentroSottocategorie).set(softDeletePayload(actor) as any).where(and(
+        eq(categorieCentroSottocategorie.companyId, actor.companyId),
+        eq(categorieCentroSottocategorie.sottocategoriaId, sottocategoriaId),
+        isNull(categorieCentroSottocategorie.deletedAt),
+      ));
+      for (const categoriaCentroId of categoriaCentroIds) {
+        await tx.insert(categorieCentroSottocategorie).values(withCreate(actor, {
+          id: newId(), categoriaCentroId, sottocategoriaId,
+        }) as any).onDuplicateKeyUpdate({
+          set: { deletedAt: null, deletedBy: null, updatedAt: new Date(), updatedBy: actor.userUuid } as any,
+        });
+      }
+    });
+  },
+  async isSottocategoriaAllowed(companyId: string, categoriaCentroId: string, sottocategoriaId: string) {
+    const db = await getDb();
+    if (!db) return false;
+    const rows = await db.select({ id: categorieCentroSottocategorie.id }).from(categorieCentroSottocategorie).where(and(
+      eq(categorieCentroSottocategorie.companyId, companyId),
+      eq(categorieCentroSottocategorie.categoriaCentroId, categoriaCentroId),
+      eq(categorieCentroSottocategorie.sottocategoriaId, sottocategoriaId),
+      isNull(categorieCentroSottocategorie.deletedAt),
+    )).limit(1);
+    return rows.length > 0;
+  },
+  async listCategoriaCentroRelations(companyId: string) {
+    const db = await getDb();
+    if (!db) return [];
+    return db.select({
+      categoriaCentroId: categorieCentroSottocategorie.categoriaCentroId,
+      sottocategoriaId: categorieCentroSottocategorie.sottocategoriaId,
+    }).from(categorieCentroSottocategorie).where(and(
+      eq(categorieCentroSottocategorie.companyId, companyId),
+      isNull(categorieCentroSottocategorie.deletedAt),
+    ));
+  },
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // CATEGORIE DEI CENTRI DI COSTO
+  // ══════════════════════════════════════════════════════════════════════════
+  async listCategorieCentri(companyId: string) {
+    const db = await getDb();
+    if (!db) return [];
+    return db.select().from(categorieCentriCosto).where(and(
+      eq(categorieCentriCosto.companyId, companyId),
+      isNull(categorieCentriCosto.deletedAt),
+    )).orderBy(asc(categorieCentriCosto.ordine), asc(categorieCentriCosto.nome));
+  },
+  async getCategoriaCentro(companyId: string, id: string) {
+    const db = await getDb();
+    if (!db) return null;
+    const rows = await db.select().from(categorieCentriCosto).where(and(
+      eq(categorieCentriCosto.companyId, companyId),
+      eq(categorieCentriCosto.id, id),
+      isNull(categorieCentriCosto.deletedAt),
+    )).limit(1);
+    return rows[0] ?? null;
+  },
+  async insertCategoriaCentro(actor: ActorContext, data: Record<string, unknown>) {
+    const db = await getDb();
+    if (!db) throw new Error("DB not available");
+    const id = newId();
+    await db.insert(categorieCentriCosto).values(withCreate(actor, { ...data, id }) as any);
+    return { id };
+  },
+  async updateCategoriaCentro(actor: ActorContext, id: string, data: Record<string, unknown>) {
+    const db = await getDb();
+    if (!db) throw new Error("DB not available");
+    await db.update(categorieCentriCosto).set(withUpdate(actor, data) as any).where(and(
+      eq(categorieCentriCosto.companyId, actor.companyId),
+      eq(categorieCentriCosto.id, id),
+    ));
+    return { success: true };
+  },
 
   // ══════════════════════════════════════════════════════════════════════════
   // CENTRI DI COSTO
@@ -129,6 +234,16 @@ export const financeRepository = {
     if (!db) return [];
     return db.select().from(centriDiCosto)
       .where(and(eq(centriDiCosto.companyId, companyId), isNull(centriDiCosto.deletedAt)));
+  },
+  async getCentroCosto(companyId: string, id: string) {
+    const db = await getDb();
+    if (!db) return null;
+    const rows = await db.select().from(centriDiCosto).where(and(
+      eq(centriDiCosto.companyId, companyId),
+      eq(centriDiCosto.id, id),
+      isNull(centriDiCosto.deletedAt),
+    )).limit(1);
+    return rows[0] ?? null;
   },
   async insertCentroCosto(actor: ActorContext, data: Record<string, unknown>) {
     const db = await getDb();
@@ -259,7 +374,7 @@ export const financeRepository = {
   // DOCUMENTI FINANZIARI
   // ══════════════════════════════════════════════════════════════════════════
   async listDocumenti(companyId: string, filters?: {
-    tipo?: string; stato?: string; categoriaId?: string; centroCostoId?: string;
+    tipo?: string; stato?: string; categoriaId?: string; categoriaCentroId?: string; centroCostoId?: string;
     contoId?: string; soggettoId?: string; search?: string;
     dataInizio?: string; dataFine?: string; limit?: number; offset?: number;
   }) {
@@ -269,6 +384,7 @@ export const financeRepository = {
     if (filters?.tipo) conds.push(eq(documentiFinanziari.tipo, filters.tipo as any));
     if (filters?.stato) conds.push(eq(documentiFinanziari.stato, filters.stato as any));
     if (filters?.categoriaId) conds.push(eq(documentiFinanziari.categoriaId, filters.categoriaId));
+    if (filters?.categoriaCentroId) conds.push(eq(centriDiCosto.categoriaCentroId, filters.categoriaCentroId));
     if (filters?.centroCostoId) conds.push(eq(documentiFinanziari.centroCostoId, filters.centroCostoId));
     if (filters?.soggettoId) conds.push(eq(documentiFinanziari.soggettoId, filters.soggettoId));
     if (filters?.search) {
@@ -288,8 +404,10 @@ export const financeRepository = {
     return db.select({
       ...getTableColumns(documentiFinanziari),
       categoriaNome: categorieFinanziarie.nome,
+      sottocategoriaNome: categorieFinanziarie.nome,
       categoriaColore: categorieFinanziarie.colore,
       centroCostoNome: centriDiCosto.nome,
+      categoriaCentroNome: categorieCentriCosto.nome,
       soggettoNome: sql<string | null>`COALESCE(${soggetti.nomeBreve}, ${soggetti.ragioneSociale})`,
     })
       .from(documentiFinanziari)
@@ -300,6 +418,10 @@ export const financeRepository = {
       .leftJoin(centriDiCosto, and(
         eq(centriDiCosto.id, documentiFinanziari.centroCostoId),
         eq(centriDiCosto.companyId, documentiFinanziari.companyId),
+      ))
+      .leftJoin(categorieCentriCosto, and(
+        eq(categorieCentriCosto.id, centriDiCosto.categoriaCentroId),
+        eq(categorieCentriCosto.companyId, documentiFinanziari.companyId),
       ))
       .leftJoin(soggetti, and(
         eq(soggetti.id, documentiFinanziari.soggettoId),

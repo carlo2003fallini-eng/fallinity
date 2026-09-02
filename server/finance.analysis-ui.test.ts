@@ -65,7 +65,7 @@ describe("Lista Movimenti — contratto filtri UI", () => {
   });
 
   it("mantiene ricerca, tab e azzeramento completo", () => {
-    expect(movementsSource).toContain("Descrizione, fornitore, categoria...");
+    expect(movementsSource).toContain("Descrizione, fornitore, centro, sottocategoria...");
     expect(movementsSource).toContain('value="entrate"');
     expect(movementsSource).toContain('value="uscite"');
     expect(movementsSource).toContain("Azzera ricerca e filtri");

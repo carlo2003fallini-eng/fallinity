@@ -19,6 +19,8 @@ import {
   createCategoriaInput,
   updateCategoriaInput,
   listCategorieInput,
+  createCategoriaCentroInput,
+  updateCategoriaCentroInput,
   createCentroCostoInput,
   updateCentroCostoInput,
   createSoggettoInput,
@@ -80,7 +82,7 @@ export const finanzaRouter = router({
   categorie: router({
     list: protectedProcedure.input(listCategorieInput).query(async ({ ctx, input }) => {
       const actor = await getActor(ctx);
-      return financeService.listCategorie(actor.companyId, input?.tipo);
+      return financeService.listCategorie(actor.companyId, input?.tipo, input?.centroCostoId, input?.categoriaCentroId);
     }),
     create: protectedProcedure.input(createCategoriaInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);
@@ -90,6 +92,23 @@ export const finanzaRouter = router({
       const actor = await getActor(ctx);
       const { id, ...data } = input;
       return financeService.updateCategoria(actor, id, data);
+    }),
+  }),
+
+  // ── Categorie dei centri di costo ──
+  categorieCentri: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const actor = await getActor(ctx);
+      return financeService.listCategorieCentri(actor.companyId);
+    }),
+    create: protectedProcedure.input(createCategoriaCentroInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return financeService.createCategoriaCentro(actor, input);
+    }),
+    update: protectedProcedure.input(updateCategoriaCentroInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      const { id, ...data } = input;
+      return financeService.updateCategoriaCentro(actor, id, data);
     }),
   }),
 

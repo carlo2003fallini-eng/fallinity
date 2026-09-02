@@ -10,6 +10,8 @@ import {
   date,
   datetime,
   json,
+  index,
+  uniqueIndex,
 } from "drizzle-orm/mysql-core";
 
 /**
@@ -675,7 +677,9 @@ export const categorieFinanziarie = mysqlTable("categorieFinanziarie", {
 });
 export type CategoriaFinanziaria = typeof categorieFinanziarie.$inferSelect;
 
-export const centriDiCosto = mysqlTable("centriDiCosto", {
+// Livello superiore della classificazione: raggruppa i centri di costo e
+// determina quali sottocategorie finanziarie sono disponibili nei movimenti.
+export const categorieCentriCosto = mysqlTable("categorieCentriCosto", {
   id: uuidPk(),
   companyId: companyRef(),
   codice: varchar("codice", { length: 20 }).notNull(),
@@ -683,9 +687,42 @@ export const centriDiCosto = mysqlTable("centriDiCosto", {
   descrizione: text("descrizione"),
   colore: varchar("colore", { length: 20 }).default("#60a5fa"),
   attivo: boolean("attivo").default(true).notNull(),
+  ordine: int("ordine").default(0).notNull(),
+  ...auditColumns,
+}, (table) => [
+  uniqueIndex("uq_categorie_centri_company_codice").on(table.companyId, table.codice),
+  index("idx_categorie_centri_company_attivo").on(table.companyId, table.attivo),
+]);
+export type CategoriaCentroCosto = typeof categorieCentriCosto.$inferSelect;
+
+export const centriDiCosto = mysqlTable("centriDiCosto", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  codice: varchar("codice", { length: 20 }).notNull(),
+  nome: varchar("nome", { length: 100 }).notNull(),
+  descrizione: text("descrizione"),
+  categoriaCentroId: varchar("categoriaCentroId", { length: 36 }),
+  colore: varchar("colore", { length: 20 }).default("#60a5fa"),
+  attivo: boolean("attivo").default(true).notNull(),
   ...auditColumns,
 });
 export type CentroDiCosto = typeof centriDiCosto.$inferSelect;
+
+// Le categorieFinanziarie esistenti assumono il ruolo di sottocategorie.
+// La tabella di relazione permette di conservarne l’uso storico anche quando
+// la stessa sottocategoria era associata a più categorie/centri.
+export const categorieCentroSottocategorie = mysqlTable("categorieCentroSottocategorie", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  categoriaCentroId: varchar("categoriaCentroId", { length: 36 }).notNull(),
+  sottocategoriaId: varchar("sottocategoriaId", { length: 36 }).notNull(),
+  ...auditColumns,
+}, (table) => [
+  uniqueIndex("uq_categoria_centro_sottocategoria").on(table.companyId, table.categoriaCentroId, table.sottocategoriaId),
+  index("idx_sottocategorie_categoria_centro").on(table.companyId, table.categoriaCentroId),
+  index("idx_categoria_centro_sottocategoria").on(table.companyId, table.sottocategoriaId),
+]);
+export type CategoriaCentroSottocategoria = typeof categorieCentroSottocategorie.$inferSelect;
 
 export const soggetti = mysqlTable("soggetti", {
   id: uuidPk(),

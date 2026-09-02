@@ -86,9 +86,13 @@ export function MovimentoActions({ movimento }: { movimento: Movimento }) {
     { id: movimento.id },
     { enabled: editOpen },
   );
-  const categoriesQuery = trpc.finanza.categorie.list.useQuery(undefined, { enabled: editOpen });
   const costCentersQuery = trpc.finanza.centriCosto.list.useQuery(undefined, { enabled: editOpen });
   const subjectsQuery = trpc.finanza.soggetti.list.useQuery(undefined, { enabled: editOpen });
+  const selectedCenterId = form.centroCostoId === "__none__" ? undefined : form.centroCostoId;
+  const categoriesQuery = trpc.finanza.categorie.list.useQuery(
+    { tipo: form.tipo, centroCostoId: selectedCenterId },
+    { enabled: editOpen && Boolean(selectedCenterId) },
+  );
 
   const detail = detailQuery.data;
   const hasConfirmedPayments = Boolean(
@@ -115,10 +119,7 @@ export function MovimentoActions({ movimento }: { movimento: Movimento }) {
     });
   }, [detail, editOpen]);
 
-  const categories = useMemo(
-    () => (categoriesQuery.data ?? []).filter((category: any) => category.tipo === form.tipo || category.tipo === "entrambi"),
-    [categoriesQuery.data, form.tipo],
-  );
+  const categories = categoriesQuery.data ?? [];
 
   const updateMutation = trpc.finanza.movimenti.update.useMutation({
     onSuccess: async () => {
@@ -142,7 +143,8 @@ export function MovimentoActions({ movimento }: { movimento: Movimento }) {
   const submitUpdate = () => {
     if (!detail) return;
     if (!form.descrizione.trim()) return toast.error("Inserisci una descrizione");
-    if (!form.categoriaId) return toast.error("Seleziona una categoria");
+    if (form.centroCostoId === "__none__") return toast.error("Seleziona un centro di costo");
+    if (!form.categoriaId) return toast.error("Seleziona una sottocategoria");
 
     const common = {
       id: movimento.id,
@@ -244,27 +246,24 @@ export function MovimentoActions({ movimento }: { movimento: Movimento }) {
               <Field label="Descrizione *">
                 <Input value={form.descrizione} onChange={(event) => setForm({ ...form, descrizione: event.target.value })} />
               </Field>
-              <Field label="Categoria *">
-                <Select value={form.categoriaId} onValueChange={(value) => setForm({ ...form, categoriaId: value })}>
-                  <SelectTrigger><SelectValue placeholder="Seleziona categoria" /></SelectTrigger>
+              <Field label="Soggetto">
+                <Select value={form.soggettoId} onValueChange={(value) => setForm({ ...form, soggettoId: value })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="__none__">Nessuno</SelectItem>{(subjectsQuery.data ?? []).map((subject: any) => <SelectItem key={subject.id} value={subject.id}>{subject.nomeBreve || subject.ragioneSociale}</SelectItem>)}</SelectContent>
+                </Select>
+              </Field>
+              <Field label="Centro di costo *">
+                <Select value={form.centroCostoId} onValueChange={(value) => setForm({ ...form, centroCostoId: value, categoriaId: "" })}>
+                  <SelectTrigger><SelectValue placeholder="Seleziona centro" /></SelectTrigger>
+                  <SelectContent>{(costCentersQuery.data ?? []).filter((center: any) => center.attivo !== false).map((center: any) => <SelectItem key={center.id} value={center.id}>{center.nome}<span className="ml-2 text-xs text-muted-foreground">{center.categoriaCentroNome}</span></SelectItem>)}</SelectContent>
+                </Select>
+              </Field>
+              <Field label="Sottocategoria *">
+                <Select disabled={!selectedCenterId || categoriesQuery.isFetching} value={form.categoriaId} onValueChange={(value) => setForm({ ...form, categoriaId: value })}>
+                  <SelectTrigger><SelectValue placeholder={!selectedCenterId ? "Prima seleziona il centro" : "Seleziona sottocategoria"} /></SelectTrigger>
                   <SelectContent>{categories.map((category: any) => <SelectItem key={category.id} value={category.id}>{category.nome}</SelectItem>)}</SelectContent>
                 </Select>
               </Field>
-
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Soggetto">
-                  <Select value={form.soggettoId} onValueChange={(value) => setForm({ ...form, soggettoId: value })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="__none__">Nessuno</SelectItem>{(subjectsQuery.data ?? []).map((subject: any) => <SelectItem key={subject.id} value={subject.id}>{subject.nomeBreve || subject.ragioneSociale}</SelectItem>)}</SelectContent>
-                  </Select>
-                </Field>
-                <Field label="Centro di costo">
-                  <Select value={form.centroCostoId} onValueChange={(value) => setForm({ ...form, centroCostoId: value })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="__none__">Nessuno</SelectItem>{(costCentersQuery.data ?? []).map((center: any) => <SelectItem key={center.id} value={center.id}>{center.nome}</SelectItem>)}</SelectContent>
-                  </Select>
-                </Field>
-              </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Data competenza"><Input type="date" value={form.dataCompetenza} onChange={(event) => setForm({ ...form, dataCompetenza: event.target.value })} /></Field>
