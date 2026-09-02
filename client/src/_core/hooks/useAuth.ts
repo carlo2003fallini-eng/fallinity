@@ -1,7 +1,18 @@
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+const CACHED_USER_KEY = "fallinity:pwa:last-user";
+
+function loadCachedUser() {
+  try {
+    const raw = localStorage.getItem(CACHED_USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 type UseAuthOptions = {
   redirectOnUnauthenticated?: boolean;
@@ -12,6 +23,8 @@ export function useAuth(options?: UseAuthOptions) {
   const { redirectOnUnauthenticated = false, redirectPath = getLoginUrl() } =
     options ?? {};
   const utils = trpc.useUtils();
+  const [online, setOnline] = useState(() => navigator.onLine);
+  const [cachedUser] = useState(loadCachedUser);
 
   const meQuery = trpc.auth.me.useQuery(undefined, {
     retry: false,
@@ -20,9 +33,26 @@ export function useAuth(options?: UseAuthOptions) {
 
   const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: () => {
+      localStorage.removeItem(CACHED_USER_KEY);
       utils.auth.me.setData(undefined, null);
     },
   });
+
+  useEffect(() => {
+    const onOnline = () => setOnline(true);
+    const onOffline = () => setOnline(false);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!meQuery.data) return;
+    localStorage.setItem(CACHED_USER_KEY, JSON.stringify(meQuery.data));
+  }, [meQuery.data]);
 
   const logout = useCallback(async () => {
     try {
@@ -36,21 +66,20 @@ export function useAuth(options?: UseAuthOptions) {
       }
       throw error;
     } finally {
+      localStorage.removeItem(CACHED_USER_KEY);
       utils.auth.me.setData(undefined, null);
       await utils.auth.me.invalidate();
     }
   }, [logoutMutation, utils]);
 
   const state = useMemo(() => {
-    localStorage.setItem(
-      "manus-runtime-user-info",
-      JSON.stringify(meQuery.data)
-    );
+    const effectiveUser = meQuery.data ?? (!online ? cachedUser : null);
+    if (effectiveUser) localStorage.setItem("manus-runtime-user-info", JSON.stringify(effectiveUser));
     return {
-      user: meQuery.data ?? null,
-      loading: meQuery.isLoading || logoutMutation.isPending,
+      user: effectiveUser,
+      loading: (online && meQuery.isLoading) || logoutMutation.isPending,
       error: meQuery.error ?? logoutMutation.error ?? null,
-      isAuthenticated: Boolean(meQuery.data),
+      isAuthenticated: Boolean(effectiveUser),
     };
   }, [
     meQuery.data,
@@ -58,6 +87,8 @@ export function useAuth(options?: UseAuthOptions) {
     meQuery.isLoading,
     logoutMutation.error,
     logoutMutation.isPending,
+    online,
+    cachedUser,
   ]);
 
   useEffect(() => {

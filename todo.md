@@ -1144,3 +1144,19 @@
 - [x] Aggiungere test backend e contratti UI di regressione
 - [x] Verificare flusso a 390×844, suite Vitest, TypeScript e build
 - [x] Salvare il checkpoint della funzionalità
+
+## Fase 42 — PWA Installabile e Offline
+- [x] Verificare manifest, icone, service worker e registrazione esistenti
+- [x] Definire cache versionata e strategia di aggiornamento senza bundle obsoleti
+- [x] Rendere completa la configurazione installabile su Android e iOS
+- [x] Aggiungere prompt “Installa Fallinity” accessibile e non invasivo
+- [x] Aggiungere stato online/offline persistente nell’interfaccia
+- [x] Implementare cache dell’ultima interfaccia e fallback di navigazione offline
+- [x] Escludere autenticazione, API e tRPC dalla cache persistente
+- [x] Conservare in locale le bozze dei form critici senza inviare mutation offline
+- [x] Aggiungere avviso e comando di aggiornamento quando è disponibile una nuova versione
+- [x] Pulire cache e service worker precedenti in modo controllato
+- [x] Aggiungere test manifest, service worker, install prompt e protezione dati
+- [x] Verificare installazione, aggiornamento e avvio offline su mobile
+- [x] Eseguire suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della PWA aggiornata

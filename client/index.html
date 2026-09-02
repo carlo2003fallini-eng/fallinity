@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="it">
 
   <head>
     <meta charset="UTF-8" />
@@ -23,21 +23,6 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", function () {
-          navigator.serviceWorker.register("/sw.js").then(
-            function (reg) {
-              console.info("[Fallinity PWA] Service worker registrato:", reg.scope);
-            },
-            function (err) {
-              // Non bloccante: l'app funziona comunque online senza il SW.
-              console.warn("[Fallinity PWA] Registrazione service worker fallita:", err && err.message ? err.message : err);
-            }
-          );
-        });
-      }
-    </script>
     <script
       defer
       src="%VITE_ANALYTICS_ENDPOINT%/umami"

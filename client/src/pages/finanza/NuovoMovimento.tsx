@@ -14,6 +14,8 @@ import {
   Plus, Wallet, CreditCard, Building2, Receipt, Check, HelpCircle, CheckCircle2, History, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { clearOfflineDraft, loadOfflineDraft, offlineDraftKey, saveOfflineDraft } from "@/lib/offlineDraft";
 
 const GREEN = "oklch(0.65 0.18 142)";
 const RED = "oklch(0.55 0.22 25)";
@@ -37,6 +39,24 @@ interface LastValues {
   dataDocumento: string;
 }
 
+type MovementDraft = {
+  tipo: "entrata" | "uscita";
+  tipoRegistrazione: TipoRegistrazione;
+  importoStr: string;
+  aliquotaIva: number;
+  categoriaId: string;
+  centroCostoId: string;
+  soggettoId: string;
+  contoId: string;
+  metodoId: string;
+  descrizione: string;
+  note: string;
+  dataDocumento: string;
+  dataScadenza: string;
+  tipoDocumento: string;
+  numero: string;
+};
+
 function loadLastValues(): Partial<LastValues> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -53,6 +73,7 @@ function saveLastValues(vals: LastValues) {
 
 export default function NuovoMovimento() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
   const last = useMemo(() => loadLastValues(), []);
 
   const [tipo, setTipo] = useState<"entrata" | "uscita">(last.tipo || "uscita");
@@ -74,10 +95,13 @@ export default function NuovoMovimento() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showHelpCdc, setShowHelpCdc] = useState(false);
   const [subjectDefaultsStatus, setSubjectDefaultsStatus] = useState<"idle" | "applied" | "none">("idle");
+  const [draftRestored, setDraftRestored] = useState(false);
+  const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
   const lastAppliedPreferenceKeyRef = useRef("");
 
   // Queries
   const { data: centriCosto = [] } = trpc.finanza.centriCosto.list.useQuery();
+  const { data: currentCompany } = trpc.company.current.useQuery(undefined, { enabled: Boolean(user) });
   const { data: categorieCentri = [] } = trpc.finanza.categorieCentri.list.useQuery();
   const categorieInput = useMemo(() => ({ tipo, centroCostoId: centroCostoId || undefined }), [tipo, centroCostoId]);
   const categorieQuery = trpc.finanza.categorie.list.useQuery(categorieInput, { enabled: Boolean(centroCostoId) });
@@ -96,6 +120,49 @@ export default function NuovoMovimento() {
   });
 
   const utils = trpc.useUtils();
+  const draftKey = useMemo(
+    () => user && currentCompany?.id ? offlineDraftKey("nuovo-movimento", user.id, currentCompany.id) : "",
+    [user, currentCompany?.id],
+  );
+
+  useEffect(() => {
+    if (!draftKey) return;
+    const stored = loadOfflineDraft<MovementDraft>(localStorage, draftKey);
+    if (!stored) return;
+    const draft = stored.data;
+    setTipo(draft.tipo);
+    setTipoRegistrazione(draft.tipoRegistrazione);
+    setImportoStr(draft.importoStr);
+    setAliquotaIva(draft.aliquotaIva);
+    setCategoriaId(draft.categoriaId);
+    setCentroCostoId(draft.centroCostoId);
+    setSoggettoId(draft.soggettoId);
+    setContoId(draft.contoId);
+    setMetodoId(draft.metodoId);
+    setDescrizione(draft.descrizione);
+    setNote(draft.note);
+    setDataDocumento(draft.dataDocumento);
+    setDataScadenza(draft.dataScadenza);
+    setTipoDocumento(draft.tipoDocumento);
+    setNumero(draft.numero);
+    setDraftRestored(true);
+    setDraftSavedAt(stored.savedAt);
+  }, [draftKey]);
+
+  useEffect(() => {
+    if (!draftKey) return;
+    const hasDraft = Boolean(importoStr || soggettoId || descrizione || note || numero);
+    if (!hasDraft) return;
+    const timer = window.setTimeout(() => {
+      const saved = saveOfflineDraft<MovementDraft>(localStorage, draftKey, {
+        tipo, tipoRegistrazione, importoStr, aliquotaIva, categoriaId, centroCostoId,
+        soggettoId, contoId, metodoId, descrizione, note, dataDocumento, dataScadenza,
+        tipoDocumento, numero,
+      });
+      setDraftSavedAt(saved.savedAt);
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [draftKey, tipo, tipoRegistrazione, importoStr, aliquotaIva, categoriaId, centroCostoId, soggettoId, contoId, metodoId, descrizione, note, dataDocumento, dataScadenza, tipoDocumento, numero]);
 
   useEffect(() => {
     if (!soggettoId || !subjectHistoryQuery.isFetched || subjectHistoryQuery.isFetching) return;
@@ -165,6 +232,9 @@ export default function NuovoMovimento() {
       setImportoStr("");
       setNote("");
       setNumero("");
+      if (draftKey) clearOfflineDraft(localStorage, draftKey);
+      setDraftRestored(false);
+      setDraftSavedAt(null);
       await utils.finanza.movimenti.invalidate();
       // Mostra conferma
       setShowSuccess(true);
@@ -253,6 +323,15 @@ export default function NuovoMovimento() {
     if (!categoriaId) { toast.error("Seleziona una sottocategoria"); return; }
     if (importoCents <= 0) { toast.error("Inserisci un importo valido"); return; }
     if (tipoRegistrazione === "pagato_subito" && !contoId) { toast.error("Seleziona un conto"); return; }
+    if (!navigator.onLine) {
+      if (draftKey) saveOfflineDraft<MovementDraft>(localStorage, draftKey, {
+        tipo, tipoRegistrazione, importoStr, aliquotaIva, categoriaId, centroCostoId,
+        soggettoId, contoId, metodoId, descrizione, note, dataDocumento, dataScadenza,
+        tipoDocumento, numero,
+      });
+      toast.info("Sei offline: il movimento è stato salvato come bozza e non è stato inviato.");
+      return;
+    }
 
     createMutation.mutate({
       tipo,
@@ -273,7 +352,7 @@ export default function NuovoMovimento() {
       descrizione: descrizione || undefined,
       note: note || undefined,
     });
-  }, [tipo, tipoRegistrazione, calcoloIva, categoriaId, centroCostoId, soggettoId, contoId, metodoId, dataDocumento, dataScadenza, tipoDocumento, numero, descrizione, note, aliquotaIva, importoCents, createMutation]);
+  }, [tipo, tipoRegistrazione, importoStr, calcoloIva, categoriaId, centroCostoId, soggettoId, contoId, metodoId, dataDocumento, dataScadenza, tipoDocumento, numero, descrizione, note, aliquotaIva, importoCents, createMutation, draftKey]);
 
   return (
     <div className="min-h-screen bg-background pb-48">
@@ -292,6 +371,16 @@ export default function NuovoMovimento() {
           <div>
             <p className="font-semibold text-emerald-400 text-sm">Movimento salvato con successo</p>
             <p className="text-xs text-muted-foreground mt-0.5">Puoi registrarne un altro — i campi sono precompilati con gli ultimi valori.</p>
+          </div>
+        </div>
+      )}
+
+      {draftRestored && (
+        <div className="mx-4 mt-3 flex items-start gap-3 rounded-xl border border-amber-400/25 bg-amber-500/10 p-3 text-amber-100" role="status">
+          <History className="mt-0.5 size-5 shrink-0 text-amber-400" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">Bozza locale ripristinata</p>
+            <p className="mt-0.5 text-xs text-amber-100/65">Salvata su questo dispositivo{draftSavedAt ? ` alle ${new Date(draftSavedAt).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}` : ""}. Verrà eliminata dopo il salvataggio online.</p>
           </div>
         </div>
       )}
