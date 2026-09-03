@@ -44,11 +44,12 @@ describe("Fallinity PWA — installazione", () => {
     expect(serviceWorker).toContain("fallinity-apple-touch-icon");
   });
 
-  it("mantiene separati icona launcher e simbolo dello splash", () => {
+  it("usa il logo ufficiale anche nello splash senza riferimenti al simbolo precedente", () => {
     expect(manifest.icons.every((icon: { src: string }) => icon.src.includes("fallinity-app-icon"))).toBe(true);
     expect(manifest.icons.every((icon: { src: string }) => !icon.src.includes("splash-leaf"))).toBe(true);
-    expect(indexHtml).toContain("fallinity-splash-leaf-512_0b952d82.png");
-    expect(serviceWorker).toContain("fallinity-splash-leaf-512_0b952d82.png");
+    expect(indexHtml).toContain("fallinity-app-icon-512_27951f8d.png");
+    expect(indexHtml).not.toContain("fallinity-splash-leaf-512_0b952d82.png");
+    expect(serviceWorker).not.toContain("fallinity-splash-leaf-512_0b952d82.png");
   });
 
   it("non distribuisce più le icone legacy mostrate dal vecchio splash Android", () => {

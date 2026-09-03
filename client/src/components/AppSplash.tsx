@@ -1,7 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const SPLASH_ICON = "/manus-storage/fallinity-splash-leaf-512_0b952d82.png";
+const SPLASH_ICON = "/manus-storage/fallinity-app-icon-512_27951f8d.png";
 const MIN_VISIBLE_MS = 700;
 const EXIT_DURATION_MS = 260;
 const MAX_WAIT_MS = 8_000;

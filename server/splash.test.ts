@@ -10,10 +10,12 @@ const indexHtml = readFileSync(new URL("../client/index.html", import.meta.url),
 const styles = readFileSync(new URL("../client/src/index.css", import.meta.url), "utf8");
 
 describe("Splash screen Fallinity", () => {
-  it("mostra immediatamente il simbolo verde dello splash prima del bootstrap React", () => {
+  it("mostra immediatamente il logo ufficiale nello splash prima del bootstrap React", () => {
     expect(indexHtml).toContain('id="fallinity-static-splash"');
-    expect(indexHtml).toContain("fallinity-splash-leaf-512_0b952d82.png");
-    expect(splashSource).toContain("fallinity-splash-leaf-512_0b952d82.png");
+    expect(indexHtml).toContain("fallinity-app-icon-512_27951f8d.png");
+    expect(splashSource).toContain("fallinity-app-icon-512_27951f8d.png");
+    expect(indexHtml).not.toContain("fallinity-splash-leaf-512_0b952d82.png");
+    expect(splashSource).not.toContain("fallinity-splash-leaf-512_0b952d82.png");
     expect(indexHtml).toContain('aria-busy="true"');
     expect(indexHtml).toContain('rel="preload" as="image"');
     expect(indexHtml).toContain("Avvio non completato");

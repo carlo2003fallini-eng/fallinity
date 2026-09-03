@@ -1206,3 +1206,13 @@
 - [x] Aggiornare test per distinguere icona launcher e simbolo splash
 - [x] Verificare avvio PWA a 390×844, suite Vitest, TypeScript e build
 - [x] Salvare il checkpoint dello splash ripristinato
+
+## Fase 47 — Logo Ufficiale nel Solo Splash
+- [x] Verificare i riferimenti del simbolo centrale nello splash statico e React
+- [x] Sostituire il simbolo verde con il logo ufficiale verde/oro nello splash React
+- [x] Sostituire il simbolo verde con il logo ufficiale verde/oro nello splash statico
+- [x] Lasciare invariati sfondo, testi, barra, tempi e animazioni
+- [x] Aggiornare precache e rimuovere dal caricamento il vecchio simbolo splash
+- [x] Aggiornare test per verificare la sostituzione mirata
+- [x] Verificare avvio a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della sostituzione mirata
