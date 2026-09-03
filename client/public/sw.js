@@ -31,6 +31,10 @@ function isSensitiveRequest(url) {
     || url.pathname.startsWith("/oauth")
     || url.pathname.startsWith("/api/oauth")
     || url.pathname.startsWith("/__manus__")
+    || url.pathname.startsWith("/src/")
+    || url.pathname.startsWith("/@")
+    || url.pathname.startsWith("/node_modules/")
+    || url.pathname.startsWith("/.vite/")
     || (url.pathname.startsWith("/manus-storage/") && !PUBLIC_BRAND_ASSETS.has(url.pathname))
     || url.pathname === "/sw.js";
 }

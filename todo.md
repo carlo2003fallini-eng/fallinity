@@ -1172,3 +1172,15 @@
 - [x] Verificare installabilità e resa dell’icona su mobile
 - [x] Eseguire suite Vitest, TypeScript e build
 - [x] Salvare il checkpoint dell’icona ufficiale
+
+## Fase 44 — Splash Screen Brandizzato
+- [x] Verificare bootstrap React, autenticazione e caricamenti iniziali esistenti
+- [x] Creare splash screen fullscreen con la nuova icona ufficiale
+- [x] Aggiungere nome Fallinity, payoff e indicatore di caricamento accessibile
+- [x] Collegare la chiusura dello splash allo stato reale di inizializzazione
+- [x] Evitare lampeggi, schermate nere e sovrapposizioni durante l’avvio PWA
+- [x] Aggiungere animazioni leggere con supporto prefers-reduced-motion
+- [x] Allineare colori di splash, manifest e theme-color
+- [x] Aggiungere test UI e bootstrap di regressione
+- [x] Verificare avvio PWA a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint del nuovo splash screen
