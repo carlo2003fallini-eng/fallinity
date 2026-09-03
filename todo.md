@@ -1160,3 +1160,15 @@
 - [x] Verificare installazione, aggiornamento e avvio offline su mobile
 - [x] Eseguire suite Vitest, TypeScript e build
 - [x] Salvare il checkpoint della PWA aggiornata
+
+## Fase 43 — Icona Ufficiale PWA Fallinity
+- [x] Verificare requisiti Android, iOS e maskable per l’immagine fornita
+- [x] Preparare icona standard 192×192 e 512×512 ad alta qualità
+- [x] Preparare variante maskable con area sicura per launcher Android
+- [x] Aggiornare manifest PWA con le nuove icone e finalità corrette
+- [x] Aggiornare apple-touch-icon e metadati della schermata Home iOS
+- [x] Aggiornare la cache PWA per distribuire immediatamente la nuova icona
+- [x] Aggiungere test manifest e verifica dimensioni/area sicura delle icone
+- [x] Verificare installabilità e resa dell’icona su mobile
+- [x] Eseguire suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint dell’icona ufficiale

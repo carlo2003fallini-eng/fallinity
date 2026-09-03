@@ -20,28 +20,34 @@
       "short_name": "Nuovo movimento",
       "description": "Registra una nuova entrata o uscita",
       "url": "/finanza/nuovo",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [{ "src": "/manus-storage/fallinity-app-icon-192_3ee5c98d.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
       "name": "Lista movimenti",
       "short_name": "Movimenti",
       "description": "Consulta e filtra i movimenti finanziari",
       "url": "/finanza/movimenti",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [{ "src": "/manus-storage/fallinity-app-icon-192_3ee5c98d.png", "sizes": "192x192", "type": "image/png" }]
     }
   ],
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "/manus-storage/fallinity-app-icon-192_3ee5c98d.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/manus-storage/fallinity-app-icon-512_27951f8d.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/manus-storage/fallinity-app-icon-maskable-512_b68425d6.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

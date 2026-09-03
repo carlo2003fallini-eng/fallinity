@@ -4,6 +4,7 @@ import { clearOfflineDraft, loadOfflineDraft, offlineDraftKey, saveOfflineDraft 
 
 const manifest = JSON.parse(readFileSync(new URL("../client/public/manifest.webmanifest", import.meta.url), "utf8"));
 const serviceWorker = readFileSync(new URL("../client/public/sw.js", import.meta.url), "utf8");
+const indexHtml = readFileSync(new URL("../client/index.html", import.meta.url), "utf8");
 const pwaClient = readFileSync(new URL("../client/src/lib/pwa.ts", import.meta.url), "utf8");
 const pwaController = readFileSync(new URL("../client/src/components/PWAController.tsx", import.meta.url), "utf8");
 const mainSource = readFileSync(new URL("../client/src/main.tsx", import.meta.url), "utf8");
@@ -27,10 +28,20 @@ describe("Fallinity PWA — installazione", () => {
     expect(manifest.display).toBe("standalone");
     expect(manifest.lang).toBe("it");
     expect(manifest.icons).toEqual(expect.arrayContaining([
-      expect.objectContaining({ sizes: "192x192", purpose: "any maskable" }),
-      expect.objectContaining({ sizes: "512x512", purpose: "any maskable" }),
+      expect.objectContaining({ sizes: "192x192", purpose: "any", src: expect.stringContaining("fallinity-app-icon-192") }),
+      expect.objectContaining({ sizes: "512x512", purpose: "any", src: expect.stringContaining("fallinity-app-icon-512") }),
+      expect.objectContaining({ sizes: "512x512", purpose: "maskable", src: expect.stringContaining("fallinity-app-icon-maskable-512") }),
     ]));
     expect(manifest.shortcuts).toHaveLength(2);
+  });
+
+  it("usa la nuova icona Fallinity anche su iOS e nella cache offline", () => {
+    expect(indexHtml).toContain("fallinity-apple-touch-icon");
+    expect(indexHtml).toContain("fallinity-app-icon-192");
+    expect(serviceWorker).toContain("fallinity-app-icon-192");
+    expect(serviceWorker).toContain("fallinity-app-icon-512");
+    expect(serviceWorker).toContain("fallinity-app-icon-maskable-512");
+    expect(serviceWorker).toContain("fallinity-apple-touch-icon");
   });
 
   it("gestisce prompt Android, istruzioni iOS e installazione completata", () => {
