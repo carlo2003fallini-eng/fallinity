@@ -1195,3 +1195,14 @@
 - [x] Aggiungere test contro riferimenti legacy in manifest, HTML e service worker
 - [x] Verificare manifest, cache, avvio mobile, suite Vitest, TypeScript e build
 - [x] Salvare il checkpoint e documentare l’aggiornamento dell’app già installata
+
+## Fase 46 — Ripristino Splash con Simbolo Verde
+- [x] Recuperare il precedente simbolo verde a foglia mostrato nello screenshot
+- [x] Conservare la nuova icona verde/oro esclusivamente per launcher e schermata Home
+- [x] Ripristinare lo splash applicativo anche nella modalità PWA standalone
+- [x] Usare il simbolo verde nello splash statico e nel componente React
+- [x] Mantenere transizione, caricamento, accessibilità e fallback già verificati
+- [x] Aggiungere il simbolo splash alla cache pubblica senza inserirlo nel manifest installabile
+- [x] Aggiornare test per distinguere icona launcher e simbolo splash
+- [x] Verificare avvio PWA a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint dello splash ripristinato

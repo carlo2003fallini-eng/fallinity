@@ -10,9 +10,10 @@ const indexHtml = readFileSync(new URL("../client/index.html", import.meta.url),
 const styles = readFileSync(new URL("../client/src/index.css", import.meta.url), "utf8");
 
 describe("Splash screen Fallinity", () => {
-  it("mostra immediatamente l’icona ufficiale prima del bootstrap React", () => {
+  it("mostra immediatamente il simbolo verde dello splash prima del bootstrap React", () => {
     expect(indexHtml).toContain('id="fallinity-static-splash"');
-    expect(indexHtml).toContain("fallinity-app-icon-192_3ee5c98d.png");
+    expect(indexHtml).toContain("fallinity-splash-leaf-512_0b952d82.png");
+    expect(splashSource).toContain("fallinity-splash-leaf-512_0b952d82.png");
     expect(indexHtml).toContain('aria-busy="true"');
     expect(indexHtml).toContain('rel="preload" as="image"');
     expect(indexHtml).toContain("Avvio non completato");
@@ -33,11 +34,9 @@ describe("Splash screen Fallinity", () => {
     expect(splashSource).toContain('dataset.appReady = "true"');
   });
 
-  it("non mostra un secondo splash quando l’app è avviata in modalità standalone", () => {
-    expect(splashSource).toContain('window.matchMedia("(display-mode: standalone)")');
-    expect(splashSource).toContain('standalone ? "hidden" : "visible"');
-    expect(indexHtml).toContain("@media(display-mode:standalone)");
-    expect(indexHtml).toContain('window.matchMedia("(display-mode: standalone)")');
+  it("mostra lo splash applicativo anche quando la PWA è avviata in standalone", () => {
+    expect(splashSource).not.toContain('window.matchMedia("(display-mode: standalone)")');
+    expect(indexHtml).not.toContain("@media(display-mode:standalone)");
   });
 
   it("espone stato accessibile e supporta la riduzione del movimento", () => {
