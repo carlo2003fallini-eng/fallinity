@@ -8,12 +8,18 @@ const MAX_WAIT_MS = 8_000;
 
 type SplashStage = "visible" | "leaving" | "hidden";
 
+function isStandaloneMode() {
+  const iosStandalone = (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  return window.matchMedia("(display-mode: standalone)").matches || iosStandalone;
+}
+
 export default function AppSplash() {
   const { loading } = useAuth();
+  const standalone = useRef(isStandaloneMode()).current;
   const startedAt = useRef(Date.now());
   const exiting = useRef(false);
   const hideTimer = useRef<number | null>(null);
-  const [stage, setStage] = useState<SplashStage>("visible");
+  const [stage, setStage] = useState<SplashStage>(standalone ? "hidden" : "visible");
   const [windowReady, setWindowReady] = useState(() => document.readyState === "complete");
 
   const beginExit = useCallback(() => {
@@ -24,26 +30,29 @@ export default function AppSplash() {
   }, []);
 
   useEffect(() => {
+    if (standalone) return;
     if (windowReady) return;
     const onLoad = () => setWindowReady(true);
     window.addEventListener("load", onLoad, { once: true });
     return () => window.removeEventListener("load", onLoad);
-  }, [windowReady]);
+  }, [standalone, windowReady]);
 
   useEffect(() => {
+    if (standalone) return;
     if (!windowReady || loading) return;
     const remaining = Math.max(0, MIN_VISIBLE_MS - (Date.now() - startedAt.current));
     const timer = window.setTimeout(beginExit, remaining);
     return () => window.clearTimeout(timer);
-  }, [beginExit, loading, windowReady]);
+  }, [beginExit, loading, standalone, windowReady]);
 
   useEffect(() => {
+    if (standalone) return;
     const timer = window.setTimeout(beginExit, MAX_WAIT_MS);
     return () => {
       window.clearTimeout(timer);
       if (hideTimer.current !== null) window.clearTimeout(hideTimer.current);
     };
-  }, [beginExit]);
+  }, [beginExit, standalone]);
 
   useEffect(() => {
     if (stage !== "hidden") return;

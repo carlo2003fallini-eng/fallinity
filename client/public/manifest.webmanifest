@@ -1,9 +1,9 @@
 {
-  "id": "/",
+  "id": "/fallinity-feos",
   "name": "Fallinity — Enterprise Operating System",
   "short_name": "Fallinity",
   "description": "Il sistema operativo per la gestione integrata dell'azienda agricola: finanza, stalla, campi, magazzino, officina e reintegrazione.",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],

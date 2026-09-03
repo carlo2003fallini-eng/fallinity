@@ -13,7 +13,6 @@ const APP_SHELL = [
   "/manus-storage/fallinity-app-icon-512_27951f8d.png",
   "/manus-storage/fallinity-app-icon-maskable-512_b68425d6.png",
   "/manus-storage/fallinity-apple-touch-icon_95fb98f5.png",
-  "/favicon.ico",
 ];
 const PUBLIC_BRAND_ASSETS = new Set([
   "/manus-storage/fallinity-logo_8c31d682.png",

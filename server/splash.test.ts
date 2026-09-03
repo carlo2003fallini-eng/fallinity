@@ -33,6 +33,13 @@ describe("Splash screen Fallinity", () => {
     expect(splashSource).toContain('dataset.appReady = "true"');
   });
 
+  it("non mostra un secondo splash quando l’app è avviata in modalità standalone", () => {
+    expect(splashSource).toContain('window.matchMedia("(display-mode: standalone)")');
+    expect(splashSource).toContain('standalone ? "hidden" : "visible"');
+    expect(indexHtml).toContain("@media(display-mode:standalone)");
+    expect(indexHtml).toContain('window.matchMedia("(display-mode: standalone)")');
+  });
+
   it("espone stato accessibile e supporta la riduzione del movimento", () => {
     expect(splashSource).toContain('role="status"');
     expect(splashSource).toContain('aria-live="polite"');

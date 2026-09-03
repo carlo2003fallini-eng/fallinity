@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { clearOfflineDraft, loadOfflineDraft, offlineDraftKey, saveOfflineDraft } from "../client/src/lib/offlineDraft";
 
@@ -22,8 +22,8 @@ function memoryStorage() {
 
 describe("Fallinity PWA — installazione", () => {
   it("espone un manifest completo per avvio standalone", () => {
-    expect(manifest.id).toBe("/");
-    expect(manifest.start_url).toBe("/");
+    expect(manifest.id).toBe("/fallinity-feos");
+    expect(manifest.start_url).toBe("/?source=pwa");
     expect(manifest.scope).toBe("/");
     expect(manifest.display).toBe("standalone");
     expect(manifest.lang).toBe("it");
@@ -42,6 +42,16 @@ describe("Fallinity PWA — installazione", () => {
     expect(serviceWorker).toContain("fallinity-app-icon-512");
     expect(serviceWorker).toContain("fallinity-app-icon-maskable-512");
     expect(serviceWorker).toContain("fallinity-apple-touch-icon");
+  });
+
+  it("non distribuisce più le icone legacy mostrate dal vecchio splash Android", () => {
+    const publicDir = new URL("../client/public/", import.meta.url);
+    expect(existsSync(new URL("icon-192.png", publicDir))).toBe(false);
+    expect(existsSync(new URL("icon-512.png", publicDir))).toBe(false);
+    expect(existsSync(new URL("favicon.ico", publicDir))).toBe(false);
+    expect(serviceWorker).not.toContain('"/icon-192.png"');
+    expect(serviceWorker).not.toContain('"/icon-512.png"');
+    expect(serviceWorker).not.toContain('"/favicon.ico"');
   });
 
   it("gestisce prompt Android, istruzioni iOS e installazione completata", () => {

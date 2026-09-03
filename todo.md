@@ -1184,3 +1184,14 @@
 - [x] Aggiungere test UI e bootstrap di regressione
 - [x] Verificare avvio PWA a 390×844, suite Vitest, TypeScript e build
 - [x] Salvare il checkpoint del nuovo splash screen
+
+## Fase 45 — Rimozione Icona Legacy dallo Splash Android
+- [x] Verificare tutti i riferimenti alla vecchia icona e il manifest effettivamente pubblicato
+- [x] Verificare quale icona Android usa per lo splash di sistema della PWA installata
+- [x] Rimuovere le icone legacy dalla distribuzione e dalla cache PWA
+- [x] Aggiornare l’identità/versione installabile per forzare il refresh dell’icona ufficiale
+- [x] Evitare la duplicazione tra splash Android e splash applicativo
+- [x] Mantenere un fallback di avvio senza mostrare immagini obsolete
+- [x] Aggiungere test contro riferimenti legacy in manifest, HTML e service worker
+- [x] Verificare manifest, cache, avvio mobile, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint e documentare l’aggiornamento dell’app già installata
