@@ -1262,3 +1262,13 @@
 - [x] Aumentare Manuale e Automatico nell’header di circa un terzo mantenendo parità visiva
 - [x] Aggiungere un’evidenziazione leggera e accessibile ai due comandi
 - [x] Verificare il nuovo header Finanza a 390×844
+
+## Fase 51 — Archivio Fatture Acquisite: Ricerca e Filtri
+- [x] Analizzare campi, stati e query disponibili per l’archivio fatture multi-azienda
+- [x] Esporre una query paginata con ricerca per fornitore, P.IVA, numero e nome file
+- [x] Aggiungere filtri per stato, periodo, importo e presenza di avvisi/duplicati
+- [x] Costruire archivio consultabile con barra di ricerca, pannello filtri e azzeramento rapido
+- [x] Collegare ogni risultato alla revisione sicura della singola acquisizione
+- [x] Aggiungere test backend e contratti UI per ricerca, filtri e isolamento aziendale
+- [x] Verificare a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della funzionalità

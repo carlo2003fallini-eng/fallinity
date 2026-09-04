@@ -12,7 +12,7 @@ import {
   type AvvisoFattura,
 } from "./invoice-xml";
 import { buildClassificationRuleKey, classifyInvoiceLines } from "./invoice-classification";
-import type { AcquisisciFatturaXmlInput, AcquisisciFattureXmlBatchInput, ConfermaFatturaAcquisitaInput } from "./validators";
+import type { AcquisisciFatturaXmlInput, AcquisisciFattureXmlBatchInput, ConfermaFatturaAcquisitaInput, ListArchivioFattureInput } from "./validators";
 
 const ACCEPTED_XML_MIME = new Set(["application/xml", "text/xml", "application/octet-stream", ""]);
 
@@ -113,6 +113,20 @@ export async function runBatchWithConcurrency<T, Result>(
 }
 
 export const invoiceService = {
+  async listArchive(companyId: string, input: ListArchivioFattureInput) {
+    const result = await invoiceRepository.listAcquisitions(companyId, input);
+    return {
+      ...result,
+      items: result.items.map((item) => ({
+        ...item,
+        dataDocumento: item.dataDocumento instanceof Date
+          ? item.dataDocumento.toISOString().slice(0, 10)
+          : String(item.dataDocumento).slice(0, 10),
+        avvisi: (item.avvisiJson ?? []) as AvvisoFattura[],
+      })),
+    };
+  },
+
   async acquireBatch(actor: ActorContext, input: AcquisisciFattureXmlBatchInput) {
     const results = await runBatchWithConcurrency(input.files, async (file, index) => {
       try {

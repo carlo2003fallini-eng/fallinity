@@ -48,6 +48,7 @@ import {
   listRicorrenzeInput,
   acquisisciFatturaXmlInput,
   acquisisciFattureXmlBatchInput,
+  listArchivioFattureInput,
   dettaglioAcquisizioneFatturaInput,
   confermaFatturaAcquisitaInput,
 } from "./validators";
@@ -203,6 +204,10 @@ export const finanzaRouter = router({
     acquisisciBatch: protectedProcedure.input(acquisisciFattureXmlBatchInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);
       return invoiceService.acquireBatch(actor, input);
+    }),
+    archivio: protectedProcedure.input(listArchivioFattureInput).query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return invoiceService.listArchive(actor.companyId, input);
     }),
     dettaglio: protectedProcedure.input(dettaglioAcquisizioneFatturaInput).query(async ({ ctx, input }) => {
       const actor = await getActor(ctx);

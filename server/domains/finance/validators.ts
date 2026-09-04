@@ -347,6 +347,27 @@ export const acquisisciFattureXmlBatchInput = z.object({
   }
 });
 
+export const listArchivioFattureInput = z.object({
+  search: z.string().trim().max(120).optional(),
+  stati: z.array(z.enum(["da_verificare", "verificata", "registrata", "pagata", "errore", "annullata"]))
+    .max(6).optional(),
+  dataDa: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  dataA: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  totaleMin: z.number().int().nonnegative().max(99_999_999_999).optional(),
+  totaleMax: z.number().int().positive().max(99_999_999_999).optional(),
+  conAvvisi: z.boolean().optional(),
+  conPossibileDuplicato: z.boolean().optional(),
+  limit: z.number().int().min(1).max(100).default(30),
+  offset: z.number().int().min(0).default(0),
+}).superRefine((input, context) => {
+  if (input.dataDa && input.dataA && input.dataDa > input.dataA) {
+    context.addIssue({ code: "custom", path: ["dataA"], message: "La data finale deve essere successiva alla data iniziale" });
+  }
+  if (input.totaleMin !== undefined && input.totaleMax !== undefined && input.totaleMin > input.totaleMax) {
+    context.addIssue({ code: "custom", path: ["totaleMax"], message: "L’importo massimo deve essere maggiore dell’importo minimo" });
+  }
+});
+
 export const dettaglioAcquisizioneFatturaInput = z.object({
   id: z.string().min(1),
 });
@@ -393,4 +414,5 @@ export type CreaRateInput = z.infer<typeof creaRateInput>;
 export type CreaRicorrenzaInput = z.infer<typeof creaRicorrenzaInput>;
 export type AcquisisciFatturaXmlInput = z.infer<typeof acquisisciFatturaXmlInput>;
 export type AcquisisciFattureXmlBatchInput = z.infer<typeof acquisisciFattureXmlBatchInput>;
+export type ListArchivioFattureInput = z.infer<typeof listArchivioFattureInput>;
 export type ConfermaFatturaAcquisitaInput = z.infer<typeof confermaFatturaAcquisitaInput>;

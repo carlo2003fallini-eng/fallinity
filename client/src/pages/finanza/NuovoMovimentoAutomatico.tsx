@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   AlertTriangle,
+  Archive,
   ArrowLeft,
   Bot,
   CalendarClock,
@@ -359,11 +360,10 @@ export default function NuovoMovimentoAutomatico() {
               <p className="mt-1 text-sm text-white/55">{acquisition ? "Controlla i dati prima di registrare." : "Importa più fatture elettroniche e revisionale una alla volta."}</p>
             </div>
           </div>
-          {acquisition && (
-            <Button type="button" variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-2xl text-white/65 hover:bg-white/5 hover:text-white" onClick={closeReview} aria-label="Torna alla coda fatture">
-              <RotateCcw className="h-5 w-5" />
-            </Button>
-          )}
+          <div className="flex shrink-0 gap-1">
+            <Button type="button" variant="ghost" size="icon" className="h-11 w-11 rounded-2xl text-white/65 hover:bg-white/5 hover:text-white" onClick={() => setLocation("/finanza/fatture-acquisite")} aria-label="Apri archivio fatture"><Archive className="h-5 w-5" /></Button>
+            {acquisition && <Button type="button" variant="ghost" size="icon" className="h-11 w-11 rounded-2xl text-white/65 hover:bg-white/5 hover:text-white" onClick={closeReview} aria-label="Torna alla coda fatture"><RotateCcw className="h-5 w-5" /></Button>}
+          </div>
         </header>
 
         <input

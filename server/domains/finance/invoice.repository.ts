@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, isNotNull, isNull, like, lte, or, sql } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
   acquisizioniFatture,
@@ -13,6 +13,7 @@ import {
   soggetti,
 } from "../../../drizzle/schema";
 import { newId, withCreate, withUpdate, type ActorContext } from "../_core";
+import type { ListArchivioFattureInput } from "./validators";
 
 export type RigaConfermaPreparata = {
   rigaId: string;
@@ -49,6 +50,63 @@ export type ConfermaFatturaPreparata = {
 };
 
 export const invoiceRepository = {
+  async listAcquisitions(companyId: string, input: ListArchivioFattureInput) {
+    const db = await getDb();
+    if (!db) return { items: [], total: 0, hasMore: false };
+    const conditions = [
+      eq(acquisizioniFatture.companyId, companyId),
+      isNull(acquisizioniFatture.deletedAt),
+    ];
+    if (input.stati?.length) conditions.push(inArray(acquisizioniFatture.stato, input.stati));
+    if (input.dataDa) conditions.push(gte(acquisizioniFatture.dataDocumento, input.dataDa as any));
+    if (input.dataA) conditions.push(lte(acquisizioniFatture.dataDocumento, input.dataA as any));
+    if (input.totaleMin !== undefined) conditions.push(gte(acquisizioniFatture.totale, input.totaleMin));
+    if (input.totaleMax !== undefined) conditions.push(lte(acquisizioniFatture.totale, input.totaleMax));
+    if (input.conPossibileDuplicato === true) conditions.push(isNotNull(acquisizioniFatture.duplicatoDocumentoId));
+    if (input.conPossibileDuplicato === false) conditions.push(isNull(acquisizioniFatture.duplicatoDocumentoId));
+    if (input.conAvvisi === true) conditions.push(sql`JSON_LENGTH(${acquisizioniFatture.avvisiJson}) > 0`);
+    if (input.conAvvisi === false) conditions.push(or(isNull(acquisizioniFatture.avvisiJson), sql`JSON_LENGTH(${acquisizioniFatture.avvisiJson}) = 0`)!);
+    const search = input.search?.trim();
+    if (search) {
+      const escaped = search.replace(/[\\%_]/g, "\\$&");
+      const pattern = `%${escaped}%`;
+      conditions.push(or(
+        like(acquisizioniFatture.fornitoreRagioneSociale, pattern),
+        like(acquisizioniFatture.fornitorePartitaIva, pattern),
+        like(acquisizioniFatture.fornitoreCodiceFiscale, pattern),
+        like(acquisizioniFatture.numeroDocumento, pattern),
+        like(acquisizioniFatture.nomeFile, pattern),
+      )!);
+    }
+    const where = and(...conditions);
+    const [items, totals] = await Promise.all([
+      db.select({
+        id: acquisizioniFatture.id,
+        stato: acquisizioniFatture.stato,
+        nomeFile: acquisizioniFatture.nomeFile,
+        numeroDocumento: acquisizioniFatture.numeroDocumento,
+        dataDocumento: acquisizioniFatture.dataDocumento,
+        valuta: acquisizioniFatture.valuta,
+        tipoDocumento: acquisizioniFatture.tipoDocumento,
+        fornitoreRagioneSociale: acquisizioniFatture.fornitoreRagioneSociale,
+        fornitorePartitaIva: acquisizioniFatture.fornitorePartitaIva,
+        totale: acquisizioniFatture.totale,
+        importoIva: acquisizioniFatture.importoIva,
+        avvisiJson: acquisizioniFatture.avvisiJson,
+        duplicatoDocumentoId: acquisizioniFatture.duplicatoDocumentoId,
+        documentoFinanziarioId: acquisizioniFatture.documentoFinanziarioId,
+        confermataAt: acquisizioniFatture.confermataAt,
+        errore: acquisizioniFatture.errore,
+        createdAt: acquisizioniFatture.createdAt,
+      }).from(acquisizioniFatture).where(where)
+        .orderBy(desc(acquisizioniFatture.dataDocumento), desc(acquisizioniFatture.createdAt))
+        .limit(input.limit).offset(input.offset),
+      db.select({ total: count() }).from(acquisizioniFatture).where(where),
+    ]);
+    const total = Number(totals[0]?.total ?? 0);
+    return { items, total, hasMore: input.offset + items.length < total };
+  },
+
   async findByFileHash(companyId: string, hashFile: string) {
     const db = await getDb();
     if (!db) return null;
