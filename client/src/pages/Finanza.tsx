@@ -452,12 +452,16 @@ function HeaderEntryAction({ imageSrc, label, onClick }: { imageSrc: string; lab
     <button
       type="button"
       onClick={onClick}
-      className="flex h-12 min-w-[58px] flex-col items-center justify-center gap-0.5 rounded-xl px-2 transition-all active:scale-[0.97]"
-      style={{ background: "oklch(0.11 0.006 145)", border: "1px solid oklch(0.2 0.015 145)" }}
+      className="flex h-16 min-w-[78px] flex-col items-center justify-center gap-1 rounded-2xl px-2.5 transition-all hover:-translate-y-0.5 active:scale-[0.97]"
+      style={{
+        background: "linear-gradient(145deg, oklch(0.18 0.035 145), oklch(0.115 0.014 145))",
+        border: "1px solid oklch(0.52 0.12 145 / 0.46)",
+        boxShadow: "0 8px 22px oklch(0.18 0.08 145 / 0.18), inset 0 1px 0 oklch(0.86 0.08 145 / 0.1)",
+      }}
       aria-label={`Inserimento ${label.toLowerCase()}`}
     >
-      <img src={imageSrc} alt="" width={20} height={20} className="h-5 w-5 rounded-sm object-cover" />
-      <span className="text-[9px] font-semibold leading-none" style={{ color: "oklch(0.76 0.035 145)" }}>{label}</span>
+      <img src={imageSrc} alt="" width={24} height={24} className="h-6 w-6 rounded-md object-cover" />
+      <span className="text-[10px] font-semibold leading-none" style={{ color: "oklch(0.84 0.05 145)" }}>{label}</span>
     </button>
   );
 }

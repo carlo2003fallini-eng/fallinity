@@ -39,7 +39,8 @@ describe("Comandi inserimento nell’header Finanza", () => {
   });
 
   it("usa due pulsanti della stessa altezza e una route automatica reale", () => {
-    expect(finanzaSource).toContain('className="flex h-12 min-w-[58px]');
+    expect(finanzaSource).toContain('className="flex h-16 min-w-[78px]');
+    expect(finanzaSource).toContain('border: "1px solid oklch(0.52 0.12 145 / 0.46)"');
     expect(appSource).toContain('path="/finanza/nuovo-automatico"');
     expect(appSource).toContain("NuovoMovimentoAutomatico");
     expect(automaticPage).toContain("Carica fattura XML");
