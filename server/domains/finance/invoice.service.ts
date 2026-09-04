@@ -12,7 +12,7 @@ import {
   type AvvisoFattura,
 } from "./invoice-xml";
 import { buildClassificationRuleKey, classifyInvoiceLines } from "./invoice-classification";
-import type { AcquisisciFatturaXmlInput, ConfermaFatturaAcquisitaInput } from "./validators";
+import type { AcquisisciFatturaXmlInput, AcquisisciFattureXmlBatchInput, ConfermaFatturaAcquisitaInput } from "./validators";
 
 const ACCEPTED_XML_MIME = new Set(["application/xml", "text/xml", "application/octet-stream", ""]);
 
@@ -93,7 +93,67 @@ function allocateEconomicAmounts(total: number, lineTotals: number[]): number[] 
   });
 }
 
+export async function runBatchWithConcurrency<T, Result>(
+  items: readonly T[],
+  worker: (item: T, index: number) => Promise<Result>,
+  concurrency = 2,
+): Promise<Result[]> {
+  const results = new Array<Result>(items.length);
+  let cursor = 0;
+  const workerCount = Math.max(1, Math.min(concurrency, items.length));
+  await Promise.all(Array.from({ length: workerCount }, async () => {
+    while (true) {
+      const index = cursor;
+      cursor += 1;
+      if (index >= items.length) return;
+      results[index] = await worker(items[index], index);
+    }
+  }));
+  return results;
+}
+
 export const invoiceService = {
+  async acquireBatch(actor: ActorContext, input: AcquisisciFattureXmlBatchInput) {
+    const results = await runBatchWithConcurrency(input.files, async (file, index) => {
+      try {
+        const invoice = await invoiceService.acquire(actor, file);
+        return {
+          index,
+          nomeFile: file.nomeFile,
+          stato: "acquisita" as const,
+          acquisizioneId: invoice.id,
+          numeroDocumento: invoice.numeroDocumento,
+          fornitore: invoice.fornitore.ragioneSociale,
+          totale: invoice.totale,
+          valuta: invoice.valuta,
+          riutilizzata: invoice.riutilizzata,
+          messaggio: invoice.riutilizzata ? "Fattura già acquisita: puoi riaprire la revisione." : "Pronta per la revisione.",
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Non è stato possibile acquisire il file";
+        return {
+          index,
+          nomeFile: file.nomeFile,
+          stato: "errore" as const,
+          acquisizioneId: null,
+          numeroDocumento: null,
+          fornitore: null,
+          totale: null,
+          valuta: null,
+          riutilizzata: false,
+          messaggio: message,
+        };
+      }
+    }, 2);
+    const acquired = results.filter((item) => item.stato === "acquisita").length;
+    return {
+      totale: results.length,
+      acquisiti: acquired,
+      errori: results.length - acquired,
+      risultati: results,
+    };
+  },
+
   async acquire(actor: ActorContext, input: AcquisisciFatturaXmlInput) {
     if (!input.nomeFile.toLowerCase().endsWith(".xml")) throw new Error("Seleziona una fattura elettronica in formato XML");
     const mimeType = input.mimeType.toLowerCase();

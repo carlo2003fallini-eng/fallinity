@@ -1247,16 +1247,16 @@
 - [x] Salvare il checkpoint della funzionalità
 
 ## Fase 50 — Importazione Multipla Fatture XML
-- [ ] Analizzare limiti, stati e comportamento del batch senza modificare le conferme esistenti
-- [ ] Aggiungere contratto e backend per acquisire più XML con esiti individuali
-- [ ] Limitare quantità, dimensione aggregata e concorrenza del batch in modo sicuro
-- [ ] Mantenere controlli duplicati, XML non validi e altri errori isolati per file
-- [ ] Aggiornare upload per selezione e trascinamento multipli con avanzamento per file
-- [ ] Mostrare una coda risultati e aprire la revisione della fattura selezionata
-- [ ] Mantenere revisione e conferma separate, senza registrazioni automatiche del batch
-- [ ] Aggiungere test backend e contratti UI di regressione
-- [ ] Verificare a 390×844, suite Vitest, TypeScript e build
-- [ ] Salvare il checkpoint della funzionalità
+- [x] Analizzare limiti, stati e comportamento del batch senza modificare le conferme esistenti
+- [x] Aggiungere contratto e backend per acquisire più XML con esiti individuali
+- [x] Limitare quantità, dimensione aggregata e concorrenza del batch in modo sicuro
+- [x] Mantenere controlli duplicati, XML non validi e altri errori isolati per file
+- [x] Aggiornare upload per selezione e trascinamento multipli con avanzamento per file
+- [x] Mostrare una coda risultati e aprire la revisione della fattura selezionata
+- [x] Mantenere revisione e conferma separate, senza registrazioni automatiche del batch
+- [x] Aggiungere test backend e contratti UI di regressione
+- [x] Verificare a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della funzionalità
 
 ## Fase 50.1 — Evidenza Comandi Finanza
 - [x] Aumentare Manuale e Automatico nell’header di circa un terzo mantenendo parità visiva

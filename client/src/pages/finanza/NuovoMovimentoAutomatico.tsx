@@ -36,6 +36,18 @@ import { toast } from "sonner";
 type RouterOutputs = inferRouterOutputs<AppRouter>;
 type InvoiceDetail = NonNullable<RouterOutputs["finanza"]["fattureAutomatiche"]["dettaglio"]>;
 type InvoiceLine = InvoiceDetail["righe"][number];
+type BatchQueueItem = {
+  id: string;
+  nomeFile: string;
+  dimensione: number;
+  stato: "in_attesa" | "in_elaborazione" | "acquisita" | "errore";
+  acquisizioneId?: string;
+  numeroDocumento?: string | null;
+  fornitore?: string | null;
+  totale?: number | null;
+  valuta?: string | null;
+  messaggio?: string;
+};
 
 type LineReview = {
   rigaId: string;
@@ -52,6 +64,9 @@ type LineReview = {
 type DeadlineReview = { dataScadenza: string; importoEuro: string; note: string };
 
 const SESSION_KEY = "fallinity_fattura_automatica_corrente";
+const BATCH_SESSION_KEY = "fallinity_fatture_automatiche_coda";
+const MAX_BATCH_FILES = 20;
+const MAX_BATCH_BYTES = 25 * 1024 * 1024;
 const money = (cents: number, currency = "EUR") => new Intl.NumberFormat("it-IT", { style: "currency", currency }).format(cents / 100);
 const percentage = (rate: number) => `${(rate / 100).toLocaleString("it-IT", { maximumFractionDigits: 2 })}%`;
 
@@ -79,6 +94,30 @@ function confidenceLabel(confidence: number) {
   return "Da controllare";
 }
 
+function loadBatchQueue(): BatchQueueItem[] {
+  try {
+    const stored = sessionStorage.getItem(BATCH_SESSION_KEY);
+    const parsed = stored ? JSON.parse(stored) : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is BatchQueueItem => item?.stato === "acquisita" && typeof item?.acquisizioneId === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+async function runFileQueue<T>(items: readonly T[], worker: (item: T) => Promise<void>, concurrency = 2) {
+  let cursor = 0;
+  await Promise.all(Array.from({ length: Math.min(Math.max(concurrency, 1), items.length) }, async () => {
+    while (true) {
+      const index = cursor;
+      cursor += 1;
+      if (index >= items.length) return;
+      await worker(items[index]);
+    }
+  }));
+}
+
 export default function NuovoMovimentoAutomatico() {
   const [, setLocation] = useLocation();
   const initializedId = useRef("");
@@ -86,6 +125,7 @@ export default function NuovoMovimentoAutomatico() {
   const [isDragging, setIsDragging] = useState(false);
   const [online, setOnline] = useState(() => navigator.onLine);
   const [acquisitionId, setAcquisitionId] = useState(() => sessionStorage.getItem(SESSION_KEY) ?? "");
+  const [batchQueue, setBatchQueue] = useState<BatchQueueItem[]>(loadBatchQueue);
   const [lineReviews, setLineReviews] = useState<LineReview[]>([]);
   const [deadlines, setDeadlines] = useState<DeadlineReview[]>([]);
   const [categoryId, setCategoryId] = useState("");
@@ -104,6 +144,12 @@ export default function NuovoMovimentoAutomatico() {
       window.removeEventListener("offline", goOffline);
     };
   }, []);
+
+  useEffect(() => {
+    const completed = batchQueue.filter((item) => item.stato === "acquisita" && item.acquisizioneId);
+    if (completed.length) sessionStorage.setItem(BATCH_SESSION_KEY, JSON.stringify(completed));
+    else sessionStorage.removeItem(BATCH_SESSION_KEY);
+  }, [batchQueue]);
 
   const detailInput = useMemo(() => ({ id: acquisitionId }), [acquisitionId]);
   const detailQuery = trpc.finanza.fattureAutomatiche.dettaglio.useQuery(detailInput, {
@@ -143,16 +189,7 @@ export default function NuovoMovimentoAutomatico() {
     setDuplicateAccepted(false);
   }, [acquisition]);
 
-  const uploadMutation = trpc.finanza.fattureAutomatiche.acquisisci.useMutation({
-    onSuccess: async (data) => {
-      sessionStorage.setItem(SESSION_KEY, data.id);
-      initializedId.current = "";
-      setAcquisitionId(data.id);
-      await utils.finanza.fattureAutomatiche.dettaglio.invalidate({ id: data.id });
-      toast.success(data.riutilizzata ? "Fattura già acquisita: revisione ripristinata" : "Fattura acquisita: controlla i dati");
-    },
-    onError: (error) => toast.error(error.message || "Non è stato possibile acquisire la fattura"),
-  });
+  const uploadMutation = trpc.finanza.fattureAutomatiche.acquisisci.useMutation();
 
   const confirmMutation = trpc.finanza.fattureAutomatiche.conferma.useMutation({
     onSuccess: async (result) => {
@@ -169,33 +206,76 @@ export default function NuovoMovimentoAutomatico() {
     onError: (error) => toast.error(error.message.replace(/^POSSIBILE_DUPLICATO:\s*/, "") || "Registrazione non riuscita"),
   });
 
-  const handleFile = async (file?: File) => {
-    if (!file) return;
-    if (!online) {
-      toast.error("Per acquisire l’XML è necessaria una connessione. Il file non è stato inviato.");
-      return;
-    }
-    if (!file.name.toLowerCase().endsWith(".xml")) {
-      toast.error("Seleziona una fattura elettronica in formato XML");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Il file supera il limite di 5 MB");
-      return;
-    }
-    try {
-      uploadMutation.mutate({
-        nomeFile: file.name,
-        mimeType: file.type || "application/xml",
-        dimensione: file.size,
-        contenutoBase64: await fileToBase64(file),
-      });
-    } catch {
-      toast.error("Non è stato possibile leggere il file selezionato");
-    }
+  const updateQueueItem = (id: string, patch: Partial<BatchQueueItem>) => {
+    setBatchQueue((current) => current.map((item) => item.id === id ? { ...item, ...patch } : item));
   };
 
-  const reset = () => {
+  const openReview = async (id: string) => {
+    sessionStorage.setItem(SESSION_KEY, id);
+    initializedId.current = "";
+    setAcquisitionId(id);
+    await utils.finanza.fattureAutomatiche.dettaglio.invalidate({ id });
+  };
+
+  const handleFiles = async (fileList?: FileList | File[]) => {
+    const files = Array.from(fileList ?? []);
+    if (!files.length) return;
+    if (!online) {
+      toast.error("Per acquisire gli XML è necessaria una connessione. I file non sono stati inviati.");
+      return;
+    }
+    if (files.length > MAX_BATCH_FILES) {
+      toast.error(`Puoi caricare al massimo ${MAX_BATCH_FILES} fatture alla volta.`);
+      return;
+    }
+    if (files.reduce((sum, file) => sum + file.size, 0) > MAX_BATCH_BYTES) {
+      toast.error("Il gruppo di file supera il limite complessivo di 25 MB.");
+      return;
+    }
+    const queued = files.map((file, index): BatchQueueItem => ({
+      id: `${Date.now()}-${index}-${file.name}`,
+      nomeFile: file.name,
+      dimensione: file.size,
+      stato: "in_attesa",
+    }));
+    setBatchQueue((current) => [...queued, ...current]);
+    await runFileQueue(queued.map((entry, index) => ({ entry, file: files[index] })), async ({ entry, file }) => {
+      if (!file.name.toLowerCase().endsWith(".xml")) {
+        updateQueueItem(entry.id, { stato: "errore", messaggio: "Il file non è in formato XML." });
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        updateQueueItem(entry.id, { stato: "errore", messaggio: "Il file supera il limite di 5 MB." });
+        return;
+      }
+      updateQueueItem(entry.id, { stato: "in_elaborazione", messaggio: "Lettura e verifica in corso…" });
+      try {
+        const data = await uploadMutation.mutateAsync({
+          nomeFile: file.name,
+          mimeType: file.type || "application/xml",
+          dimensione: file.size,
+          contenutoBase64: await fileToBase64(file),
+        });
+        updateQueueItem(entry.id, {
+          stato: "acquisita",
+          acquisizioneId: data.id,
+          numeroDocumento: data.numeroDocumento,
+          fornitore: data.fornitore.ragioneSociale,
+          totale: data.totale,
+          valuta: data.valuta,
+          messaggio: data.riutilizzata ? "Fattura già acquisita: revisione disponibile." : "Pronta per la revisione.",
+        });
+      } catch (error) {
+        updateQueueItem(entry.id, {
+          stato: "errore",
+          messaggio: error instanceof Error ? error.message : "Non è stato possibile acquisire il file.",
+        });
+      }
+    }, 2);
+    toast.success(files.length === 1 ? "Elaborazione completata: apri la revisione." : "Elaborazione completata: apri le fatture da revisionare.");
+  };
+
+  const closeReview = () => {
     sessionStorage.removeItem(SESSION_KEY);
     initializedId.current = "";
     setAcquisitionId("");
@@ -263,7 +343,7 @@ export default function NuovoMovimentoAutomatico() {
   };
 
   const detailLoading = Boolean(acquisitionId && detailQuery.isLoading);
-  const uploadBusy = uploadMutation.isPending;
+  const uploadBusy = batchQueue.some((item) => item.stato === "in_attesa" || item.stato === "in_elaborazione");
 
   return (
     <div className="min-h-full bg-[#07110d] pb-32 text-white">
@@ -275,16 +355,28 @@ export default function NuovoMovimentoAutomatico() {
             </Button>
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-300/70">Inserimento automatico</p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight">{acquisition ? "Fattura acquisita" : "Carica fattura XML"}</h1>
-              <p className="mt-1 text-sm text-white/55">{acquisition ? "Controlla i dati prima di registrare." : "Importa i dati ufficiali della fattura elettronica."}</p>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight">{acquisition ? "Fattura acquisita" : "Carica fatture XML"}</h1>
+              <p className="mt-1 text-sm text-white/55">{acquisition ? "Controlla i dati prima di registrare." : "Importa più fatture elettroniche e revisionale una alla volta."}</p>
             </div>
           </div>
           {acquisition && (
-            <Button type="button" variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-2xl text-white/65 hover:bg-white/5 hover:text-white" onClick={reset} aria-label="Carica un’altra fattura">
+            <Button type="button" variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-2xl text-white/65 hover:bg-white/5 hover:text-white" onClick={closeReview} aria-label="Torna alla coda fatture">
               <RotateCcw className="h-5 w-5" />
             </Button>
           )}
         </header>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".xml,application/xml,text/xml"
+          multiple
+          className="hidden"
+          onChange={(event) => {
+            void handleFiles(event.target.files ?? undefined);
+            event.currentTarget.value = "";
+          }}
+        />
 
         {!online && (
           <div className="mb-4 flex gap-3 rounded-2xl border border-amber-400/25 bg-amber-400/10 p-4 text-sm text-amber-100">
@@ -297,7 +389,7 @@ export default function NuovoMovimentoAutomatico() {
           <section className="overflow-hidden rounded-[28px] border border-emerald-300/15 bg-[radial-gradient(circle_at_top,rgba(52,211,153,0.13),transparent_42%),linear-gradient(155deg,rgba(16,35,27,0.98),rgba(7,17,13,0.98))] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
             <div className="mb-5 flex items-center gap-3">
               <div className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-300/12 text-emerald-300"><ReceiptText className="h-6 w-6" /></div>
-              <div><h2 className="font-semibold">Fattura elettronica italiana</h2><p className="text-sm text-white/50">Formato XML FatturaPA · massimo 5 MB</p></div>
+              <div><h2 className="font-semibold">Fatture elettroniche italiane</h2><p className="text-sm text-white/50">XML FatturaPA · fino a 20 file / 25 MB complessivi</p></div>
             </div>
             <button
               type="button"
@@ -308,17 +400,16 @@ export default function NuovoMovimentoAutomatico() {
               onDrop={(event) => {
                 event.preventDefault();
                 setIsDragging(false);
-                void handleFile(event.dataTransfer.files[0]);
+                void handleFiles(event.dataTransfer.files);
               }}
               disabled={uploadBusy || !online}
               className={`flex min-h-56 w-full flex-col items-center justify-center rounded-3xl border border-dashed px-6 text-center transition active:scale-[0.99] ${isDragging ? "border-emerald-300 bg-emerald-300/10" : "border-white/20 bg-black/15 hover:border-emerald-300/50 hover:bg-emerald-300/[0.05]"} disabled:cursor-not-allowed disabled:opacity-50`}
             >
               {uploadBusy ? <Loader2 className="h-10 w-10 animate-spin text-emerald-300" /> : <UploadCloud className="h-10 w-10 text-emerald-300" />}
-              <span className="mt-4 text-base font-semibold">{uploadBusy ? "Acquisizione in corso…" : "Trascina qui il file XML"}</span>
-              <span className="mt-1 text-sm text-white/50">oppure tocca per selezionarlo</span>
-              {!uploadBusy && <span className="mt-5 rounded-full bg-emerald-300 px-4 py-2 text-sm font-semibold text-[#062016]">Scegli fattura</span>}
+              <span className="mt-4 text-base font-semibold">{uploadBusy ? "Acquisizione in corso…" : "Trascina qui i file XML"}</span>
+              <span className="mt-1 text-sm text-white/50">oppure tocca per selezionarli</span>
+              {!uploadBusy && <span className="mt-5 rounded-full bg-emerald-300 px-4 py-2 text-sm font-semibold text-[#062016]">Scegli fatture</span>}
             </button>
-            <input ref={fileInputRef} type="file" accept=".xml,application/xml,text/xml" className="hidden" onChange={(event) => void handleFile(event.target.files?.[0])} />
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               {[
                 [FileCheck2, "Dati ufficiali", "Importi letti dall’XML"],
@@ -329,6 +420,25 @@ export default function NuovoMovimentoAutomatico() {
                 return <div key={String(title)} className="rounded-2xl bg-white/[0.035] p-3"><Visual className="h-4 w-4 text-emerald-300" /><p className="mt-2 text-sm font-medium">{String(title)}</p><p className="mt-1 text-xs text-white/45">{String(subtitle)}</p></div>;
               })}
             </div>
+          </section>
+        )}
+
+        {batchQueue.length > 0 && (
+          <section className="mt-4 rounded-[26px] border border-white/8 bg-white/[0.035] p-4 sm:p-5" aria-label="Coda fatture acquisite">
+            <div className="flex items-start justify-between gap-3">
+              <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/40">Coda di acquisizione</p><h2 className="mt-1 font-semibold">{batchQueue.filter((item) => item.stato === "acquisita").length} pronte per la revisione</h2></div>
+              {uploadBusy ? <Badge className="border-amber-300/20 bg-amber-300/10 text-amber-100"><Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />In corso</Badge> : <Badge className="border-emerald-300/20 bg-emerald-300/10 text-emerald-100">{batchQueue.length} file</Badge>}
+            </div>
+            <div className="mt-4 space-y-2">
+              {batchQueue.map((item) => (
+                <article key={item.id} className={`flex items-center gap-3 rounded-2xl border p-3 ${item.stato === "errore" ? "border-red-400/20 bg-red-400/[0.06]" : item.stato === "acquisita" ? "border-emerald-300/15 bg-emerald-300/[0.04]" : "border-white/8 bg-black/15"}`}>
+                  {item.stato === "errore" ? <AlertTriangle className="h-5 w-5 shrink-0 text-red-300" /> : item.stato === "acquisita" ? <FileCheck2 className="h-5 w-5 shrink-0 text-emerald-300" /> : <Loader2 className="h-5 w-5 shrink-0 animate-spin text-amber-200" />}
+                  <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{item.numeroDocumento || item.nomeFile}</p><p className="mt-0.5 truncate text-xs text-white/50">{item.stato === "acquisita" ? `${item.fornitore || "Fornitore"}${item.totale != null ? ` · ${money(item.totale, item.valuta || "EUR")}` : ""}` : item.messaggio || item.nomeFile}</p></div>
+                  {item.stato === "acquisita" && item.acquisizioneId ? <Button type="button" size="sm" className="h-10 rounded-xl bg-emerald-300 px-3 text-xs font-semibold text-[#062016] hover:bg-emerald-200" onClick={() => void openReview(item.acquisizioneId!)}>Rivedi</Button> : <span className="text-[11px] text-white/35">{Math.ceil(item.dimensione / 1024)} KB</span>}
+                </article>
+              ))}
+            </div>
+            <p className="mt-3 text-xs text-white/40">Ogni file viene controllato separatamente. Nessuna fattura viene registrata finché non confermi la singola revisione.</p>
           </section>
         )}
 

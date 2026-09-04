@@ -338,6 +338,15 @@ export const acquisisciFatturaXmlInput = z.object({
   contenutoBase64: z.string().min(16).max(7_100_000),
 });
 
+export const acquisisciFattureXmlBatchInput = z.object({
+  files: z.array(acquisisciFatturaXmlInput).min(1).max(20),
+}).superRefine(({ files }, context) => {
+  const totalBytes = files.reduce((sum, file) => sum + file.dimensione, 0);
+  if (totalBytes > 25 * 1024 * 1024) {
+    context.addIssue({ code: "custom", path: ["files"], message: "Il batch supera il limite complessivo di 25 MB" });
+  }
+});
+
 export const dettaglioAcquisizioneFatturaInput = z.object({
   id: z.string().min(1),
 });
@@ -383,4 +392,5 @@ export type CreaScadenzaInput = z.infer<typeof creaScadenzaInput>;
 export type CreaRateInput = z.infer<typeof creaRateInput>;
 export type CreaRicorrenzaInput = z.infer<typeof creaRicorrenzaInput>;
 export type AcquisisciFatturaXmlInput = z.infer<typeof acquisisciFatturaXmlInput>;
+export type AcquisisciFattureXmlBatchInput = z.infer<typeof acquisisciFattureXmlBatchInput>;
 export type ConfermaFatturaAcquisitaInput = z.infer<typeof confermaFatturaAcquisitaInput>;

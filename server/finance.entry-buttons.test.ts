@@ -43,7 +43,7 @@ describe("Comandi inserimento nell’header Finanza", () => {
     expect(finanzaSource).toContain('border: "1px solid oklch(0.52 0.12 145 / 0.46)"');
     expect(appSource).toContain('path="/finanza/nuovo-automatico"');
     expect(appSource).toContain("NuovoMovimentoAutomatico");
-    expect(automaticPage).toContain("Carica fattura XML");
+    expect(automaticPage).toContain("Carica fatture XML");
     expect(automaticPage).toContain("Conferma e registra");
     expect(automaticPage).toContain("fattureAutomatiche.acquisisci.useMutation");
     expect(automaticPage).not.toContain("contenutoBase64}");
