@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Plus, ArrowDownRight, ArrowUpRight, TrendingUp, TrendingDown,
+  ArrowDownRight, ArrowUpRight, TrendingUp, TrendingDown,
   Wallet, CreditCard, AlertTriangle, Bell, ChevronRight, BarChart3,
   Calendar, FileText, RefreshCw, Landmark, Banknote, CircleDollarSign, ClipboardList, Settings2, Receipt,
 } from "lucide-react";
@@ -26,6 +26,8 @@ const GREEN_HEX = "#4ade80";
 const RED_HEX = "#f87171";
 const GOLD_HEX = "#d4a843";
 const BLUE_HEX = "#60a5fa";
+const MANUAL_ENTRY_ICON = "/manus-storage/finance-manual-entry_50e37e4c.png";
+const AI_ENTRY_ICON = "/manus-storage/finance-ai-entry_833a1992.png";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
@@ -135,7 +137,7 @@ export default function Finanza({ initialTab = "dashboard" }: { initialTab?: "da
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          {alertCount && alertCount > 0 && (
+          {(alertCount ?? 0) > 0 && (
             <Button variant="outline" size="sm" className="relative gap-1.5"
               style={{ borderColor: "oklch(0.22 0.01 25)", color: RED }}
               onClick={() => setLocation("/finanza/alerts")}>
@@ -144,10 +146,6 @@ export default function Finanza({ initialTab = "dashboard" }: { initialTab?: "da
                 style={{ background: RED, color: "white" }}>{alertCount}</span>
             </Button>
           )}
-          <Button onClick={() => setLocation("/finanza/nuovo")}
-            className="gap-2" style={{ background: GREEN, color: "oklch(0.08 0.005 145)" }}>
-            <Plus size={15} /> Nuovo
-          </Button>
         </div>
       </div>
 
@@ -420,12 +418,19 @@ export default function Finanza({ initialTab = "dashboard" }: { initialTab?: "da
         <ActionButton icon={FileText} label="Movimenti" onClick={() => setLocation("/finanza/movimenti")} color={BLUE} />
         <ActionButton icon={BarChart3} label="Cashflow" onClick={() => setLocation("/finanza/cashflow")} color={GOLD} />
         <ActionButton icon={ClipboardList} label="Proposte" onClick={() => setLocation("/finanza/proposte")} color="oklch(0.65 0.15 280)" />
-        <ActionButton icon={Plus} label="Nuovo" onClick={() => setLocation("/finanza/nuovo")} color={GREEN} />
+        <ActionButton imageSrc={MANUAL_ENTRY_ICON} label="Manuale" onClick={() => setLocation("/finanza/nuovo")} color={GREEN} />
       </div>
-      <div className="grid grid-cols-3 gap-2 mt-2">
+      <div className="grid grid-cols-4 gap-2 mt-2">
         <ActionButton icon={Landmark} label="Budget" onClick={() => setLocation("/finanza/budget")} color="oklch(0.6 0.15 250)" />
         <ActionButton icon={CircleDollarSign} label="Investim." onClick={() => setLocation("/finanza/investimenti")} color="oklch(0.6 0.18 160)" />
         <ActionButton icon={Banknote} label="Scenari" onClick={() => setLocation("/finanza/scenari")} color="oklch(0.6 0.12 300)" />
+        <ActionButton
+          imageSrc={AI_ENTRY_ICON}
+          label="Inserim. AI"
+          onClick={() => toast.info("Inserimento AI in preparazione: lo configureremo nel prossimo passaggio.")}
+          color={GREEN}
+          status="In arrivo"
+        />
       </div>
       <div className="grid grid-cols-4 gap-2 mt-2">
         <ActionButton icon={BarChart3} label="Analisi" onClick={() => setLocation("/finanza/analisi")} color="oklch(0.65 0.12 200)" />
@@ -466,12 +471,29 @@ function KPICard({ label, icon: Icon, color, valore, percentuale, loading, isPer
   );
 }
 
-function ActionButton({ icon: Icon, label, onClick, color }: { icon: any; label: string; onClick: () => void; color: string }) {
+function ActionButton({ icon: Icon, imageSrc, label, onClick, color, status }: {
+  icon?: any;
+  imageSrc?: string;
+  label: string;
+  onClick: () => void;
+  color: string;
+  status?: string;
+}) {
   return (
-    <button onClick={onClick}
-      className="flex flex-col items-center gap-1.5 py-3 rounded-xl transition-all active:scale-[0.97]"
+    <button onClick={onClick} aria-label={status ? `${label}, ${status}` : label}
+      className="relative flex min-h-[60px] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl py-3 transition-all active:scale-[0.97]"
       style={{ background: "oklch(0.11 0.006 145)", border: "1px solid oklch(0.18 0.008 145)" }}>
-      <Icon size={18} style={{ color }} />
+      {status && (
+        <span className="absolute right-1.5 top-1 rounded-full px-1.5 py-0.5 text-[7px] font-semibold uppercase tracking-wide"
+          style={{ background: `${color}18`, color }}>
+          {status}
+        </span>
+      )}
+      {imageSrc ? (
+        <img src={imageSrc} alt="" width={20} height={20} className="h-5 w-5 rounded-sm object-cover" />
+      ) : Icon ? (
+        <Icon size={18} style={{ color }} />
+      ) : null}
       <span className="text-[10px] font-medium" style={{ color: "oklch(0.7 0.005 145)" }}>{label}</span>
     </button>
   );

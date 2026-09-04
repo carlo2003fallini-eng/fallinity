@@ -1216,3 +1216,15 @@
 - [x] Aggiornare test per verificare la sostituzione mirata
 - [x] Verificare avvio a 390×844, suite Vitest, TypeScript e build
 - [x] Salvare il checkpoint della sostituzione mirata
+
+## Fase 48 — Due Riquadri di Inserimento Finanza
+- [x] Individuare il riquadro “+ Nuovo” e il componente condiviso delle azioni Finanza
+- [x] Caricare la prima icona per l’inserimento Manuale
+- [x] Caricare la seconda icona per il futuro Inserimento AI
+- [x] Sostituire “+ Nuovo” con Manuale mantenendo la route attuale /finanza/nuovo
+- [x] Aggiungere Inserimento AI delle stesse dimensioni degli altri riquadri
+- [x] Mostrare sul riquadro AI uno stato “In preparazione” senza aprire schermate vuote
+- [x] Mantenere allineamento, dimensioni e comportamento touch della griglia
+- [x] Aggiungere test UI per etichette, icone, route e stato placeholder
+- [x] Verificare dashboard Finanza a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint dei nuovi riquadri
