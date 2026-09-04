@@ -1,6 +1,7 @@
 import { protectedProcedure, router } from "../../_core/trpc";
 import { getActor } from "../_core";
 import { financeService } from "./service";
+import { invoiceService } from "./invoice.service";
 import { proposalsRouter } from "./proposals.router";
 import { budgetRouter } from "./budget.router";
 import { replacementRouter } from "./replacement.router";
@@ -45,6 +46,9 @@ import {
   creaRicorrenzaInput,
   listScadenzeInput,
   listRicorrenzeInput,
+  acquisisciFatturaXmlInput,
+  dettaglioAcquisizioneFatturaInput,
+  confermaFatturaAcquisitaInput,
 } from "./validators";
 import { z } from "zod";
 
@@ -186,6 +190,22 @@ export const finanzaRouter = router({
       const actor = await getActor(ctx);
       const { id, ...data } = input;
       return financeService.updateMetodo(actor, id, data);
+    }),
+  }),
+
+  // ── Acquisizione fatture elettroniche XML (Fase 49) ──
+  fattureAutomatiche: router({
+    acquisisci: protectedProcedure.input(acquisisciFatturaXmlInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return invoiceService.acquire(actor, input);
+    }),
+    dettaglio: protectedProcedure.input(dettaglioAcquisizioneFatturaInput).query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return invoiceService.detail(actor.companyId, input.id);
+    }),
+    conferma: protectedProcedure.input(confermaFatturaAcquisitaInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return invoiceService.confirm(actor, input);
     }),
   }),
 

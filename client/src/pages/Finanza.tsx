@@ -108,6 +108,7 @@ export default function Finanza({ initialTab = "dashboard" }: { initialTab?: "da
               Finanza
             </h1>
           </div>
+          <FinanceEntryActions onManual={() => setLocation("/finanza/nuovo")} onAutomatic={() => setLocation("/finanza/nuovo-automatico")} />
         </div>
         <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: "oklch(0.11 0.006 145)", border: "1px solid oklch(0.18 0.008 145)" }}>
           {([["dashboard", "Dashboard", BarChart3], ["reintegrazione", "Reintegrazione", RefreshCw]] as const).map(([v, l, Icon]) => (
@@ -137,6 +138,7 @@ export default function Finanza({ initialTab = "dashboard" }: { initialTab?: "da
           </h1>
         </div>
         <div className="flex items-center gap-2">
+          <FinanceEntryActions onManual={() => setLocation("/finanza/nuovo")} onAutomatic={() => setLocation("/finanza/nuovo-automatico")} />
           {(alertCount ?? 0) > 0 && (
             <Button variant="outline" size="sm" className="relative gap-1.5"
               style={{ borderColor: "oklch(0.22 0.01 25)", color: RED }}
@@ -414,23 +416,15 @@ export default function Finanza({ initialTab = "dashboard" }: { initialTab?: "da
       )}
 
       {/* ── AZIONI RAPIDE ── */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         <ActionButton icon={FileText} label="Movimenti" onClick={() => setLocation("/finanza/movimenti")} color={BLUE} />
         <ActionButton icon={BarChart3} label="Cashflow" onClick={() => setLocation("/finanza/cashflow")} color={GOLD} />
         <ActionButton icon={ClipboardList} label="Proposte" onClick={() => setLocation("/finanza/proposte")} color="oklch(0.65 0.15 280)" />
-        <ActionButton imageSrc={MANUAL_ENTRY_ICON} label="Manuale" onClick={() => setLocation("/finanza/nuovo")} color={GREEN} />
       </div>
-      <div className="grid grid-cols-4 gap-2 mt-2">
+      <div className="grid grid-cols-3 gap-2 mt-2">
         <ActionButton icon={Landmark} label="Budget" onClick={() => setLocation("/finanza/budget")} color="oklch(0.6 0.15 250)" />
         <ActionButton icon={CircleDollarSign} label="Investim." onClick={() => setLocation("/finanza/investimenti")} color="oklch(0.6 0.18 160)" />
         <ActionButton icon={Banknote} label="Scenari" onClick={() => setLocation("/finanza/scenari")} color="oklch(0.6 0.12 300)" />
-        <ActionButton
-          imageSrc={AI_ENTRY_ICON}
-          label="Inserim. AI"
-          onClick={() => toast.info("Inserimento AI in preparazione: lo configureremo nel prossimo passaggio.")}
-          color={GREEN}
-          status="In arrivo"
-        />
       </div>
       <div className="grid grid-cols-4 gap-2 mt-2">
         <ActionButton icon={BarChart3} label="Analisi" onClick={() => setLocation("/finanza/analisi")} color="oklch(0.65 0.12 200)" />
@@ -443,6 +437,30 @@ export default function Finanza({ initialTab = "dashboard" }: { initialTab?: "da
 }
 
 // ── Sub-components ──
+
+function FinanceEntryActions({ onManual, onAutomatic }: { onManual: () => void; onAutomatic: () => void }) {
+  return (
+    <div className="flex items-center gap-1.5" aria-label="Inserimento movimenti">
+      <HeaderEntryAction imageSrc={MANUAL_ENTRY_ICON} label="Manuale" onClick={onManual} />
+      <HeaderEntryAction imageSrc={AI_ENTRY_ICON} label="Automatico" onClick={onAutomatic} />
+    </div>
+  );
+}
+
+function HeaderEntryAction({ imageSrc, label, onClick }: { imageSrc: string; label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex h-12 min-w-[58px] flex-col items-center justify-center gap-0.5 rounded-xl px-2 transition-all active:scale-[0.97]"
+      style={{ background: "oklch(0.11 0.006 145)", border: "1px solid oklch(0.2 0.015 145)" }}
+      aria-label={`Inserimento ${label.toLowerCase()}`}
+    >
+      <img src={imageSrc} alt="" width={20} height={20} className="h-5 w-5 rounded-sm object-cover" />
+      <span className="text-[9px] font-semibold leading-none" style={{ color: "oklch(0.76 0.035 145)" }}>{label}</span>
+    </button>
+  );
+}
 
 function KPICard({ label, icon: Icon, color, valore, percentuale, loading, isPercentage }: {
   label: string; icon: any; color: string; valore?: number; percentuale?: number; loading: boolean; isPercentage?: boolean;

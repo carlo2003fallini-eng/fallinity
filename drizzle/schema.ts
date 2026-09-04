@@ -881,6 +881,109 @@ export const allegatiFinanziari = mysqlTable("allegatiFinanziari", {
 });
 export type AllegatoFinanziario = typeof allegatiFinanziari.$inferSelect;
 
+// ── Acquisizione fatture elettroniche XML ──
+// Il record di acquisizione conserva l'XML validato e la proposta revisionabile;
+// i movimenti finanziari vengono creati soltanto dalla conferma esplicita.
+export const acquisizioniFatture = mysqlTable("acquisizioniFatture", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  stato: mysqlEnum("stato", ["da_verificare", "verificata", "registrata", "pagata", "errore", "annullata"])
+    .default("da_verificare").notNull(),
+  nomeFile: varchar("nomeFile", { length: 255 }).notNull(),
+  mimeType: varchar("mimeType", { length: 100 }).notNull(),
+  dimensione: int("dimensione").notNull(),
+  fileKey: varchar("fileKey", { length: 255 }).notNull(),
+  fileUrl: text("fileUrl").notNull(),
+  hashFile: varchar("hashFile", { length: 64 }).notNull(),
+  hashDocumento: varchar("hashDocumento", { length: 64 }).notNull(),
+  parserVersion: varchar("parserVersion", { length: 20 }).notNull(),
+  versioneFatturaPa: varchar("versioneFatturaPa", { length: 20 }),
+  progressivoInvio: varchar("progressivoInvio", { length: 20 }),
+  tipoDocumento: varchar("tipoDocumento", { length: 10 }),
+  numeroDocumento: varchar("numeroDocumento", { length: 50 }).notNull(),
+  dataDocumento: date("dataDocumento").notNull(),
+  valuta: varchar("valuta", { length: 3 }).default("EUR").notNull(),
+  fornitoreRagioneSociale: varchar("fornitoreRagioneSociale", { length: 200 }).notNull(),
+  fornitorePartitaIva: varchar("fornitorePartitaIva", { length: 20 }),
+  fornitoreCodiceFiscale: varchar("fornitoreCodiceFiscale", { length: 20 }),
+  fornitoreIndirizzo: text("fornitoreIndirizzo"),
+  fornitoreEmail: varchar("fornitoreEmail", { length: 200 }),
+  fornitoreIban: varchar("fornitoreIban", { length: 34 }),
+  soggettoId: varchar("soggettoId", { length: 36 }),
+  imponibile: int("imponibile").notNull(),
+  importoIva: int("importoIva").notNull(),
+  totale: int("totale").notNull(),
+  ritenute: int("ritenute").default(0).notNull(),
+  altriImporti: int("altriImporti").default(0).notNull(),
+  metodoPagamento: varchar("metodoPagamento", { length: 100 }),
+  condizioniPagamento: varchar("condizioniPagamento", { length: 20 }),
+  riepiloghiIvaJson: json("riepiloghiIvaJson"),
+  scadenzeJson: json("scadenzeJson"),
+  avvisiJson: json("avvisiJson"),
+  aiUsata: boolean("aiUsata").default(false).notNull(),
+  duplicatoDocumentoId: varchar("duplicatoDocumentoId", { length: 36 }),
+  documentoFinanziarioId: varchar("documentoFinanziarioId", { length: 36 }),
+  confermataAt: datetime("confermataAt"),
+  confermataBy: varchar("confermataBy", { length: 36 }),
+  errore: text("errore"),
+  ...auditColumns,
+}, (table) => [
+  uniqueIndex("uq_acq_fatture_company_hash_file").on(table.companyId, table.hashFile),
+  index("idx_acq_fatture_company_stato").on(table.companyId, table.stato),
+  index("idx_acq_fatture_company_hash_doc").on(table.companyId, table.hashDocumento),
+]);
+export type AcquisizioneFattura = typeof acquisizioniFatture.$inferSelect;
+
+export const righeFattureAcquisite = mysqlTable("righeFattureAcquisite", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  acquisizioneId: varchar("acquisizioneId", { length: 36 }).notNull(),
+  numeroLinea: int("numeroLinea").notNull(),
+  codiceArticolo: varchar("codiceArticolo", { length: 100 }),
+  descrizione: text("descrizione").notNull(),
+  quantita: decimal("quantita", { precision: 14, scale: 4 }),
+  unitaMisura: varchar("unitaMisura", { length: 30 }),
+  prezzoUnitario: int("prezzoUnitario").notNull(),
+  totaleLinea: int("totaleLinea").notNull(),
+  aliquotaIva: int("aliquotaIva").notNull(),
+  naturaIva: varchar("naturaIva", { length: 10 }),
+  categoriaId: varchar("categoriaId", { length: 36 }),
+  centroCostoId: varchar("centroCostoId", { length: 36 }),
+  destinazione: mysqlEnum("destinazione", ["costo", "magazzino", "investimento", "altro"]).default("costo").notNull(),
+  fonteClassificazione: mysqlEnum("fonteClassificazione", ["storico_codice", "storico_descrizione", "regola", "ai", "manuale", "non_classificata"])
+    .default("non_classificata").notNull(),
+  confidenza: int("confidenza").default(0).notNull(),
+  aggiornaMagazzino: boolean("aggiornaMagazzino").default(false).notNull(),
+  prodottoId: varchar("prodottoId", { length: 36 }),
+  creaProdotto: boolean("creaProdotto").default(false).notNull(),
+  nomeProdotto: varchar("nomeProdotto", { length: 255 }),
+  ...auditColumns,
+}, (table) => [
+  uniqueIndex("uq_righe_fatture_acq_numero").on(table.acquisizioneId, table.numeroLinea),
+  index("idx_righe_fatture_company_acq").on(table.companyId, table.acquisizioneId),
+]);
+export type RigaFatturaAcquisita = typeof righeFattureAcquisite.$inferSelect;
+
+export const regoleClassificazioneFatture = mysqlTable("regoleClassificazioneFatture", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  chiaveRegola: varchar("chiaveRegola", { length: 64 }).notNull(),
+  fornitorePartitaIva: varchar("fornitorePartitaIva", { length: 20 }),
+  codiceArticolo: varchar("codiceArticolo", { length: 100 }),
+  descrizioneNormalizzata: varchar("descrizioneNormalizzata", { length: 255 }),
+  categoriaId: varchar("categoriaId", { length: 36 }).notNull(),
+  centroCostoId: varchar("centroCostoId", { length: 36 }),
+  destinazione: mysqlEnum("destinazione", ["costo", "magazzino", "investimento", "altro"]).default("costo").notNull(),
+  prodottoId: varchar("prodottoId", { length: 36 }),
+  utilizzi: int("utilizzi").default(1).notNull(),
+  ultimoUtilizzoAt: datetime("ultimoUtilizzoAt").notNull(),
+  ...auditColumns,
+}, (table) => [
+  uniqueIndex("uq_regole_fatture_company_chiave").on(table.companyId, table.chiaveRegola),
+  index("idx_regole_fatture_company_fornitore").on(table.companyId, table.fornitorePartitaIva),
+]);
+export type RegolaClassificazioneFattura = typeof regoleClassificazioneFatture.$inferSelect;
+
 // ── Ricorrenze finanziarie ──
 export const ricorrenzeFinanziarie = mysqlTable("ricorrenzeFinanziarie", {
   id: uuidPk(),

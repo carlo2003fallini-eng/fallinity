@@ -327,6 +327,49 @@ export const listRicorrenzeInput = z.object({
   attiva: z.boolean().optional(),
 }).optional();
 
+// ══════════════════════════════════════════════════════════════════════════════
+// FASE 49 — Acquisizione fatture elettroniche XML
+// ══════════════════════════════════════════════════════════════════════════════
+
+export const acquisisciFatturaXmlInput = z.object({
+  nomeFile: z.string().trim().min(1).max(255),
+  mimeType: z.string().trim().max(100).default("application/xml"),
+  dimensione: z.number().int().positive().max(5 * 1024 * 1024),
+  contenutoBase64: z.string().min(16).max(7_100_000),
+});
+
+export const dettaglioAcquisizioneFatturaInput = z.object({
+  id: z.string().min(1),
+});
+
+export const rigaConfermaFatturaInput = z.object({
+  rigaId: z.string().min(1),
+  categoriaId: z.string().min(1),
+  centroCostoId: z.string().nullable().optional(),
+  destinazione: z.enum(["costo", "magazzino", "investimento", "altro"]),
+  aggiornaMagazzino: z.boolean().default(false),
+  prodottoId: z.string().nullable().optional(),
+  creaProdotto: z.boolean().default(false),
+  nomeProdotto: z.string().trim().max(255).nullable().optional(),
+});
+
+export const confermaFatturaAcquisitaInput = z.object({
+  acquisizioneId: z.string().min(1),
+  soggettoId: z.string().nullable().optional(),
+  categoriaId: z.string().min(1),
+  centroCostoId: z.string().nullable().optional(),
+  dataCompetenza: z.string().optional(),
+  descrizione: z.string().trim().max(2000).optional(),
+  note: z.string().trim().max(4000).optional(),
+  scadenze: z.array(z.object({
+    dataScadenza: z.string().min(10).max(10),
+    importo: z.number().int().positive(),
+    note: z.string().trim().max(500).optional(),
+  })).min(1).max(120),
+  righe: z.array(rigaConfermaFatturaInput).min(1).max(500),
+  confermaDuplicato: z.boolean().default(false),
+});
+
 // ── Type exports ──
 export type CreateMovimentoInput = z.infer<typeof createMovimentoInput>;
 export type UpdateMovimentoInput = z.infer<typeof updateMovimentoInput>;
@@ -339,3 +382,5 @@ export type RegistraPagamentoInput = z.infer<typeof registraPagamentoInput>;
 export type CreaScadenzaInput = z.infer<typeof creaScadenzaInput>;
 export type CreaRateInput = z.infer<typeof creaRateInput>;
 export type CreaRicorrenzaInput = z.infer<typeof creaRicorrenzaInput>;
+export type AcquisisciFatturaXmlInput = z.infer<typeof acquisisciFatturaXmlInput>;
+export type ConfermaFatturaAcquisitaInput = z.infer<typeof confermaFatturaAcquisitaInput>;

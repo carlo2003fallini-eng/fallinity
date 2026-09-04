@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<p:FatturaElettronica xmlns:p="http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2" versione="FPR12">
+  <FatturaElettronicaHeader>
+    <DatiTrasmissione><ProgressivoInvio>QA-F49</ProgressivoInvio></DatiTrasmissione>
+    <CedentePrestatore>
+      <DatiAnagrafici>
+        <IdFiscaleIVA><IdPaese>IT</IdPaese><IdCodice>01234567890</IdCodice></IdFiscaleIVA>
+        <CodiceFiscale>01234567890</CodiceFiscale>
+        <Anagrafica><Denominazione>Forniture Agricole QA SRL</Denominazione></Anagrafica>
+      </DatiAnagrafici>
+      <Sede><Indirizzo>Via dei Campi</Indirizzo><NumeroCivico>12</NumeroCivico><CAP>20100</CAP><Comune>Milano</Comune><Provincia>MI</Provincia><Nazione>IT</Nazione></Sede>
+    </CedentePrestatore>
+  </FatturaElettronicaHeader>
+  <FatturaElettronicaBody>
+    <DatiGenerali><DatiGeneraliDocumento><TipoDocumento>TD01</TipoDocumento><Divisa>EUR</Divisa><Data>2026-09-01</Data><Numero>QA-F49-001</Numero><ImportoTotaleDocumento>244.00</ImportoTotaleDocumento></DatiGeneraliDocumento></DatiGenerali>
+    <DatiBeniServizi>
+      <DettaglioLinee><NumeroLinea>1</NumeroLinea><CodiceArticolo><CodiceTipo>SKU</CodiceTipo><CodiceValore>MANG-QA</CodiceValore></CodiceArticolo><Descrizione>Mangime completo bovini</Descrizione><Quantita>10.000</Quantita><UnitaMisura>KG</UnitaMisura><PrezzoUnitario>20.0000</PrezzoUnitario><PrezzoTotale>200.00</PrezzoTotale><AliquotaIVA>22.00</AliquotaIVA></DettaglioLinee>
+      <DatiRiepilogo><AliquotaIVA>22.00</AliquotaIVA><ImponibileImporto>200.00</ImponibileImporto><Imposta>44.00</Imposta></DatiRiepilogo>
+    </DatiBeniServizi>
+    <DatiPagamento><CondizioniPagamento>TP02</CondizioniPagamento><DettaglioPagamento><ModalitaPagamento>MP05</ModalitaPagamento><DataScadenzaPagamento>2026-09-10</DataScadenzaPagamento><ImportoPagamento>244.00</ImportoPagamento><IBAN>IT60X0542811101000000123456</IBAN></DettaglioPagamento></DatiPagamento>
+  </FatturaElettronicaBody>
+</p:FatturaElettronica>

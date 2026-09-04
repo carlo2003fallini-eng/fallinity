@@ -1,7 +1,7 @@
 // Fallinity FEOS — Service Worker minimale
 // Fallinity PWA: viene memorizzata soltanto la shell dell'app.
 // API, autenticazione e file utente restano sempre network-only.
-const buildVersion = new URL(self.location.href).searchParams.get("v") || "dev";
+const buildVersion = new URL(self.location.href).searchParams.get("v") || "fase-49-fatture-xml";
 const safeVersion = buildVersion.replace(/[^a-zA-Z0-9_-]/g, "-");
 const SHELL_CACHE = `fallinity-shell-${safeVersion}`;
 const RUNTIME_CACHE = `fallinity-runtime-${safeVersion}`;
@@ -29,6 +29,7 @@ const PUBLIC_BRAND_ASSETS = new Set([
 const OFFLINE_HTML = `<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0a0f0a"><title>Fallinity offline</title><style>body{margin:0;background:#070b07;color:#f3f5f3;font:16px system-ui;min-height:100vh;display:grid;place-items:center}.box{max-width:28rem;padding:2rem;text-align:center}h1{font-size:1.4rem}p{color:#a4aca4;line-height:1.5}button{border:0;border-radius:12px;background:#4ade80;color:#071108;font-weight:700;padding:.8rem 1.2rem}</style></head><body><main class="box"><h1>Fallinity è offline</h1><p>L'interfaccia non è ancora disponibile su questo dispositivo. Riconnettiti almeno una volta per scaricare l'ultima versione.</p><button onclick="location.reload()">Riprova</button></main></body></html>`;
 
 function isSensitiveRequest(url) {
+  // Le fatture XML archiviate e tutte le risposte autenticate non entrano mai in cache.
   return url.pathname.startsWith("/api")
     || url.pathname.startsWith("/trpc")
     || url.pathname.startsWith("/oauth")

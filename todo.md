@@ -1228,3 +1228,20 @@
 - [x] Aggiungere test UI per etichette, icone, route e stato placeholder
 - [x] Verificare dashboard Finanza a 390×844, suite Vitest, TypeScript e build
 - [x] Salvare il checkpoint dei nuovi riquadri
+
+## Fase 49 — Inserimento Automatico e Comandi nell’Header Finanza
+- [x] Analizzare integralmente le specifiche del file allegato
+- [x] Definire flusso automatico, stati, validazioni e conferma utente
+- [x] Definire modello dati e persistenza necessari senza duplicare movimenti
+- [x] Implementare backend dell’inserimento automatico con isolamento multi-azienda
+- [x] Costruire schermata /finanza/nuovo-automatico secondo le specifiche
+- [x] Aggiungere revisione dei dati riconosciuti prima del salvataggio
+- [x] Gestire errori, dati mancanti e annullamento senza creare registrazioni parziali
+- [x] Spostare Manuale e Automatico nell’header accanto a Finanza
+- [x] Mantenere i due comandi compatti e della stessa altezza
+- [x] Rimuovere Manuale e Inserimento AI dalla griglia azioni inferiore
+- [x] Collegare Manuale a /finanza/nuovo e Automatico alla nuova schermata
+- [x] Aggiornare cache PWA e route applicative
+- [x] Aggiungere test backend e contratti UI di regressione
+- [x] Verificare a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della funzionalità

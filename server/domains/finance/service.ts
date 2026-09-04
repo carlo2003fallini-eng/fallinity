@@ -1,4 +1,5 @@
 import { financeRepository as repo } from "./repository";
+import { invoiceRepository } from "./invoice.repository";
 import type { ActorContext } from "../_core";
 import type { CreateMovimentoInput, UpdateMovimentoInput, RegistraPagamentoInput, CreaRateInput, CreaRicorrenzaInput } from "./validators";
 import {
@@ -578,6 +579,7 @@ export const financeService = {
       residuo: Math.max(0, nuovoResiduo),
       stato: nuovoStato,
     });
+    if (nuovoResiduo <= 0) await invoiceRepository.updateStatusForDocument(actor, input.documentoId, "pagata");
 
     // 4. Aggiorna saldo conto + crea movimento cassa
     const conto = await repo.getConto(actor.companyId, input.contoId);
@@ -625,6 +627,7 @@ export const financeService = {
         residuo: nuovoResiduo,
         stato: nuovoStato,
       });
+      await invoiceRepository.updateStatusForDocument(actor, pag.documentoId, "registrata");
     }
 
     // 3. Ripristina scadenza
