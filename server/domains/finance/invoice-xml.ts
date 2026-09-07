@@ -132,11 +132,13 @@ function supplierAddress(sede: any): string | null {
 }
 
 function lineCode(codici: unknown): string | null {
-  const primo = arrayOf(codici as any)[0];
-  return optionalText(primo?.CodiceValore);
+  return arrayOf(codici as any)
+    .map((codice) => optionalText(codice?.CodiceValore))
+    .find((codice): codice is string => Boolean(codice)) ?? null;
 }
 
 function isCommercialLine(item: any): boolean {
+  if (!lineCode(item?.CodiceArticolo)) return false;
   const values = [item?.Quantita, item?.PrezzoUnitario, item?.PrezzoTotale, item?.AliquotaIVA];
   if (values.some((value) => !text(value))) return false;
   const numericValues = values.map((value) => Number(text(value).replace(",", ".")));
@@ -215,7 +217,7 @@ export function parseFatturaPaXml(xml: string, today = new Date()): ParsedFattur
   const commercialDetails = details.filter(isCommercialLine);
   const excludedInformativeLines = details.length - commercialDetails.length;
   if (!commercialDetails.length) {
-    throw new Error("La fattura non contiene righe commerciali con quantità, prezzo unitario e aliquota IVA validi");
+    throw new Error("La fattura non contiene righe commerciali con codice articolo, quantità, prezzo unitario e aliquota IVA validi");
   }
 
   const righe: RigaFatturaXml[] = commercialDetails.map((item: any, index) => ({
@@ -278,7 +280,7 @@ export function parseFatturaPaXml(xml: string, today = new Date()): ParsedFattur
     avvisi.push({
       codice: "dati_mancanti",
       severita: "info",
-      messaggio: `${excludedInformativeLines} ${excludedInformativeLines === 1 ? "descrizione informativa è stata" : "descrizioni informative sono state"} ignorata${excludedInformativeLines === 1 ? "" : "e"} perché priva di quantità, prezzo unitario o aliquota IVA.`,
+      messaggio: `${excludedInformativeLines} ${excludedInformativeLines === 1 ? "descrizione informativa è stata" : "descrizioni informative sono state"} ignorata${excludedInformativeLines === 1 ? "" : "e"} perché priva di codice articolo, quantità, prezzo unitario o aliquota IVA.`,
     });
   }
   if (!fornitore.partitaIva && !fornitore.codiceFiscale) {

@@ -31,7 +31,7 @@ const VALID_XML = `<?xml version="1.0" encoding="UTF-8"?>
     </DatiGenerali>
     <DatiBeniServizi>
       <DettaglioLinee><NumeroLinea>1</NumeroLinea><CodiceArticolo><CodiceTipo>SKU</CodiceTipo><CodiceValore>MANG-01</CodiceValore></CodiceArticolo><Descrizione>Mangime completo bovini</Descrizione><Quantita>10.000</Quantita><UnitaMisura>KG</UnitaMisura><PrezzoUnitario>20.0000</PrezzoUnitario><PrezzoTotale>200.00</PrezzoTotale><AliquotaIVA>22.00</AliquotaIVA></DettaglioLinee>
-      <DettaglioLinee><NumeroLinea>2</NumeroLinea><Descrizione>Trasporto</Descrizione><Quantita>1.00</Quantita><UnitaMisura>NR</UnitaMisura><PrezzoUnitario>40.00</PrezzoUnitario><PrezzoTotale>40.00</PrezzoTotale><AliquotaIVA>0.00</AliquotaIVA><Natura>N2.2</Natura></DettaglioLinee>
+      <DettaglioLinee><NumeroLinea>2</NumeroLinea><CodiceArticolo><CodiceTipo>SKU</CodiceTipo><CodiceValore>TRAS-01</CodiceValore></CodiceArticolo><Descrizione>Trasporto</Descrizione><Quantita>1.00</Quantita><UnitaMisura>NR</UnitaMisura><PrezzoUnitario>40.00</PrezzoUnitario><PrezzoTotale>40.00</PrezzoTotale><AliquotaIVA>0.00</AliquotaIVA><Natura>N2.2</Natura></DettaglioLinee>
       <DatiRiepilogo><AliquotaIVA>22.00</AliquotaIVA><ImponibileImporto>200.00</ImponibileImporto><Imposta>44.00</Imposta></DatiRiepilogo>
       <DatiRiepilogo><AliquotaIVA>0.00</AliquotaIVA><Natura>N2.2</Natura><ImponibileImporto>40.00</ImponibileImporto><Imposta>0.00</Imposta></DatiRiepilogo>
     </DatiBeniServizi>
@@ -47,6 +47,12 @@ const XML_WITH_INFORMATIONAL_LINES = VALID_XML.replace(
   `<DatiBeniServizi>
       <DettaglioLinee><NumeroLinea>0</NumeroLinea><Descrizione>Nr. spedizione 260037756 del 03/08/26 · Vs. ordine 15452</Descrizione></DettaglioLinee>
       <DettaglioLinee><NumeroLinea>0.1</NumeroLinea><Descrizione>Riferimento DDT privo di valori commerciali</Descrizione><Quantita>testo</Quantita><PrezzoUnitario>-</PrezzoUnitario></DettaglioLinee>`,
+);
+
+const XML_WITH_ZERO_REFERENCE = VALID_XML.replace(
+  "<DatiBeniServizi>",
+  `<DatiBeniServizi>
+      <DettaglioLinee><NumeroLinea>0</NumeroLinea><Descrizione>Nr. ordine 2600036895 Data: 20/07/26</Descrizione><Quantita>0</Quantita><PrezzoUnitario>0</PrezzoUnitario><PrezzoTotale>0</PrezzoTotale><AliquotaIVA>22.00</AliquotaIVA></DettaglioLinee>`,
 );
 
 describe("Parser fattura elettronica XML", () => {
@@ -93,6 +99,14 @@ describe("Parser fattura elettronica XML", () => {
       severita: "info",
       messaggio: expect.stringContaining("2 descrizioni informative"),
     }));
+  });
+
+  it("importa soltanto righe con codice articolo, ignorando anche riferimenti con valori a zero", () => {
+    const parsed = parseFatturaPaXml(XML_WITH_ZERO_REFERENCE);
+    expect(parsed.righe).toHaveLength(2);
+    expect(parsed.righe.every((line) => Boolean(line.codiceArticolo))).toBe(true);
+    expect(parsed.righe.map((line) => line.descrizione)).not.toContain("Nr. ordine 2600036895 Data: 20/07/26");
+    expect(parsed.avvisi).toContainEqual(expect.objectContaining({ messaggio: expect.stringContaining("codice articolo") }));
   });
 
   it("rifiuta un documento che contiene soltanto descrizioni senza valori commerciali", () => {

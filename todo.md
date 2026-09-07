@@ -1295,3 +1295,11 @@
 - [x] Proporre automaticamente la classificazione salvata per lo stesso prodotto o articolo
 - [x] Mantenere la proposta modificabile e isolata per azienda
 - [x] Aggiungere test di regressione della precompilazione prodotto
+
+## Fase 54 — Righe XML con Codice Articolo
+- [x] Verificare il filtro corrente delle righe commerciali nel parser
+- [x] Richiedere un codice articolo oltre a quantità, prezzo e IVA per importare una riga
+- [x] Escludere righe informative con valori zero o incomplete senza codice articolo
+- [x] Aggiungere regressioni per codici articolo presenti e assenti
+- [x] Verificare parser, TypeScript, suite Vitest e build
+- [x] Salvare il checkpoint della correzione
