@@ -80,6 +80,20 @@ function inputToCents(value: string) {
   return Number.isFinite(parsed) ? Math.round(parsed * 100) : 0;
 }
 
+function toInputDate(value: unknown) {
+  const raw = String(value ?? "").trim();
+  const match = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (!match) return "";
+  const date = new Date(`${match[1]}T00:00:00.000Z`);
+  return Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== match[1] ? "" : match[1];
+}
+
+function displayDate(value: unknown) {
+  const isoDate = toInputDate(value);
+  if (!isoDate) return "Data non disponibile";
+  return new Date(`${isoDate}T00:00:00.000Z`).toLocaleDateString("it-IT");
+}
+
 async function fileToBase64(file: File) {
   const bytes = new Uint8Array(await file.arrayBuffer());
   let binary = "";
@@ -178,9 +192,9 @@ export default function NuovoMovimentoAutomatico() {
       creaProdotto: false,
       nomeProdotto: line.nomeProdotto ?? line.descrizione.slice(0, 255),
       expanded: index === 0 || line.confidenza < 70,
-    })));
+    }))); 
     setDeadlines(acquisition.scadenze.map((deadline) => ({
-      dataScadenza: deadline.dataScadenza,
+      dataScadenza: toInputDate(deadline.dataScadenza),
       importoEuro: centsToInput(deadline.importo),
       note: "",
     })));
@@ -300,7 +314,7 @@ export default function NuovoMovimentoAutomatico() {
 
   const addDeadline = () => {
     setDeadlines((current) => [...current, {
-      dataScadenza: acquisition?.dataDocumento ?? new Date().toISOString().slice(0, 10),
+      dataScadenza: toInputDate(acquisition?.dataDocumento) || new Date().toISOString().slice(0, 10),
       importoEuro: "0,00",
       note: "",
     }]);
@@ -316,7 +330,7 @@ export default function NuovoMovimentoAutomatico() {
       importo: inputToCents(deadline.importoEuro),
       note: deadline.note || undefined,
     }));
-    if (parsedDeadlines.some((deadline) => deadline.importo <= 0 || !deadline.dataScadenza)) return toast.error("Controlla date e importi delle scadenze");
+    if (parsedDeadlines.some((deadline) => deadline.importo <= 0 || !toInputDate(deadline.dataScadenza))) return toast.error("Controlla date e importi delle scadenze");
     const totalDeadlines = parsedDeadlines.reduce((sum, deadline) => sum + deadline.importo, 0);
     if (Math.abs(totalDeadlines - acquisition.totale) > 2) return toast.error("La somma delle scadenze deve corrispondere al totale fattura");
 
@@ -456,7 +470,7 @@ export default function NuovoMovimentoAutomatico() {
                 <Badge className="border-emerald-300/20 bg-emerald-300/10 text-emerald-200">Da verificare</Badge>
               </div>
               <div className="mt-5 grid grid-cols-2 gap-3">
-                <SummaryValue label="Data" value={new Date(`${acquisition.dataDocumento}T00:00:00`).toLocaleDateString("it-IT")} />
+                <SummaryValue label="Data" value={displayDate(acquisition.dataDocumento)} />
                 <SummaryValue label="Totale" value={money(acquisition.totale, acquisition.valuta)} strong />
               </div>
             </section>

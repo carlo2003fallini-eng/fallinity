@@ -1272,3 +1272,11 @@
 - [x] Aggiungere test backend e contratti UI per ricerca, filtri e isolamento aziendale
 - [x] Verificare a 390×844, suite Vitest, TypeScript e build
 - [x] Salvare il checkpoint della funzionalità
+
+## Fase 52 — Correzione Date Inserimento Automatico XML
+- [x] Riprodurre il messaggio “Invalid Date” con le date di fattura e scadenza estratte dall’XML
+- [x] Normalizzare in modo sicuro date SQL, ISO ed eventuali timestamp prima della visualizzazione
+- [x] Proteggere l’interfaccia da date mancanti o non valide con un’indicazione leggibile
+- [x] Aggiungere test di regressione per date XML, date SQL e valori non validi
+- [x] Verificare flusso, TypeScript, suite Vitest e build
+- [x] Salvare il checkpoint della correzione

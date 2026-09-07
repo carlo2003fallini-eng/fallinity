@@ -22,13 +22,27 @@ function financialDocumentType(tipoDocumento: string | null) {
   return "fattura_acquisto";
 }
 
+function normalizeStoredDate(value: unknown): string {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? "" : value.toISOString().slice(0, 10);
+  }
+  const raw = String(value ?? "").trim();
+  const match = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (match) {
+    const parsed = new Date(`${match[1]}T00:00:00.000Z`);
+    return Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== match[1] ? "" : match[1];
+  }
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString().slice(0, 10);
+}
+
 function publicDetail(detail: NonNullable<Awaited<ReturnType<typeof invoiceRepository.getDetail>>>) {
   return {
     id: detail.acquisition.id,
     stato: detail.acquisition.stato,
     nomeFile: detail.acquisition.nomeFile,
     numeroDocumento: detail.acquisition.numeroDocumento,
-    dataDocumento: String(detail.acquisition.dataDocumento),
+    dataDocumento: normalizeStoredDate(detail.acquisition.dataDocumento),
     valuta: detail.acquisition.valuta,
     tipoDocumento: detail.acquisition.tipoDocumento,
     fornitore: {
@@ -48,7 +62,10 @@ function publicDetail(detail: NonNullable<Awaited<ReturnType<typeof invoiceRepos
     metodoPagamento: detail.acquisition.metodoPagamento,
     condizioniPagamento: detail.acquisition.condizioniPagamento,
     riepiloghiIva: (detail.acquisition.riepiloghiIvaJson ?? []) as Array<Record<string, unknown>>,
-    scadenze: (detail.acquisition.scadenzeJson ?? []) as Array<{ dataScadenza: string; importo: number; iban: string | null; modalitaPagamento: string | null }>,
+    scadenze: ((detail.acquisition.scadenzeJson ?? []) as Array<{ dataScadenza: unknown; importo: number; iban: string | null; modalitaPagamento: string | null }>).map((deadline) => ({
+      ...deadline,
+      dataScadenza: normalizeStoredDate(deadline.dataScadenza),
+    })),
     avvisi: (detail.acquisition.avvisiJson ?? []) as AvvisoFattura[],
     aiUsata: detail.acquisition.aiUsata,
     duplicatoDocumentoId: detail.acquisition.duplicatoDocumentoId,
@@ -119,9 +136,7 @@ export const invoiceService = {
       ...result,
       items: result.items.map((item) => ({
         ...item,
-        dataDocumento: item.dataDocumento instanceof Date
-          ? item.dataDocumento.toISOString().slice(0, 10)
-          : String(item.dataDocumento).slice(0, 10),
+        dataDocumento: normalizeStoredDate(item.dataDocumento),
         avvisi: (item.avvisiJson ?? []) as AvvisoFattura[],
       })),
     };

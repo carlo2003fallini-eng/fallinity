@@ -40,7 +40,11 @@ function money(cents: number, currency = "EUR") {
 }
 
 function formatDate(value: string) {
-  return new Date(`${value.slice(0, 10)}T00:00:00`).toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" });
+  const match = String(value ?? "").match(/^(\d{4}-\d{2}-\d{2})/);
+  if (!match) return "Data non disponibile";
+  const date = new Date(`${match[1]}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== match[1]) return "Data non disponibile";
+  return date.toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 function euroToCents(value: string) {
