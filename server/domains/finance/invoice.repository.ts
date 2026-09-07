@@ -135,6 +135,36 @@ export const invoiceRepository = {
     return { id };
   },
 
+  async replaceDraftAcquisition(actor: ActorContext, id: string, acquisition: Record<string, unknown>, lines: Array<Record<string, unknown>>) {
+    const db = await getDb();
+    if (!db) throw new Error("Database non disponibile");
+    await db.transaction(async (tx) => {
+      const rows = await tx.select({ documentoFinanziarioId: acquisizioniFatture.documentoFinanziarioId }).from(acquisizioniFatture).where(and(
+        eq(acquisizioniFatture.id, id),
+        eq(acquisizioniFatture.companyId, actor.companyId),
+        isNull(acquisizioniFatture.deletedAt),
+      )).limit(1);
+      if (!rows[0]) throw new Error("Fattura acquisita non trovata");
+      if (rows[0].documentoFinanziarioId) throw new Error("La fattura è già registrata e non può essere riletta");
+      await tx.delete(righeFattureAcquisite).where(and(
+        eq(righeFattureAcquisite.acquisizioneId, id),
+        eq(righeFattureAcquisite.companyId, actor.companyId),
+      ));
+      await tx.update(acquisizioniFatture).set(withUpdate(actor, acquisition) as any).where(and(
+        eq(acquisizioniFatture.id, id),
+        eq(acquisizioniFatture.companyId, actor.companyId),
+      ));
+      if (lines.length) {
+        await tx.insert(righeFattureAcquisite).values(lines.map((line) => withCreate(actor, {
+          ...line,
+          id: newId(),
+          acquisizioneId: id,
+        }) as any));
+      }
+    });
+    return { id };
+  },
+
   async getDetail(companyId: string, id: string) {
     const db = await getDb();
     if (!db) return null;

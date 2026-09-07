@@ -206,6 +206,15 @@ export default function NuovoMovimentoAutomatico() {
 
   const uploadMutation = trpc.finanza.fattureAutomatiche.acquisisci.useMutation();
 
+  const reprocessMutation = trpc.finanza.fattureAutomatiche.rileggi.useMutation({
+    onSuccess: async (data) => {
+      initializedId.current = "";
+      await utils.finanza.fattureAutomatiche.dettaglio.invalidate({ id: data.id });
+      toast.success("XML riletto con il filtro aggiornato");
+    },
+    onError: (error) => toast.error(error.message || "Non è stato possibile rileggere l’XML"),
+  });
+
   const confirmMutation = trpc.finanza.fattureAutomatiche.conferma.useMutation({
     onSuccess: async (result) => {
       sessionStorage.removeItem(SESSION_KEY);
@@ -376,7 +385,8 @@ export default function NuovoMovimentoAutomatico() {
           </div>
           <div className="flex shrink-0 gap-1">
             <Button type="button" variant="ghost" size="icon" className="h-11 w-11 rounded-2xl text-white/65 hover:bg-white/5 hover:text-white" onClick={() => setLocation("/finanza/fatture-acquisite")} aria-label="Apri archivio fatture"><Archive className="h-5 w-5" /></Button>
-            {acquisition && <Button type="button" variant="ghost" size="icon" className="h-11 w-11 rounded-2xl text-white/65 hover:bg-white/5 hover:text-white" onClick={closeReview} aria-label="Torna alla coda fatture"><RotateCcw className="h-5 w-5" /></Button>}
+            {acquisition && <Button type="button" variant="ghost" size="icon" disabled={reprocessMutation.isPending} className="h-11 w-11 rounded-2xl text-white/65 hover:bg-white/5 hover:text-white" onClick={() => reprocessMutation.mutate({ id: acquisition.id })} aria-label="Rileggi il file XML con il filtro aggiornato">{reprocessMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <RotateCcw className="h-5 w-5" />}</Button>}
+            {acquisition && <Button type="button" variant="ghost" size="icon" className="h-11 w-11 rounded-2xl text-white/65 hover:bg-white/5 hover:text-white" onClick={closeReview} aria-label="Torna alla coda fatture"><ArrowLeft className="h-5 w-5" /></Button>}
           </div>
         </header>
 
@@ -464,6 +474,10 @@ export default function NuovoMovimentoAutomatico() {
 
         {acquisition && (
           <div className="space-y-4">
+            <section className="flex flex-col gap-3 rounded-[22px] border border-sky-300/15 bg-sky-300/[0.06] p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div><p className="text-sm font-semibold text-sky-100">Aggiorna le righe da questo XML</p><p className="mt-1 text-xs text-sky-100/65">Rileggi il file per applicare gli ultimi controlli prima di registrare.</p></div>
+              <Button type="button" variant="outline" disabled={reprocessMutation.isPending} className="h-11 shrink-0 rounded-xl border-sky-300/20 bg-sky-300/10 text-sky-50 hover:bg-sky-300/15" onClick={() => reprocessMutation.mutate({ id: acquisition.id })}>{reprocessMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}Rileggi XML</Button>
+            </section>
             <section className="rounded-[26px] border border-emerald-300/15 bg-gradient-to-br from-emerald-300/[0.09] to-white/[0.025] p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0"><p className="text-xs uppercase tracking-[0.18em] text-emerald-300/70">Documento</p><h2 className="mt-1 truncate text-xl font-semibold">{acquisition.numeroDocumento}</h2><p className="mt-1 truncate text-sm text-white/55">{acquisition.nomeFile}</p></div>

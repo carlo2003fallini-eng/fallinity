@@ -213,6 +213,10 @@ export const finanzaRouter = router({
       const actor = await getActor(ctx);
       return invoiceService.detail(actor.companyId, input.id);
     }),
+    rileggi: protectedProcedure.input(dettaglioAcquisizioneFatturaInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return invoiceService.reprocess(actor, input.id);
+    }),
     conferma: protectedProcedure.input(confermaFatturaAcquisitaInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);
       return invoiceService.confirm(actor, input);

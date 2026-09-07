@@ -1,4 +1,4 @@
-import { storagePut } from "../../storage";
+import { storageGetSignedUrl, storagePut } from "../../storage";
 import { inventoryRepository } from "../inventory/repository";
 import type { ActorContext } from "../_core";
 import { financeRepository } from "./repository";
@@ -191,7 +191,7 @@ export const invoiceService = {
     const decoded = decodeInvoiceBase64(input.contenutoBase64, input.dimensione);
     const parsed = parseFatturaPaXml(decoded.xml);
     const existing = await invoiceRepository.findByFileHash(actor.companyId, decoded.hashFile);
-    if (existing) {
+    if (existing?.documentoFinanziarioId) {
       const detail = await invoiceRepository.getDetail(actor.companyId, existing.id);
       if (!detail) throw new Error("L’acquisizione esistente non è più disponibile");
       return { ...publicDetail(detail), riutilizzata: true };
@@ -240,19 +240,12 @@ export const invoiceService = {
 
     const year = parsed.dataDocumento.slice(0, 4);
     const safeStem = input.nomeFile.replace(/\.xml$/i, "").replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 80) || "fattura";
-    const stored = await storagePut(
-      `fatture-xml/${actor.companyId}/${year}/${safeStem}-${decoded.hashFile.slice(0, 12)}.xml`,
-      decoded.buffer,
-      "application/xml",
-    );
     const hashDocumento = buildInvoiceDocumentHash(parsed);
-    const { id } = await invoiceRepository.insertAcquisition(actor, {
+    const acquisitionData = {
       stato: "da_verificare",
       nomeFile: input.nomeFile,
       mimeType: "application/xml",
       dimensione: decoded.buffer.length,
-      fileKey: stored.key,
-      fileUrl: stored.url,
       hashFile: decoded.hashFile,
       hashDocumento,
       parserVersion: FATTURA_XML_PARSER_VERSION,
@@ -281,7 +274,8 @@ export const invoiceService = {
       avvisiJson: warnings,
       aiUsata: classification.aiUsed,
       duplicatoDocumentoId: duplicate?.id,
-    }, classification.lines.map((line) => ({
+    };
+    const lines = classification.lines.map((line) => ({
       numeroLinea: line.numeroLinea,
       codiceArticolo: line.codiceArticolo,
       descrizione: line.descrizione,
@@ -300,10 +294,36 @@ export const invoiceService = {
       prodottoId: line.prodottoId,
       creaProdotto: false,
       nomeProdotto: line.nomeProdotto,
-    })));
+    }));
+    const { id } = existing
+      ? await invoiceRepository.replaceDraftAcquisition(actor, existing.id, acquisitionData, lines)
+      : await (async () => {
+        const stored = await storagePut(
+          `fatture-xml/${actor.companyId}/${year}/${safeStem}-${decoded.hashFile.slice(0, 12)}.xml`,
+          decoded.buffer,
+          "application/xml",
+        );
+        return invoiceRepository.insertAcquisition(actor, { ...acquisitionData, fileKey: stored.key, fileUrl: stored.url }, lines);
+      })();
     const detail = await invoiceRepository.getDetail(actor.companyId, id);
     if (!detail) throw new Error("La fattura è stata acquisita ma non è possibile aprire la revisione");
-    return { ...publicDetail(detail), riutilizzata: false };
+    return { ...publicDetail(detail), riutilizzata: Boolean(existing) };
+  },
+
+  async reprocess(actor: ActorContext, id: string) {
+    const detail = await invoiceRepository.getDetail(actor.companyId, id);
+    if (!detail) throw new Error("Fattura acquisita non trovata");
+    if (detail.acquisition.documentoFinanziarioId) throw new Error("La fattura è già registrata e non può essere riletta");
+    const downloadUrl = await storageGetSignedUrl(detail.acquisition.fileKey);
+    const response = await fetch(downloadUrl);
+    if (!response.ok) throw new Error("Non è possibile rileggere il file XML originale");
+    const bytes = Buffer.from(await response.arrayBuffer());
+    return invoiceService.acquire(actor, {
+      nomeFile: detail.acquisition.nomeFile,
+      mimeType: detail.acquisition.mimeType,
+      dimensione: bytes.length,
+      contenutoBase64: bytes.toString("base64"),
+    });
   },
 
   async detail(companyId: string, id: string) {

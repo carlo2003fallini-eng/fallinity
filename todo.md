@@ -1303,3 +1303,10 @@
 - [x] Aggiungere regressioni per codici articolo presenti e assenti
 - [x] Verificare parser, TypeScript, suite Vitest e build
 - [x] Salvare il checkpoint della correzione
+
+## Fase 55 — Applicazione Filtro XML in Anteprima
+- [x] Verificare versione server, cache PWA e percorso effettivo di importazione XML
+- [x] Correggere il punto che mantiene attivo il parser o la revisione precedente
+- [x] Aggiungere una prova di integrazione del filtro codice articolo
+- [x] Verificare aggiornamento PWA, TypeScript, suite Vitest e build
+- [x] Salvare il checkpoint della correzione
