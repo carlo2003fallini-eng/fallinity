@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
 
 export const FATTURA_XML_MAX_BYTES = 5 * 1024 * 1024;
-export const FATTURA_XML_PARSER_VERSION = "fatturapa-1.0";
+export const FATTURA_XML_PARSER_VERSION = "fatturapa-1.1";
 
 export type AvvisoFattura = {
   codice: "dati_mancanti" | "scadenza_mancante" | "scadenza_vicina" | "importi_non_allineati" | "importo_anomalo" | "classificazione_incerta" | "possibile_duplicato";
@@ -69,7 +69,10 @@ function optionalText(value: unknown): string | null {
 
 function toDecimal(value: unknown, field: string, required = false): number {
   const raw = text(value).replace(",", ".");
-  if (!raw && !required) return 0;
+  if (!raw) {
+    if (required) throw new Error(`Il campo ${field} è obbligatorio`);
+    return 0;
+  }
   const parsed = Number(raw);
   if (!Number.isFinite(parsed)) throw new Error(`Il campo ${field} contiene un importo non valido`);
   return parsed;
@@ -131,6 +134,13 @@ function supplierAddress(sede: any): string | null {
 function lineCode(codici: unknown): string | null {
   const primo = arrayOf(codici as any)[0];
   return optionalText(primo?.CodiceValore);
+}
+
+function isCommercialLine(item: any): boolean {
+  const values = [item?.Quantita, item?.PrezzoUnitario, item?.PrezzoTotale, item?.AliquotaIVA];
+  if (values.some((value) => !text(value))) return false;
+  const numericValues = values.map((value) => Number(text(value).replace(",", ".")));
+  return numericValues.every(Number.isFinite) && numericValues[0] > 0;
 }
 
 function extractInvoiceRoot(parsed: Record<string, any>): any {
@@ -202,8 +212,13 @@ export function parseFatturaPaXml(xml: string, today = new Date()): ParsedFattur
   const details = arrayOf(goods.DettaglioLinee as any);
   if (!details.length) throw new Error("La fattura non contiene righe di beni o servizi");
   if (details.length > 500) throw new Error("La fattura contiene più di 500 righe e non può essere acquisita in un’unica operazione");
+  const commercialDetails = details.filter(isCommercialLine);
+  const excludedInformativeLines = details.length - commercialDetails.length;
+  if (!commercialDetails.length) {
+    throw new Error("La fattura non contiene righe commerciali con quantità, prezzo unitario e aliquota IVA validi");
+  }
 
-  const righe: RigaFatturaXml[] = details.map((item: any, index) => ({
+  const righe: RigaFatturaXml[] = commercialDetails.map((item: any, index) => ({
     numeroLinea: Math.max(1, Math.trunc(toDecimal(item.NumeroLinea, "Numero linea", false) || index + 1)),
     codiceArticolo: lineCode(item.CodiceArticolo),
     descrizione: text(item.Descrizione) || `Riga ${index + 1}`,
@@ -259,6 +274,13 @@ export function parseFatturaPaXml(xml: string, today = new Date()): ParsedFattur
   const dataDocumento = isoDate(general.Data, "Data documento");
 
   const avvisi: AvvisoFattura[] = [];
+  if (excludedInformativeLines) {
+    avvisi.push({
+      codice: "dati_mancanti",
+      severita: "info",
+      messaggio: `${excludedInformativeLines} ${excludedInformativeLines === 1 ? "descrizione informativa è stata" : "descrizioni informative sono state"} ignorata${excludedInformativeLines === 1 ? "" : "e"} perché priva di quantità, prezzo unitario o aliquota IVA.`,
+    });
+  }
   if (!fornitore.partitaIva && !fornitore.codiceFiscale) {
     avvisi.push({ codice: "dati_mancanti", severita: "alta", messaggio: "Manca partita IVA o codice fiscale del fornitore." });
   }

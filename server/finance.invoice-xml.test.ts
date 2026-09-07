@@ -42,6 +42,13 @@ const VALID_XML = `<?xml version="1.0" encoding="UTF-8"?>
   </FatturaElettronicaBody>
 </p:FatturaElettronica>`;
 
+const XML_WITH_INFORMATIONAL_LINES = VALID_XML.replace(
+  "<DatiBeniServizi>",
+  `<DatiBeniServizi>
+      <DettaglioLinee><NumeroLinea>0</NumeroLinea><Descrizione>Nr. spedizione 260037756 del 03/08/26 · Vs. ordine 15452</Descrizione></DettaglioLinee>
+      <DettaglioLinee><NumeroLinea>0.1</NumeroLinea><Descrizione>Riferimento DDT privo di valori commerciali</Descrizione><Quantita>testo</Quantita><PrezzoUnitario>-</PrezzoUnitario></DettaglioLinee>`,
+);
+
 describe("Parser fattura elettronica XML", () => {
   it("estrae dati fiscali, righe, riepiloghi e scadenze senza AI", () => {
     const parsed = parseFatturaPaXml(VALID_XML, new Date("2026-09-04T00:00:00Z"));
@@ -74,6 +81,23 @@ describe("Parser fattura elettronica XML", () => {
     const parsed = parseFatturaPaXml(VALID_XML);
     expect(buildInvoiceDocumentHash(parsed)).toBe(buildInvoiceDocumentHash(parsed));
     expect(normalizeInvoiceDescription("  Concimè NPK — 20/10  ")).toBe("concime npk 20 10");
+  });
+
+  it("ignora note DDT e descrizioni informative prive di quantità, prezzo e IVA", () => {
+    const parsed = parseFatturaPaXml(XML_WITH_INFORMATIONAL_LINES);
+    expect(parsed.righe).toHaveLength(2);
+    expect(parsed.righe.map((line) => line.descrizione)).not.toContain("Nr. spedizione 260037756 del 03/08/26 · Vs. ordine 15452");
+    expect(parsed.righe.map((line) => line.descrizione)).not.toContain("Riferimento DDT privo di valori commerciali");
+    expect(parsed.avvisi).toContainEqual(expect.objectContaining({
+      codice: "dati_mancanti",
+      severita: "info",
+      messaggio: expect.stringContaining("2 descrizioni informative"),
+    }));
+  });
+
+  it("rifiuta un documento che contiene soltanto descrizioni senza valori commerciali", () => {
+    const onlyInformational = VALID_XML.replace(/<DettaglioLinee>[\s\S]*?<\/DettaglioLinee>/g, "<DettaglioLinee><Descrizione>Riferimento DDT</Descrizione></DettaglioLinee>");
+    expect(() => parseFatturaPaXml(onlyInformational)).toThrow(/righe commerciali/);
   });
 
   it("rifiuta XML malformato e dichiarazioni DOCTYPE/ENTITY", () => {

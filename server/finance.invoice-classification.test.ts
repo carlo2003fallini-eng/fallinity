@@ -78,3 +78,41 @@ describe("Contratti di sicurezza acquisizione e conferma", () => {
     expect(routerSource).toContain("protectedProcedure.input(confermaFatturaAcquisitaInput)");
   });
 });
+
+describe("Precompilazione classificazione prodotto", () => {
+  it("ripropone centro e sottocategoria salvati per lo stesso prodotto anche con un nuovo fornitore", async () => {
+    const result = await classifyInvoiceLines({
+      partitaIva: "IT99999999999",
+      lines: [baseLine],
+      rules: [{
+        fornitorePartitaIva: "IT11111111111",
+        codiceArticolo: "VECCHIO-CODICE",
+        descrizioneNormalizzata: "mangime storico",
+        categoriaId: "cat-feed",
+        centroCostoId: "cdc-feed",
+        destinazione: "magazzino",
+        prodottoId: "prod-feed",
+      }],
+      categories: [{ id: "cat-feed", nome: "Mangimi", tipo: "uscita", attivo: true }],
+      centers: [{ id: "cdc-feed", nome: "Alimentazione", attivo: true }],
+      products: [{ id: "prod-feed", nome: "Mangime bovini", codice: "MANG-01" }],
+      enableAi: false,
+    });
+    expect(result.lines[0]).toMatchObject({
+      prodottoId: "prod-feed",
+      categoriaId: "cat-feed",
+      centroCostoId: "cdc-feed",
+      destinazione: "magazzino",
+      confidenza: 94,
+    });
+  });
+
+  it("espone un prodotto associato e conserva la regola confermata per azienda", () => {
+    const repositorySource = readFileSync(new URL("./domains/finance/invoice.repository.ts", import.meta.url), "utf8");
+    const pageSource = readFileSync(new URL("../client/src/pages/finanza/NuovoMovimentoAutomatico.tsx", import.meta.url), "utf8");
+    expect(repositorySource).toContain("isNotNull(regoleClassificazioneFatture.prodottoId)");
+    expect(repositorySource).toContain("prodottoId: productId");
+    expect(pageSource).toContain("Prodotto associato");
+    expect(pageSource).toContain("verranno riproposti nelle prossime fatture");
+  });
+});

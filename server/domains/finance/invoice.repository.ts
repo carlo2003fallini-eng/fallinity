@@ -204,7 +204,12 @@ export const invoiceRepository = {
       eq(regoleClassificazioneFatture.companyId, companyId),
       isNull(regoleClassificazioneFatture.deletedAt),
     ];
-    if (partitaIva) conditions.push(eq(regoleClassificazioneFatture.fornitorePartitaIva, partitaIva));
+    if (partitaIva) {
+      conditions.push(or(
+        eq(regoleClassificazioneFatture.fornitorePartitaIva, partitaIva),
+        isNotNull(regoleClassificazioneFatture.prodottoId),
+      )!);
+    }
     return db.select().from(regoleClassificazioneFatture)
       .where(and(...conditions))
       .orderBy(desc(regoleClassificazioneFatture.ultimoUtilizzoAt));

@@ -7,6 +7,7 @@ type Category = { id: string; nome: string; tipo: string; attivo: boolean };
 type CostCenter = { id: string; nome: string; attivo: boolean };
 type Product = { id: string; nome: string; codice: string | null };
 type Rule = {
+  fornitorePartitaIva: string | null;
   codiceArticolo: string | null;
   descrizioneNormalizzata: string | null;
   categoriaId: string;
@@ -159,22 +160,27 @@ export async function classifyInvoiceLines(input: {
   let lines: ClassifiedInvoiceLine[] = input.lines.map((line) => {
     const code = line.codiceArticolo?.toUpperCase().replace(/\s+/g, "") ?? null;
     const normalizedDescription = normalizeInvoiceDescription(line.descrizione);
+    const supplier = input.partitaIva?.toUpperCase().replace(/[^A-Z0-9]/g, "") ?? null;
+    const sameSupplier = (rule: Rule) => !supplier || !rule.fornitorePartitaIva || rule.fornitorePartitaIva.toUpperCase().replace(/[^A-Z0-9]/g, "") === supplier;
+    const matchedProduct = matchProduct(line, input.products);
     const historicCode = code
-      ? input.rules.find((rule) => rule.codiceArticolo?.toUpperCase().replace(/\s+/g, "") === code)
+      ? input.rules.find((rule) => sameSupplier(rule) && rule.codiceArticolo?.toUpperCase().replace(/\s+/g, "") === code)
       : null;
     const historicDescription = !historicCode
-      ? input.rules.find((rule) => rule.descrizioneNormalizzata === normalizedDescription)
+      ? input.rules.find((rule) => sameSupplier(rule) && rule.descrizioneNormalizzata === normalizedDescription)
       : null;
-    const rule = historicCode ?? historicDescription;
-    const matchedProduct = matchProduct(line, input.products);
+    const historicProduct = !historicCode && !historicDescription && matchedProduct
+      ? input.rules.find((rule) => rule.prodottoId === matchedProduct.id)
+      : null;
+    const rule = historicCode ?? historicDescription ?? historicProduct;
     if (rule && categories.some((item) => item.id === rule.categoriaId)) {
       return {
         ...line,
         categoriaId: rule.categoriaId,
         centroCostoId: centers.some((item) => item.id === rule.centroCostoId) ? rule.centroCostoId : null,
         destinazione: rule.destinazione,
-        fonteClassificazione: historicCode ? "storico_codice" as const : "storico_descrizione" as const,
-        confidenza: 96,
+        fonteClassificazione: historicCode || (historicProduct && Boolean(line.codiceArticolo)) ? "storico_codice" as const : "storico_descrizione" as const,
+        confidenza: historicProduct ? 94 : 96,
         prodottoId: rule.prodottoId && input.products.some((item) => item.id === rule.prodottoId) ? rule.prodottoId : matchedProduct?.id ?? null,
         aggiornaMagazzino: false,
         creaProdotto: false,

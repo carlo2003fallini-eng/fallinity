@@ -1280,3 +1280,18 @@
 - [x] Aggiungere test di regressione per date XML, date SQL e valori non validi
 - [x] Verificare flusso, TypeScript, suite Vitest e build
 - [x] Salvare il checkpoint della correzione
+
+## Fase 53 — Righe Commerciali XML
+- [x] Analizzare come il parser seleziona DettaglioLinee e gestisce valori assenti
+- [x] Importare solo righe con quantità, prezzo unitario e aliquota IVA validi
+- [x] Escludere note DDT, riferimenti d’ordine e descrizioni senza valori commerciali
+- [x] Aggiungere regressioni per righe informative e righe commerciali valide
+- [x] Verificare parser, TypeScript, suite Vitest e build
+- [x] Salvare il checkpoint della correzione
+
+## Fase 53.1 — Precompilazione Classificazione Prodotto
+- [x] Analizzare il salvataggio delle regole di classificazione per prodotto e articolo
+- [x] Salvare prodotto, centro di costo e sottocategoria alla conferma della fattura
+- [x] Proporre automaticamente la classificazione salvata per lo stesso prodotto o articolo
+- [x] Mantenere la proposta modificabile e isolata per azienda
+- [x] Aggiungere test di regressione della precompilazione prodotto
