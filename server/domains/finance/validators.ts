@@ -376,7 +376,7 @@ export const dettaglioAcquisizioneFatturaInput = z.object({
 export const rigaConfermaFatturaInput = z.object({
   rigaId: z.string().min(1),
   categoriaId: z.string().min(1),
-  centroCostoId: z.string().nullable().optional(),
+  centroCostoId: z.string().min(1),
   destinazione: z.enum(["costo", "magazzino", "investimento", "altro"]),
   aggiornaMagazzino: z.boolean().default(false),
   prodottoId: z.string().nullable().optional(),
@@ -387,8 +387,6 @@ export const rigaConfermaFatturaInput = z.object({
 export const confermaFatturaAcquisitaInput = z.object({
   acquisizioneId: z.string().min(1),
   soggettoId: z.string().nullable().optional(),
-  categoriaId: z.string().min(1),
-  centroCostoId: z.string().nullable().optional(),
   dataCompetenza: z.string().optional(),
   descrizione: z.string().trim().max(2000).optional(),
   note: z.string().trim().max(4000).optional(),

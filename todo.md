@@ -1321,3 +1321,13 @@
 - [x] Aggiungere test per i due XML, duplicati e Entrata
 - [x] Verificare a 390×844, suite Vitest, TypeScript e build
 - [x] Salvare il checkpoint della funzionalità
+
+## Fase 57 — Classificazione per Singolo Articolo
+- [x] Analizzare le classificazioni presenti in intestazione e nelle righe della revisione XML
+- [x] Rimuovere la destinazione principale della fattura dai contratti e dalla conferma
+- [x] Rendere centro di costo e sottocategoria selezionabili e coerenti per ogni riga articolo
+- [x] Ripartire le registrazioni economiche usando le classificazioni specifiche delle righe
+- [x] Aggiornare la revisione mobile eliminando i controlli principali duplicati
+- [x] Aggiungere regressioni per classificazioni differenti tra articoli della stessa fattura
+- [x] Verificare a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della funzionalità

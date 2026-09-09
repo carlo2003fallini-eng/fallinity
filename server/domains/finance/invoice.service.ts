@@ -433,8 +433,6 @@ export const invoiceService = {
         throw new Error("La sottocategoria non è collegata alla categoria del centro di costo selezionato");
       }
     };
-    validatePair(input.categoriaId, input.centroCostoId);
-
     const persistedLines = new Map(detail.lines.map((line) => [line.id, line]));
     if (input.righe.length !== detail.lines.length || new Set(input.righe.map((line) => line.rigaId)).size !== detail.lines.length) {
       throw new Error("Conferma tutte le righe della fattura prima di registrare");
@@ -442,6 +440,7 @@ export const invoiceService = {
     const lineTotals = input.righe.map((line) => {
       const persisted = persistedLines.get(line.rigaId);
       if (!persisted) throw new Error("Una riga non appartiene alla fattura acquisita");
+      if (!line.centroCostoId) throw new Error("Seleziona un centro di costo per ogni articolo");
       validatePair(line.categoriaId, line.centroCostoId);
       if (tipoMovimento === "entrata" && line.aggiornaMagazzino) {
         throw new Error("Una fattura in Entrata non può creare un carico di magazzino");
@@ -488,14 +487,17 @@ export const invoiceService = {
         descrizioneNormalizzata: normalizeInvoiceDescription(persisted.descrizione),
       };
     });
+    const rigaDocumento = preparedLines.reduce((prevalente, line) =>
+      Math.abs(line.importoEconomico) > Math.abs(prevalente.importoEconomico) ? line : prevalente,
+    );
 
     const dominantVat = ((detail.acquisition.riepiloghiIvaJson ?? []) as Array<{ aliquotaIva?: number; imponibile?: number }>)
       .slice().sort((a, b) => Math.abs(b.imponibile ?? 0) - Math.abs(a.imponibile ?? 0))[0]?.aliquotaIva ?? 0;
     return invoiceRepository.confirm(actor, {
       acquisizioneId: input.acquisizioneId,
       soggettoId: input.soggettoId ?? detail.acquisition.soggettoId ?? null,
-      categoriaId: input.categoriaId,
-      centroCostoId: input.centroCostoId ?? null,
+      categoriaId: rigaDocumento.categoriaId,
+      centroCostoId: rigaDocumento.centroCostoId,
       dataCompetenza: input.dataCompetenza ?? String(detail.acquisition.dataDocumento),
       descrizione: input.descrizione?.trim() || `Fattura ${detail.acquisition.numeroDocumento} — ${detail.acquisition.fornitoreRagioneSociale}`,
       note: input.note?.trim() || null,

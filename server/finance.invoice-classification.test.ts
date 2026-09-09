@@ -77,6 +77,23 @@ describe("Contratti di sicurezza acquisizione e conferma", () => {
     expect(routerSource).toContain("protectedProcedure.input(acquisisciFatturaXmlInput)");
     expect(routerSource).toContain("protectedProcedure.input(confermaFatturaAcquisitaInput)");
   });
+
+  it("usa centro e sottocategoria di ogni articolo senza una destinazione principale della fattura", () => {
+    const validatorSource = readFileSync(new URL("./domains/finance/validators.ts", import.meta.url), "utf8");
+    const pageSource = readFileSync(new URL("../client/src/pages/finanza/NuovoMovimentoAutomatico.tsx", import.meta.url), "utf8");
+    const confirmationValidator = validatorSource.slice(validatorSource.indexOf("export const confermaFatturaAcquisitaInput"), validatorSource.indexOf("// ── Type exports"));
+
+    expect(confirmationValidator).not.toMatch(/\n\s*categoriaId: z\.string/);
+    expect(confirmationValidator).not.toMatch(/\n\s*centroCostoId:/);
+    expect(validatorSource).toContain("centroCostoId: z.string().min(1)");
+    expect(serviceSource).toContain("Seleziona un centro di costo per ogni articolo");
+    expect(serviceSource).toContain("const rigaDocumento = preparedLines.reduce");
+    expect(repositorySource).toContain("categoriaId: line.categoriaId");
+    expect(repositorySource).toContain("centroCostoId: line.centroCostoId");
+    expect(pageSource).toContain("Definisci ogni articolo");
+    expect(pageSource).not.toContain("Destinazione principale");
+    expect(pageSource).toContain("Completa centro di costo e sottocategoria per ogni articolo");
+  });
 });
 
 describe("Precompilazione classificazione prodotto", () => {

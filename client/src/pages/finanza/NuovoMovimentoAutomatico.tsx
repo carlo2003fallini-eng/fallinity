@@ -144,8 +144,6 @@ export default function NuovoMovimentoAutomatico() {
   const [batchQueue, setBatchQueue] = useState<BatchQueueItem[]>(loadBatchQueue);
   const [lineReviews, setLineReviews] = useState<LineReview[]>([]);
   const [deadlines, setDeadlines] = useState<DeadlineReview[]>([]);
-  const [categoryId, setCategoryId] = useState("");
-  const [costCenterId, setCostCenterId] = useState("");
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
   const [directionPreference, setDirectionPreference] = useState<"auto" | "entrata" | "uscita">("auto");
@@ -185,7 +183,6 @@ export default function NuovoMovimentoAutomatico() {
   useEffect(() => {
     if (!acquisition || initializedId.current === acquisition.id) return;
     initializedId.current = acquisition.id;
-    const firstLine = acquisition.righe[0];
     setLineReviews(acquisition.righe.map((line, index) => ({
       rigaId: line.id,
       categoriaId: line.categoriaId ?? "",
@@ -202,8 +199,6 @@ export default function NuovoMovimentoAutomatico() {
       importoEuro: centsToInput(deadline.importo),
       note: "",
     })));
-    setCategoryId(firstLine?.categoriaId ?? "");
-    setCostCenterId(firstLine?.centroCostoId ?? "");
     setDescription(`Fattura ${acquisition.numeroDocumento} — ${acquisition.fornitore.ragioneSociale}`);
   }, [acquisition]);
 
@@ -335,8 +330,7 @@ export default function NuovoMovimentoAutomatico() {
 
   const submit = () => {
     if (!acquisition || !online) return;
-    if (!categoryId) return toast.error("Seleziona la sottocategoria principale");
-    if (lineReviews.some((line) => !line.categoriaId)) return toast.error("Controlla la sottocategoria di ogni riga");
+    if (lineReviews.some((line) => !line.categoriaId || !line.centroCostoId)) return toast.error("Completa centro di costo e sottocategoria per ogni articolo");
     if (acquisition.duplicatoDocumentoId) return toast.error("Questa fattura è già presente e non può essere registrata una seconda volta");
     const parsedDeadlines = deadlines.map((deadline) => ({
       dataScadenza: deadline.dataScadenza,
@@ -350,8 +344,6 @@ export default function NuovoMovimentoAutomatico() {
     confirmMutation.mutate({
       acquisizioneId: acquisition.id,
       soggettoId: acquisition.fornitore.soggettoId,
-      categoriaId: categoryId,
-      centroCostoId: costCenterId || null,
       dataCompetenza: acquisition.dataDocumento,
       descrizione: description,
       note: notes || undefined,
@@ -359,7 +351,7 @@ export default function NuovoMovimentoAutomatico() {
       righe: lineReviews.map((line) => ({
         rigaId: line.rigaId,
         categoriaId: line.categoriaId,
-        centroCostoId: line.centroCostoId || null,
+        centroCostoId: line.centroCostoId,
         destinazione: line.destinazione,
         aggiornaMagazzino: line.aggiornaMagazzino,
         prodottoId: line.prodottoId || null,
@@ -537,11 +529,8 @@ export default function NuovoMovimentoAutomatico() {
             </section>
 
             <section className="rounded-[26px] border border-white/8 bg-white/[0.035] p-5">
-              <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/40">Classificazione documento</p><h2 className="mt-1 font-semibold">Destinazione principale</h2></div><CheckCircle2 className="h-5 w-5 text-emerald-300" /></div>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2"><Label>Centro di costo</Label><Select value={costCenterId || "none"} onValueChange={(value) => { const next = value === "none" ? "" : value; setCostCenterId(next); if (categoryId && !allowedCategories(next).some((item) => item.id === categoryId)) setCategoryId(""); }}><SelectTrigger className="h-12 rounded-2xl border-white/10 bg-black/20"><SelectValue placeholder="Nessun centro" /></SelectTrigger><SelectContent><SelectItem value="none">Nessun centro</SelectItem>{(costCenters as any[]).filter((item) => item.attivo !== false).map((item) => <SelectItem key={item.id} value={item.id}>{item.nome}</SelectItem>)}</SelectContent></Select></div>
-                <div className="space-y-2"><Label>Sottocategoria</Label><Select value={categoryId} onValueChange={setCategoryId}><SelectTrigger className="h-12 rounded-2xl border-white/10 bg-black/20"><SelectValue placeholder="Seleziona" /></SelectTrigger><SelectContent>{allowedCategories(costCenterId).filter((item) => item.attivo !== false).map((item) => <SelectItem key={item.id} value={item.id}>{item.nome}</SelectItem>)}</SelectContent></Select></div>
-              </div>
+              <div className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-emerald-300" /><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/40">Classificazione</p><h2 className="mt-1 font-semibold">Definisci ogni articolo</h2></div></div>
+              <p className="mt-3 text-sm text-white/55">Centro di costo e sottocategoria vengono selezionati nella singola riga articolo. Non esiste una destinazione principale per l’intera fattura.</p>
               <div className="mt-4 space-y-2"><Label>Descrizione movimento</Label><Textarea value={description} onChange={(event) => setDescription(event.target.value)} className="min-h-20 rounded-2xl border-white/10 bg-black/20" /></div>
             </section>
 
@@ -562,7 +551,7 @@ export default function NuovoMovimentoAutomatico() {
                         <div className="mt-4 space-y-4 border-t border-white/8 pt-4">
                           {line.codiceArticolo && <p className="text-xs text-white/45">Codice articolo: <span className="font-mono text-white/70">{line.codiceArticolo}</span></p>}
                           <div className="grid gap-4 sm:grid-cols-2">
-                            <div className="space-y-2"><Label>Centro di costo</Label><Select value={review.centroCostoId || "none"} onValueChange={(value) => { const next = value === "none" ? "" : value; const currentCategoryValid = choices.some((item) => item.id === review.categoriaId); updateLine(line.id, { centroCostoId: next, categoriaId: currentCategoryValid ? review.categoriaId : "" }); }}><SelectTrigger className="h-12 rounded-2xl border-white/10 bg-white/[0.03]"><SelectValue placeholder="Nessun centro" /></SelectTrigger><SelectContent><SelectItem value="none">Nessun centro</SelectItem>{(costCenters as any[]).filter((item) => item.attivo !== false).map((item) => <SelectItem key={item.id} value={item.id}>{item.nome}</SelectItem>)}</SelectContent></Select></div>
+                            <div className="space-y-2"><Label>Centro di costo</Label><Select value={review.centroCostoId} onValueChange={(next) => { const currentCategoryValid = allowedCategories(next).some((item) => item.id === review.categoriaId); updateLine(line.id, { centroCostoId: next, categoriaId: currentCategoryValid ? review.categoriaId : "" }); }}><SelectTrigger className="h-12 rounded-2xl border-white/10 bg-white/[0.03]"><SelectValue placeholder="Seleziona centro" /></SelectTrigger><SelectContent>{(costCenters as any[]).filter((item) => item.attivo !== false).map((item) => <SelectItem key={item.id} value={item.id}>{item.nome}</SelectItem>)}</SelectContent></Select></div>
                             <div className="space-y-2"><Label>Sottocategoria</Label><Select value={review.categoriaId} onValueChange={(value) => updateLine(line.id, { categoriaId: value })}><SelectTrigger className="h-12 rounded-2xl border-white/10 bg-white/[0.03]"><SelectValue placeholder="Seleziona" /></SelectTrigger><SelectContent>{allowedCategories(review.centroCostoId).filter((item) => item.attivo !== false).map((item) => <SelectItem key={item.id} value={item.id}>{item.nome}</SelectItem>)}</SelectContent></Select></div>
                           </div>
                           <div className="space-y-2"><Label>Destinazione</Label><Select value={review.destinazione} onValueChange={(value: LineReview["destinazione"]) => updateLine(line.id, { destinazione: value })}><SelectTrigger className="h-12 rounded-2xl border-white/10 bg-white/[0.03]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="costo">{isEntrata ? "Ricavo operativo" : "Costo operativo"}</SelectItem>{!isEntrata && <><SelectItem value="magazzino">Magazzino</SelectItem><SelectItem value="investimento">Investimento</SelectItem><SelectItem value="altro">Altro</SelectItem></>}</SelectContent></Select></div>
