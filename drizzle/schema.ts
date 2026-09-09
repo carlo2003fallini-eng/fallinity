@@ -900,6 +900,7 @@ export const acquisizioniFatture = mysqlTable("acquisizioniFatture", {
   versioneFatturaPa: varchar("versioneFatturaPa", { length: 20 }),
   progressivoInvio: varchar("progressivoInvio", { length: 20 }),
   tipoDocumento: varchar("tipoDocumento", { length: 10 }),
+  tipoMovimento: mysqlEnum("tipoMovimento", ["entrata", "uscita"]).default("uscita").notNull(),
   numeroDocumento: varchar("numeroDocumento", { length: 50 }).notNull(),
   dataDocumento: date("dataDocumento").notNull(),
   valuta: varchar("valuta", { length: 3 }).default("EUR").notNull(),
@@ -929,6 +930,7 @@ export const acquisizioniFatture = mysqlTable("acquisizioniFatture", {
   ...auditColumns,
 }, (table) => [
   uniqueIndex("uq_acq_fatture_company_hash_file").on(table.companyId, table.hashFile),
+  uniqueIndex("uq_acq_fatture_company_hash_documento").on(table.companyId, table.hashDocumento),
   index("idx_acq_fatture_company_stato").on(table.companyId, table.stato),
   index("idx_acq_fatture_company_hash_doc").on(table.companyId, table.hashDocumento),
 ]);

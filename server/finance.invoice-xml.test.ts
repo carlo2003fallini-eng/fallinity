@@ -101,12 +101,13 @@ describe("Parser fattura elettronica XML", () => {
     }));
   });
 
-  it("importa soltanto righe con codice articolo, ignorando anche riferimenti con valori a zero", () => {
-    const parsed = parseFatturaPaXml(XML_WITH_ZERO_REFERENCE);
+  it("importa righe commerciali valide anche senza codice articolo, ignorando riferimenti con valori a zero", () => {
+    const xmlWithoutArticleCodes = XML_WITH_ZERO_REFERENCE.replace(/<CodiceArticolo>[\s\S]*?<\/CodiceArticolo>/g, "");
+    const parsed = parseFatturaPaXml(xmlWithoutArticleCodes);
     expect(parsed.righe).toHaveLength(2);
-    expect(parsed.righe.every((line) => Boolean(line.codiceArticolo))).toBe(true);
+    expect(parsed.righe.every((line) => line.codiceArticolo === null)).toBe(true);
     expect(parsed.righe.map((line) => line.descrizione)).not.toContain("Nr. ordine 2600036895 Data: 20/07/26");
-    expect(parsed.avvisi).toContainEqual(expect.objectContaining({ messaggio: expect.stringContaining("codice articolo") }));
+    expect(parsed.avvisi).toContainEqual(expect.objectContaining({ messaggio: expect.stringContaining("quantità positiva") }));
   });
 
   it("rifiuta un documento che contiene soltanto descrizioni senza valori commerciali", () => {

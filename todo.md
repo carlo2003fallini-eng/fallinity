@@ -1310,3 +1310,14 @@
 - [x] Aggiungere una prova di integrazione del filtro codice articolo
 - [x] Verificare aggiornamento PWA, TypeScript, suite Vitest e build
 - [x] Salvare il checkpoint della correzione
+
+## Fase 56 — XML Forniti, Duplicati e Fatture in Entrata
+- [x] Analizzare i due XML forniti e riprodurre le cause di mancato riconoscimento
+- [x] Estendere il parser e le validazioni ai tracciati effettivamente ricevuti
+- [x] Impedire in modo inderogabile l’inserimento della stessa fattura due volte
+- [x] Riconoscere in modo affidabile fatture attive e passive dal rapporto cedente/cessionario
+- [x] Consentire revisione e registrazione delle fatture in Entrata senza carico Magazzino improprio
+- [x] Aggiornare interfaccia e microcopy per distinguere Entrata/Uscita
+- [x] Aggiungere test per i due XML, duplicati e Entrata
+- [x] Verificare a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della funzionalità

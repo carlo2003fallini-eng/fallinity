@@ -147,6 +147,7 @@ async function classifyResidualWithAi(
 
 export async function classifyInvoiceLines(input: {
   partitaIva: string | null;
+  tipoMovimento?: "entrata" | "uscita";
   lines: RigaFatturaXml[];
   rules: Rule[];
   categories: Category[];
@@ -154,7 +155,8 @@ export async function classifyInvoiceLines(input: {
   products: Product[];
   enableAi?: boolean;
 }): Promise<{ lines: ClassifiedInvoiceLine[]; aiUsed: boolean }> {
-  const categories = input.categories.filter((item) => item.attivo && (item.tipo === "uscita" || item.tipo === "entrambi"));
+  const tipoMovimento = input.tipoMovimento ?? "uscita";
+  const categories = input.categories.filter((item) => item.attivo && (item.tipo === tipoMovimento || item.tipo === "entrambi"));
   const centers = input.centers.filter((item) => item.attivo);
   const fallbackCategory = categories[0] ?? null;
   let lines: ClassifiedInvoiceLine[] = input.lines.map((line) => {
@@ -178,7 +180,7 @@ export async function classifyInvoiceLines(input: {
         ...line,
         categoriaId: rule.categoriaId,
         centroCostoId: centers.some((item) => item.id === rule.centroCostoId) ? rule.centroCostoId : null,
-        destinazione: rule.destinazione,
+        destinazione: tipoMovimento === "entrata" && rule.destinazione === "magazzino" ? "costo" : rule.destinazione,
         fonteClassificazione: historicCode || (historicProduct && Boolean(line.codiceArticolo)) ? "storico_codice" as const : "storico_descrizione" as const,
         confidenza: historicProduct ? 94 : 96,
         prodottoId: rule.prodottoId && input.products.some((item) => item.id === rule.prodottoId) ? rule.prodottoId : matchedProduct?.id ?? null,
@@ -192,7 +194,7 @@ export async function classifyInvoiceLines(input: {
       ...line,
       categoriaId: keyword?.category.id ?? fallbackCategory?.id ?? null,
       centroCostoId: keyword?.center?.id ?? null,
-      destinazione: matchedProduct ? "magazzino" as const : "costo" as const,
+      destinazione: tipoMovimento === "entrata" ? "costo" as const : matchedProduct ? "magazzino" as const : "costo" as const,
       fonteClassificazione: keyword ? "regola" as const : "non_classificata" as const,
       confidenza: keyword ? 78 : fallbackCategory ? 25 : 0,
       prodottoId: matchedProduct?.id ?? null,

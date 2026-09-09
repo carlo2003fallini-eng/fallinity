@@ -1,7 +1,7 @@
 // Fallinity FEOS — Service Worker minimale
 // Fallinity PWA: viene memorizzata soltanto la shell dell'app.
 // API, autenticazione e file utente restano sempre network-only.
-const buildVersion = new URL(self.location.href).searchParams.get("v") || "fase-49-fatture-xml";
+const buildVersion = new URL(self.location.href).searchParams.get("v") || "fase-56-xml-verso-duplicati";
 const safeVersion = buildVersion.replace(/[^a-zA-Z0-9_-]/g, "-");
 const SHELL_CACHE = `fallinity-shell-${safeVersion}`;
 const RUNTIME_CACHE = `fallinity-runtime-${safeVersion}`;

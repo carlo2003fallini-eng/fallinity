@@ -1,4 +1,5 @@
 import { storageGetSignedUrl, storagePut } from "../../storage";
+import { coreRepository } from "../core/repository";
 import { inventoryRepository } from "../inventory/repository";
 import type { ActorContext } from "../_core";
 import { financeRepository } from "./repository";
@@ -16,10 +17,33 @@ import type { AcquisisciFatturaXmlInput, AcquisisciFattureXmlBatchInput, Conferm
 
 const ACCEPTED_XML_MIME = new Set(["application/xml", "text/xml", "application/octet-stream", ""]);
 
+function fiscalIdentity(value: string | null | undefined): string | null {
+  const normalized = String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return normalized || null;
+}
+
+function hasSameFiscalIdentity(subject: { partitaIva: string | null; codiceFiscale: string | null }, company: { partitaIva: string | null; codiceFiscale: string | null } | null): boolean {
+  if (!company) return false;
+  const companyIds = new Set([fiscalIdentity(company.partitaIva), fiscalIdentity(company.codiceFiscale)].filter(Boolean));
+  return [fiscalIdentity(subject.partitaIva), fiscalIdentity(subject.codiceFiscale)].some((id) => id !== null && companyIds.has(id));
+}
+
+export function resolveInvoiceDirection(parsed: ReturnType<typeof parseFatturaPaXml>, company: { partitaIva: string | null; codiceFiscale: string | null } | null) {
+  if (hasSameFiscalIdentity(parsed.cessionario, company)) return { tipoMovimento: "uscita" as const, controparte: parsed.cedente, incerta: false };
+  if (hasSameFiscalIdentity(parsed.cedente, company)) return { tipoMovimento: "entrata" as const, controparte: parsed.cessionario, incerta: false };
+  return { tipoMovimento: "uscita" as const, controparte: parsed.cedente, incerta: true };
+}
+
 function financialDocumentType(tipoDocumento: string | null) {
   if (tipoDocumento === "TD04") return "nota_credito_ricevuta";
   if (tipoDocumento === "TD06") return "parcella";
   return "fattura_acquisto";
+}
+
+function financialDocumentTypeForDirection(tipoDocumento: string | null, tipoMovimento: "entrata" | "uscita") {
+  if (tipoDocumento === "TD04") return tipoMovimento === "entrata" ? "nota_credito_emessa" : "nota_credito_ricevuta";
+  if (tipoMovimento === "entrata") return "fattura_vendita";
+  return financialDocumentType(tipoDocumento);
 }
 
 function normalizeStoredDate(value: unknown): string {
@@ -45,6 +69,7 @@ function publicDetail(detail: NonNullable<Awaited<ReturnType<typeof invoiceRepos
     dataDocumento: normalizeStoredDate(detail.acquisition.dataDocumento),
     valuta: detail.acquisition.valuta,
     tipoDocumento: detail.acquisition.tipoDocumento,
+    tipoMovimento: detail.acquisition.tipoMovimento,
     fornitore: {
       ragioneSociale: detail.acquisition.fornitoreRagioneSociale,
       partitaIva: detail.acquisition.fornitorePartitaIva,
@@ -190,31 +215,50 @@ export const invoiceService = {
 
     const decoded = decodeInvoiceBase64(input.contenutoBase64, input.dimensione);
     const parsed = parseFatturaPaXml(decoded.xml);
-    const existing = await invoiceRepository.findByFileHash(actor.companyId, decoded.hashFile);
-    if (existing?.documentoFinanziarioId) {
-      const detail = await invoiceRepository.getDetail(actor.companyId, existing.id);
+    const existingByFile = await invoiceRepository.findByFileHash(actor.companyId, decoded.hashFile);
+    if (existingByFile?.documentoFinanziarioId) {
+      const detail = await invoiceRepository.getDetail(actor.companyId, existingByFile.id);
       if (!detail) throw new Error("L’acquisizione esistente non è più disponibile");
       return { ...publicDetail(detail), riutilizzata: true };
     }
 
+    const company = await coreRepository.currentCompany(actor.companyId);
+    const automaticallyDetectedDirection = resolveInvoiceDirection(parsed, company);
+    const direction = input.tipoMovimentoForzato
+      ? {
+        tipoMovimento: input.tipoMovimentoForzato,
+        controparte: input.tipoMovimentoForzato === "entrata" ? parsed.cessionario : parsed.cedente,
+        incerta: false,
+      }
+      : automaticallyDetectedDirection;
+    const counterparty = direction.controparte;
+    const hashDocumento = buildInvoiceDocumentHash({ ...parsed, fornitore: counterparty });
+    const existingByDocument = await invoiceRepository.findByDocumentHash(actor.companyId, hashDocumento);
+    if (existingByDocument && existingByDocument.id !== existingByFile?.id) {
+      const detail = await invoiceRepository.getDetail(actor.companyId, existingByDocument.id);
+      if (!detail) throw new Error("L’acquisizione esistente non è più disponibile");
+      return { ...publicDetail(detail), riutilizzata: true };
+    }
+    const existing = existingByFile ?? existingByDocument;
     const [supplier, duplicate, rules, categories, centers, products] = await Promise.all([
-      invoiceRepository.findSupplier(actor.companyId, parsed.fornitore.partitaIva, parsed.fornitore.codiceFiscale),
+      invoiceRepository.findSupplier(actor.companyId, counterparty.partitaIva, counterparty.codiceFiscale),
       invoiceRepository.findDuplicate(actor.companyId, {
-        partitaIva: parsed.fornitore.partitaIva,
-        codiceFiscale: parsed.fornitore.codiceFiscale,
+        partitaIva: counterparty.partitaIva,
+        codiceFiscale: counterparty.codiceFiscale,
         numero: parsed.numeroDocumento,
         data: parsed.dataDocumento,
         totale: parsed.totale,
       }),
-      invoiceRepository.listLearningRules(actor.companyId, parsed.fornitore.partitaIva),
-      financeRepository.listCategorie(actor.companyId, "uscita"),
+      invoiceRepository.listLearningRules(actor.companyId, counterparty.partitaIva),
+      financeRepository.listCategorie(actor.companyId, direction.tipoMovimento),
       financeRepository.listCentriCosto(actor.companyId),
       inventoryRepository.listProdotti(actor.companyId),
     ]);
-    if (!categories.length) throw new Error("Configura almeno una sottocategoria di uscita in Finanza prima di acquisire la fattura");
+    if (!categories.length) throw new Error(`Configura almeno una sottocategoria di ${direction.tipoMovimento} in Finanza prima di acquisire la fattura`);
 
     const classification = await classifyInvoiceLines({
-      partitaIva: parsed.fornitore.partitaIva,
+      partitaIva: counterparty.partitaIva,
+      tipoMovimento: direction.tipoMovimento,
       lines: parsed.righe,
       rules: rules as any,
       categories: categories as any,
@@ -222,6 +266,20 @@ export const invoiceService = {
       products: products as any,
     });
     const warnings = [...parsed.avvisi];
+    if (direction.incerta) {
+      warnings.unshift({
+        codice: "dati_mancanti",
+        severita: "alta",
+        messaggio: "Non è stato possibile confrontare cedente e cessionario con i dati fiscali dell’azienda: verifica il verso della fattura prima di registrare.",
+      });
+    }
+    if (input.tipoMovimentoForzato) {
+      warnings.unshift({
+        codice: "dati_mancanti",
+        severita: "info",
+        messaggio: `Verso selezionato manualmente: fattura in ${direction.tipoMovimento}.`,
+      });
+    }
     if (duplicate) {
       warnings.unshift({
         codice: "possibile_duplicato",
@@ -240,7 +298,6 @@ export const invoiceService = {
 
     const year = parsed.dataDocumento.slice(0, 4);
     const safeStem = input.nomeFile.replace(/\.xml$/i, "").replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 80) || "fattura";
-    const hashDocumento = buildInvoiceDocumentHash(parsed);
     const acquisitionData = {
       stato: "da_verificare",
       nomeFile: input.nomeFile,
@@ -252,15 +309,16 @@ export const invoiceService = {
       versioneFatturaPa: parsed.versioneFatturaPa,
       progressivoInvio: parsed.progressivoInvio,
       tipoDocumento: parsed.tipoDocumento,
+      tipoMovimento: direction.tipoMovimento,
       numeroDocumento: parsed.numeroDocumento,
       dataDocumento: parsed.dataDocumento,
       valuta: parsed.valuta,
-      fornitoreRagioneSociale: parsed.fornitore.ragioneSociale,
-      fornitorePartitaIva: parsed.fornitore.partitaIva,
-      fornitoreCodiceFiscale: parsed.fornitore.codiceFiscale,
-      fornitoreIndirizzo: parsed.fornitore.indirizzo,
-      fornitoreEmail: parsed.fornitore.email,
-      fornitoreIban: parsed.fornitore.iban,
+      fornitoreRagioneSociale: counterparty.ragioneSociale,
+      fornitorePartitaIva: counterparty.partitaIva,
+      fornitoreCodiceFiscale: counterparty.codiceFiscale,
+      fornitoreIndirizzo: counterparty.indirizzo,
+      fornitoreEmail: counterparty.email,
+      fornitoreIban: direction.tipoMovimento === "uscita" ? counterparty.iban : null,
       soggettoId: supplier?.id,
       imponibile: parsed.imponibile,
       importoIva: parsed.importoIva,
@@ -303,7 +361,13 @@ export const invoiceService = {
           decoded.buffer,
           "application/xml",
         );
-        return invoiceRepository.insertAcquisition(actor, { ...acquisitionData, fileKey: stored.key, fileUrl: stored.url }, lines);
+        try {
+          return await invoiceRepository.insertAcquisition(actor, { ...acquisitionData, fileKey: stored.key, fileUrl: stored.url }, lines);
+        } catch (error) {
+          const alreadyStored = await invoiceRepository.findByDocumentHash(actor.companyId, hashDocumento);
+          if (alreadyStored) return { id: alreadyStored.id };
+          throw error;
+        }
       })();
     const detail = await invoiceRepository.getDetail(actor.companyId, id);
     if (!detail) throw new Error("La fattura è stata acquisita ma non è possibile aprire la revisione");
@@ -323,6 +387,7 @@ export const invoiceService = {
       mimeType: detail.acquisition.mimeType,
       dimensione: bytes.length,
       contenutoBase64: bytes.toString("base64"),
+      tipoMovimentoForzato: detail.acquisition.tipoMovimento,
     });
   },
 
@@ -338,6 +403,7 @@ export const invoiceService = {
       return { documentoId: detail.acquisition.documentoFinanziarioId, giaRegistrata: true, movimentiMagazzino: 0 };
     }
 
+    const tipoMovimento = detail.acquisition.tipoMovimento;
     const duplicate = await invoiceRepository.findDuplicate(actor.companyId, {
       partitaIva: detail.acquisition.fornitorePartitaIva,
       codiceFiscale: detail.acquisition.fornitoreCodiceFiscale,
@@ -345,12 +411,12 @@ export const invoiceService = {
       data: String(detail.acquisition.dataDocumento),
       totale: detail.acquisition.totale,
     });
-    if (duplicate && !input.confermaDuplicato) {
-      throw new Error(`POSSIBILE_DUPLICATO: esiste già ${duplicate.codiceInterno ?? duplicate.numero ?? "un documento corrispondente"}`);
+    if (duplicate) {
+      throw new Error(`DUPLICATO_BLOCCATO: esiste già ${duplicate.codiceInterno ?? duplicate.numero ?? "un documento corrispondente"}. La stessa fattura non può essere registrata due volte.`);
     }
 
     const [categories, centers, relations] = await Promise.all([
-      financeRepository.listCategorie(actor.companyId, "uscita"),
+      financeRepository.listCategorie(actor.companyId, tipoMovimento),
       financeRepository.listCentriCosto(actor.companyId),
       financeRepository.listCategoriaCentroRelations(actor.companyId),
     ]);
@@ -377,6 +443,9 @@ export const invoiceService = {
       const persisted = persistedLines.get(line.rigaId);
       if (!persisted) throw new Error("Una riga non appartiene alla fattura acquisita");
       validatePair(line.categoriaId, line.centroCostoId);
+      if (tipoMovimento === "entrata" && line.aggiornaMagazzino) {
+        throw new Error("Una fattura in Entrata non può creare un carico di magazzino");
+      }
       if (line.aggiornaMagazzino && !line.prodottoId && !line.creaProdotto) {
         throw new Error(`Seleziona o crea un prodotto per la riga “${persisted.descrizione}”`);
       }
@@ -431,8 +500,8 @@ export const invoiceService = {
       descrizione: input.descrizione?.trim() || `Fattura ${detail.acquisition.numeroDocumento} — ${detail.acquisition.fornitoreRagioneSociale}`,
       note: input.note?.trim() || null,
       aliquotaIvaPrevalente: dominantVat,
-      tipoDocumentoFinanziario: financialDocumentType(detail.acquisition.tipoDocumento),
-      confermaDuplicato: input.confermaDuplicato,
+      tipoMovimento,
+      tipoDocumentoFinanziario: financialDocumentTypeForDirection(detail.acquisition.tipoDocumento, tipoMovimento),
       scadenze: input.scadenze,
       righe: preparedLines,
     });

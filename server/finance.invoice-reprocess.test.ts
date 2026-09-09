@@ -8,7 +8,7 @@ describe("Aggiornamento acquisizioni XML già salvate", () => {
   const pageSource = readFileSync(new URL("../client/src/pages/finanza/NuovoMovimentoAutomatico.tsx", import.meta.url), "utf8");
 
   it("rigenera le sole bozze con lo stesso file invece di restituire le righe precedenti", () => {
-    expect(serviceSource).toContain("if (existing?.documentoFinanziarioId)");
+    expect(serviceSource).toContain("if (existingByFile?.documentoFinanziarioId)");
     expect(serviceSource).toContain("await invoiceRepository.replaceDraftAcquisition(actor, existing.id, acquisitionData, lines)");
     expect(repositorySource).toContain("async replaceDraftAcquisition(actor: ActorContext, id: string");
     expect(repositorySource).toContain("tx.delete(righeFattureAcquisite)");

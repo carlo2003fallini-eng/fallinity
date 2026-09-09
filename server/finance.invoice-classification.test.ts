@@ -67,12 +67,12 @@ describe("Contratti di sicurezza acquisizione e conferma", () => {
     expect(repositorySource).toContain("tx.insert(documentiFinanziari)");
     expect(repositorySource).toContain("tx.insert(scadenzeFinanziarie)");
     expect(repositorySource).toContain("tx.insert(registrazioniEconomiche)");
-    expect(repositorySource).toContain("if (line.aggiornaMagazzino)");
+    expect(repositorySource).toContain('if (line.aggiornaMagazzino && input.tipoMovimento === "uscita")');
   });
 
   it("blocca duplicati senza override ed espone soltanto procedure protette", () => {
-    expect(serviceSource).toContain("POSSIBILE_DUPLICATO");
-    expect(serviceSource).toContain("!input.confermaDuplicato");
+    expect(serviceSource).toContain("DUPLICATO_BLOCCATO");
+    expect(serviceSource).not.toContain("!input.confermaDuplicato");
     expect(routerSource).toContain("fattureAutomatiche: router");
     expect(routerSource).toContain("protectedProcedure.input(acquisisciFatturaXmlInput)");
     expect(routerSource).toContain("protectedProcedure.input(confermaFatturaAcquisitaInput)");

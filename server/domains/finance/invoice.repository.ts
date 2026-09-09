@@ -43,8 +43,8 @@ export type ConfermaFatturaPreparata = {
   descrizione: string;
   note: string | null;
   aliquotaIvaPrevalente: number;
+  tipoMovimento: "entrata" | "uscita";
   tipoDocumentoFinanziario: string;
-  confermaDuplicato: boolean;
   scadenze: Array<{ dataScadenza: string; importo: number; note?: string }>;
   righe: RigaConfermaPreparata[];
 };
@@ -113,6 +113,17 @@ export const invoiceRepository = {
     const rows = await db.select().from(acquisizioniFatture).where(and(
       eq(acquisizioniFatture.companyId, companyId),
       eq(acquisizioniFatture.hashFile, hashFile),
+      isNull(acquisizioniFatture.deletedAt),
+    )).limit(1);
+    return rows[0] ?? null;
+  },
+
+  async findByDocumentHash(companyId: string, hashDocumento: string) {
+    const db = await getDb();
+    if (!db) return null;
+    const rows = await db.select().from(acquisizioniFatture).where(and(
+      eq(acquisizioniFatture.companyId, companyId),
+      eq(acquisizioniFatture.hashDocumento, hashDocumento),
       isNull(acquisizioniFatture.deletedAt),
     )).limit(1);
     return rows[0] ?? null;
@@ -264,8 +275,8 @@ export const invoiceRepository = {
       if (acquisition.stato === "annullata" || acquisition.stato === "errore") {
         throw new Error("Questa acquisizione non può essere registrata");
       }
-      if (acquisition.duplicatoDocumentoId && !input.confermaDuplicato) {
-        throw new Error("POSSIBILE_DUPLICATO: conferma esplicitamente per registrare comunque la fattura");
+      if (acquisition.duplicatoDocumentoId) {
+        throw new Error("DUPLICATO_BLOCCATO: questa fattura è già presente e non può essere registrata una seconda volta");
       }
 
       let soggettoId = input.soggettoId;
@@ -275,7 +286,7 @@ export const invoiceRepository = {
           eq(soggetti.companyId, actor.companyId),
           isNull(soggetti.deletedAt),
         )).limit(1);
-        if (!chosen.length) throw new Error("Il fornitore selezionato non appartiene all’azienda attiva");
+        if (!chosen.length) throw new Error("La controparte selezionata non appartiene all’azienda attiva");
       } else {
         const supplierConditions = [];
         if (acquisition.fornitorePartitaIva) supplierConditions.push(eq(soggetti.partitaIva, acquisition.fornitorePartitaIva));
@@ -291,7 +302,7 @@ export const invoiceRepository = {
         if (!existing.length) {
           await tx.insert(soggetti).values(withCreate(actor, {
             id: soggettoId,
-            tipologia: "fornitore",
+            tipologia: input.tipoMovimento === "entrata" ? "cliente" : "fornitore",
             ragioneSociale: acquisition.fornitoreRagioneSociale,
             nomeBreve: acquisition.fornitoreRagioneSociale.slice(0, 100),
             partitaIva: acquisition.fornitorePartitaIva,
@@ -306,14 +317,14 @@ export const invoiceRepository = {
 
       const countRows = await tx.select({ count: sql<number>`count(*)` }).from(documentiFinanziari).where(and(
         eq(documentiFinanziari.companyId, actor.companyId),
-        eq(documentiFinanziari.tipo, "uscita"),
+        eq(documentiFinanziari.tipo, input.tipoMovimento),
       ));
-      const codiceInterno = `DOC-USC-${String(Number(countRows[0]?.count ?? 0) + 1).padStart(6, "0")}`;
+      const codiceInterno = `DOC-${input.tipoMovimento === "entrata" ? "ENT" : "USC"}-${String(Number(countRows[0]?.count ?? 0) + 1).padStart(6, "0")}`;
       const documentoId = newId();
       await tx.insert(documentiFinanziari).values(withCreate(actor, {
         id: documentoId,
         codiceInterno,
-        tipo: "uscita",
+        tipo: input.tipoMovimento,
         tipoRegistrazione: "documento",
         tipoDocumento: input.tipoDocumentoFinanziario,
         numero: acquisition.numeroDocumento,
@@ -346,7 +357,7 @@ export const invoiceRepository = {
           documentoId,
           categoriaId: line.categoriaId,
           centroCostoId: line.centroCostoId,
-          tipo: "costo",
+          tipo: input.tipoMovimento === "entrata" ? "ricavo" : "costo",
           importo: line.importoEconomico,
           dataCompetenza: input.dataCompetenza,
           descrizione: line.descrizione,
@@ -383,7 +394,7 @@ export const invoiceRepository = {
       let stockMovements = 0;
       for (const line of input.righe) {
         let productId = line.prodottoId;
-        if (line.aggiornaMagazzino) {
+        if (line.aggiornaMagazzino && input.tipoMovimento === "uscita") {
           const quantity = Number(line.quantita);
           if (!Number.isFinite(quantity) || quantity <= 0) throw new Error(`La riga “${line.descrizione}” non ha una quantità valida per il magazzino`);
           if (line.creaProdotto) {

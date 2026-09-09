@@ -47,6 +47,7 @@ type BatchQueueItem = {
   fornitore?: string | null;
   totale?: number | null;
   valuta?: string | null;
+  tipoMovimento?: "entrata" | "uscita";
   messaggio?: string;
 };
 
@@ -147,7 +148,7 @@ export default function NuovoMovimentoAutomatico() {
   const [costCenterId, setCostCenterId] = useState("");
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
-  const [duplicateAccepted, setDuplicateAccepted] = useState(false);
+  const [directionPreference, setDirectionPreference] = useState<"auto" | "entrata" | "uscita">("auto");
 
   useEffect(() => {
     const goOnline = () => setOnline(true);
@@ -171,12 +172,15 @@ export default function NuovoMovimentoAutomatico() {
     enabled: Boolean(acquisitionId),
     retry: false,
   });
-  const { data: categories = [] } = trpc.finanza.categorie.list.useQuery({ tipo: "uscita" });
+  const acquisition = detailQuery.data ?? null;
+  const categoriaInput = useMemo(() => ({ tipo: acquisition?.tipoMovimento ?? "uscita" }), [acquisition?.tipoMovimento]);
+  const { data: categories = [] } = trpc.finanza.categorie.list.useQuery(categoriaInput);
   const { data: costCenters = [] } = trpc.finanza.centriCosto.list.useQuery();
   const { data: products = [] } = trpc.magazzino.list.useQuery();
   const utils = trpc.useUtils();
 
-  const acquisition = detailQuery.data ?? null;
+  const isEntrata = acquisition?.tipoMovimento === "entrata";
+  const controparteLabel = isEntrata ? "Cliente" : "Fornitore";
 
   useEffect(() => {
     if (!acquisition || initializedId.current === acquisition.id) return;
@@ -201,7 +205,6 @@ export default function NuovoMovimentoAutomatico() {
     setCategoryId(firstLine?.categoriaId ?? "");
     setCostCenterId(firstLine?.centroCostoId ?? "");
     setDescription(`Fattura ${acquisition.numeroDocumento} — ${acquisition.fornitore.ragioneSociale}`);
-    setDuplicateAccepted(false);
   }, [acquisition]);
 
   const uploadMutation = trpc.finanza.fattureAutomatiche.acquisisci.useMutation();
@@ -227,7 +230,7 @@ export default function NuovoMovimentoAutomatico() {
       toast.success(result.giaRegistrata ? "Fattura già registrata" : "Fattura registrata in Finanza");
       setLocation(`/finanza/movimento/${result.documentoId}`);
     },
-    onError: (error) => toast.error(error.message.replace(/^POSSIBILE_DUPLICATO:\s*/, "") || "Registrazione non riuscita"),
+    onError: (error) => toast.error(error.message.replace(/^(POSSIBILE_DUPLICATO|DUPLICATO_BLOCCATO):\s*/, "") || "Registrazione non riuscita"),
   });
 
   const updateQueueItem = (id: string, patch: Partial<BatchQueueItem>) => {
@@ -279,6 +282,7 @@ export default function NuovoMovimentoAutomatico() {
           mimeType: file.type || "application/xml",
           dimensione: file.size,
           contenutoBase64: await fileToBase64(file),
+          tipoMovimentoForzato: directionPreference === "auto" ? undefined : directionPreference,
         });
         updateQueueItem(entry.id, {
           stato: "acquisita",
@@ -287,6 +291,7 @@ export default function NuovoMovimentoAutomatico() {
           fornitore: data.fornitore.ragioneSociale,
           totale: data.totale,
           valuta: data.valuta,
+          tipoMovimento: data.tipoMovimento,
           messaggio: data.riutilizzata ? "Fattura già acquisita: revisione disponibile." : "Pronta per la revisione.",
         });
       } catch (error) {
@@ -307,7 +312,6 @@ export default function NuovoMovimentoAutomatico() {
     setDeadlines([]);
     setDescription("");
     setNotes("");
-    setDuplicateAccepted(false);
   };
 
   const updateLine = (rigaId: string, patch: Partial<LineReview>) => {
@@ -333,7 +337,7 @@ export default function NuovoMovimentoAutomatico() {
     if (!acquisition || !online) return;
     if (!categoryId) return toast.error("Seleziona la sottocategoria principale");
     if (lineReviews.some((line) => !line.categoriaId)) return toast.error("Controlla la sottocategoria di ogni riga");
-    if (acquisition.duplicatoDocumentoId && !duplicateAccepted) return toast.error("Conferma di aver verificato il possibile duplicato");
+    if (acquisition.duplicatoDocumentoId) return toast.error("Questa fattura è già presente e non può essere registrata una seconda volta");
     const parsedDeadlines = deadlines.map((deadline) => ({
       dataScadenza: deadline.dataScadenza,
       importo: inputToCents(deadline.importoEuro),
@@ -351,7 +355,6 @@ export default function NuovoMovimentoAutomatico() {
       dataCompetenza: acquisition.dataDocumento,
       descrizione: description,
       note: notes || undefined,
-      confermaDuplicato: duplicateAccepted,
       scadenze: parsedDeadlines,
       righe: lineReviews.map((line) => ({
         rigaId: line.rigaId,
@@ -379,7 +382,7 @@ export default function NuovoMovimentoAutomatico() {
             </Button>
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-300/70">Inserimento automatico</p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight">{acquisition ? "Fattura acquisita" : "Carica fatture XML"}</h1>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight">{acquisition ? `Fattura ${isEntrata ? "in Entrata" : "in Uscita"}` : "Carica fatture XML"}</h1>
               <p className="mt-1 text-sm text-white/55">{acquisition ? "Controlla i dati prima di registrare." : "Importa più fatture elettroniche e revisionale una alla volta."}</p>
             </div>
           </div>
@@ -414,6 +417,18 @@ export default function NuovoMovimentoAutomatico() {
             <div className="mb-5 flex items-center gap-3">
               <div className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-300/12 text-emerald-300"><ReceiptText className="h-6 w-6" /></div>
               <div><h2 className="font-semibold">Fatture elettroniche italiane</h2><p className="text-sm text-white/50">XML FatturaPA · fino a 20 file / 25 MB complessivi</p></div>
+            </div>
+            <div className="mb-4 space-y-2">
+              <Label htmlFor="verso-fattura-xml">Verso della fattura</Label>
+              <Select value={directionPreference} onValueChange={(value: "auto" | "entrata" | "uscita") => setDirectionPreference(value)}>
+                <SelectTrigger id="verso-fattura-xml" className="h-12 rounded-2xl border-white/10 bg-black/20"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Rileva automaticamente</SelectItem>
+                  <SelectItem value="uscita">Uscita · acquisto da fornitore</SelectItem>
+                  <SelectItem value="entrata">Entrata · vendita a cliente</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-white/45">Selezionalo solo se l’azienda non viene riconosciuta nell’XML. Il verso sarà visibile prima della conferma.</p>
             </div>
             <button
               type="button"
@@ -457,7 +472,7 @@ export default function NuovoMovimentoAutomatico() {
               {batchQueue.map((item) => (
                 <article key={item.id} className={`flex items-center gap-3 rounded-2xl border p-3 ${item.stato === "errore" ? "border-red-400/20 bg-red-400/[0.06]" : item.stato === "acquisita" ? "border-emerald-300/15 bg-emerald-300/[0.04]" : "border-white/8 bg-black/15"}`}>
                   {item.stato === "errore" ? <AlertTriangle className="h-5 w-5 shrink-0 text-red-300" /> : item.stato === "acquisita" ? <FileCheck2 className="h-5 w-5 shrink-0 text-emerald-300" /> : <Loader2 className="h-5 w-5 shrink-0 animate-spin text-amber-200" />}
-                  <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{item.numeroDocumento || item.nomeFile}</p><p className="mt-0.5 truncate text-xs text-white/50">{item.stato === "acquisita" ? `${item.fornitore || "Fornitore"}${item.totale != null ? ` · ${money(item.totale, item.valuta || "EUR")}` : ""}` : item.messaggio || item.nomeFile}</p></div>
+                  <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{item.numeroDocumento || item.nomeFile}</p><p className="mt-0.5 truncate text-xs text-white/50">{item.stato === "acquisita" ? `${item.tipoMovimento === "entrata" ? "Cliente" : "Fornitore"}: ${item.fornitore || "da verificare"}${item.totale != null ? ` · ${money(item.totale, item.valuta || "EUR")}` : ""}` : item.messaggio || item.nomeFile}</p></div>
                   {item.stato === "acquisita" && item.acquisizioneId ? <Button type="button" size="sm" className="h-10 rounded-xl bg-emerald-300 px-3 text-xs font-semibold text-[#062016] hover:bg-emerald-200" onClick={() => void openReview(item.acquisizioneId!)}>Rivedi</Button> : <span className="text-[11px] text-white/35">{Math.ceil(item.dimensione / 1024)} KB</span>}
                 </article>
               ))}
@@ -481,7 +496,7 @@ export default function NuovoMovimentoAutomatico() {
             <section className="rounded-[26px] border border-emerald-300/15 bg-gradient-to-br from-emerald-300/[0.09] to-white/[0.025] p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0"><p className="text-xs uppercase tracking-[0.18em] text-emerald-300/70">Documento</p><h2 className="mt-1 truncate text-xl font-semibold">{acquisition.numeroDocumento}</h2><p className="mt-1 truncate text-sm text-white/55">{acquisition.nomeFile}</p></div>
-                <Badge className="border-emerald-300/20 bg-emerald-300/10 text-emerald-200">Da verificare</Badge>
+                <Badge className={isEntrata ? "border-sky-300/20 bg-sky-300/10 text-sky-100" : "border-emerald-300/20 bg-emerald-300/10 text-emerald-200"}>{isEntrata ? "Entrata" : "Uscita"}</Badge>
               </div>
               <div className="mt-5 grid grid-cols-2 gap-3">
                 <SummaryValue label="Data" value={displayDate(acquisition.dataDocumento)} />
@@ -500,7 +515,7 @@ export default function NuovoMovimentoAutomatico() {
             )}
 
             <section className="rounded-[26px] border border-white/8 bg-white/[0.035] p-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/40">Fornitore</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/40">{controparteLabel}</p>
               <h2 className="mt-2 text-lg font-semibold">{acquisition.fornitore.ragioneSociale}</h2>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <SummaryValue label="Partita IVA" value={acquisition.fornitore.partitaIva || acquisition.fornitore.codiceFiscale || "Da completare"} />
@@ -550,9 +565,9 @@ export default function NuovoMovimentoAutomatico() {
                             <div className="space-y-2"><Label>Centro di costo</Label><Select value={review.centroCostoId || "none"} onValueChange={(value) => { const next = value === "none" ? "" : value; const currentCategoryValid = choices.some((item) => item.id === review.categoriaId); updateLine(line.id, { centroCostoId: next, categoriaId: currentCategoryValid ? review.categoriaId : "" }); }}><SelectTrigger className="h-12 rounded-2xl border-white/10 bg-white/[0.03]"><SelectValue placeholder="Nessun centro" /></SelectTrigger><SelectContent><SelectItem value="none">Nessun centro</SelectItem>{(costCenters as any[]).filter((item) => item.attivo !== false).map((item) => <SelectItem key={item.id} value={item.id}>{item.nome}</SelectItem>)}</SelectContent></Select></div>
                             <div className="space-y-2"><Label>Sottocategoria</Label><Select value={review.categoriaId} onValueChange={(value) => updateLine(line.id, { categoriaId: value })}><SelectTrigger className="h-12 rounded-2xl border-white/10 bg-white/[0.03]"><SelectValue placeholder="Seleziona" /></SelectTrigger><SelectContent>{allowedCategories(review.centroCostoId).filter((item) => item.attivo !== false).map((item) => <SelectItem key={item.id} value={item.id}>{item.nome}</SelectItem>)}</SelectContent></Select></div>
                           </div>
-                          <div className="space-y-2"><Label>Destinazione</Label><Select value={review.destinazione} onValueChange={(value: LineReview["destinazione"]) => updateLine(line.id, { destinazione: value })}><SelectTrigger className="h-12 rounded-2xl border-white/10 bg-white/[0.03]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="costo">Costo operativo</SelectItem><SelectItem value="magazzino">Magazzino</SelectItem><SelectItem value="investimento">Investimento</SelectItem><SelectItem value="altro">Altro</SelectItem></SelectContent></Select></div>
+                          <div className="space-y-2"><Label>Destinazione</Label><Select value={review.destinazione} onValueChange={(value: LineReview["destinazione"]) => updateLine(line.id, { destinazione: value })}><SelectTrigger className="h-12 rounded-2xl border-white/10 bg-white/[0.03]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="costo">{isEntrata ? "Ricavo operativo" : "Costo operativo"}</SelectItem>{!isEntrata && <><SelectItem value="magazzino">Magazzino</SelectItem><SelectItem value="investimento">Investimento</SelectItem><SelectItem value="altro">Altro</SelectItem></>}</SelectContent></Select></div>
                           <div className="space-y-2"><Label>Prodotto associato</Label><Select value={review.prodottoId || "none"} onValueChange={(value) => updateLine(line.id, { prodottoId: value === "none" ? "" : value, creaProdotto: false })}><SelectTrigger className="h-12 rounded-2xl border-white/10 bg-white/[0.03]"><SelectValue placeholder="Facoltativo" /></SelectTrigger><SelectContent><SelectItem value="none">Nessun prodotto associato</SelectItem>{(products as any[]).map((product) => <SelectItem key={product.id} value={product.id}>{product.nome}{product.codice ? ` · ${product.codice}` : ""}</SelectItem>)}</SelectContent></Select><p className="text-xs text-white/45">Il prodotto, il centro e la sottocategoria scelti verranno riproposti nelle prossime fatture.</p></div>
-                          <div className="rounded-2xl border border-emerald-300/10 bg-emerald-300/[0.04] p-4">
+                          {!isEntrata && <div className="rounded-2xl border border-emerald-300/10 bg-emerald-300/[0.04] p-4">
                             <div className="flex items-center justify-between gap-3"><div><p className="text-sm font-medium">Aggiorna Magazzino</p><p className="mt-1 text-xs text-white/45">Carica la quantità solo dopo la conferma.</p></div><Switch checked={review.aggiornaMagazzino} onCheckedChange={(checked) => updateLine(line.id, { aggiornaMagazzino: checked, destinazione: checked ? "magazzino" : review.destinazione })} /></div>
                             {review.aggiornaMagazzino && (
                               <div className="mt-4 space-y-3 border-t border-white/8 pt-4">
@@ -561,7 +576,7 @@ export default function NuovoMovimentoAutomatico() {
                                 <p className="flex items-center gap-2 text-xs text-emerald-100/70"><PackagePlus className="h-4 w-4" />Quantità da caricare: {line.quantita ? `${Number(line.quantita).toLocaleString("it-IT")} ${line.unitaMisura || ""}` : "non disponibile"}</p>
                               </div>
                             )}
-                          </div>
+                          </div>}
                         </div>
                       )}
                     </article>
@@ -571,7 +586,7 @@ export default function NuovoMovimentoAutomatico() {
             </section>
 
             <section className="rounded-[26px] border border-white/8 bg-white/[0.035] p-5">
-              <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/40">Pagamento</p><h2 className="mt-1 font-semibold">Scadenze</h2></div><CalendarClock className="h-5 w-5 text-emerald-300" /></div>
+              <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/40">{isEntrata ? "Incasso" : "Pagamento"}</p><h2 className="mt-1 font-semibold">Scadenze</h2></div><CalendarClock className="h-5 w-5 text-emerald-300" /></div>
               <div className="mt-4 space-y-3">
                 {deadlines.map((deadline, index) => (
                   <div key={index} className="grid grid-cols-[1fr_1fr_auto] gap-2 rounded-2xl bg-black/20 p-3">
@@ -582,7 +597,7 @@ export default function NuovoMovimentoAutomatico() {
                 ))}
               </div>
               <Button type="button" variant="outline" className="mt-3 h-11 w-full rounded-2xl border-white/10 bg-transparent text-white" onClick={addDeadline}><Plus className="mr-2 h-4 w-4" />Aggiungi scadenza</Button>
-              <p className="mt-3 text-xs text-white/45">Metodo XML: {acquisition.metodoPagamento || "non indicato"}. Nessun conto viene movimentato finché la fattura non viene pagata.</p>
+              <p className="mt-3 text-xs text-white/45">Metodo XML: {acquisition.metodoPagamento || "non indicato"}. Nessun conto viene movimentato finché la fattura non viene {isEntrata ? "incassata" : "pagata"}.</p>
             </section>
 
             <section className="rounded-[26px] border border-white/8 bg-white/[0.035] p-5">
@@ -591,13 +606,12 @@ export default function NuovoMovimentoAutomatico() {
 
             {acquisition.duplicatoDocumentoId && (
               <section className="rounded-[26px] border border-red-400/25 bg-red-400/10 p-5">
-                <div className="flex items-start gap-3"><AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-300" /><div><h2 className="font-semibold text-red-100">Verifica possibile duplicato</h2><p className="mt-1 text-sm text-red-100/70">Numero, data, fornitore e importo coincidono con un documento già presente.</p></div></div>
-                <label className="mt-4 flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl bg-black/20 px-4"><Switch checked={duplicateAccepted} onCheckedChange={setDuplicateAccepted} /><span className="text-sm">Ho controllato e voglio registrare comunque</span></label>
+                <div className="flex items-start gap-3"><AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-300" /><div><h2 className="font-semibold text-red-100">Fattura già presente</h2><p className="mt-1 text-sm text-red-100/70">Numero, data, controparte e importo coincidono con un documento già registrato. Per evitare duplicazioni, questa fattura non può essere salvata una seconda volta.</p></div></div>
               </section>
             )}
 
             <div className="sticky bottom-20 z-20 rounded-[24px] border border-emerald-300/20 bg-[#0a1812]/95 p-3 shadow-[0_-18px_50px_rgba(0,0,0,0.4)] backdrop-blur-xl">
-              <Button type="button" className="h-14 w-full rounded-2xl bg-emerald-300 text-base font-semibold text-[#052016] hover:bg-emerald-200" disabled={!online || confirmMutation.isPending || Boolean(acquisition.duplicatoDocumentoId && !duplicateAccepted)} onClick={submit}>
+              <Button type="button" className="h-14 w-full rounded-2xl bg-emerald-300 text-base font-semibold text-[#052016] hover:bg-emerald-200" disabled={!online || confirmMutation.isPending || Boolean(acquisition.duplicatoDocumentoId)} onClick={submit}>
                 {confirmMutation.isPending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Check className="mr-2 h-5 w-5" />}
                 {confirmMutation.isPending ? "Registrazione in corso…" : "Conferma e registra"}
               </Button>

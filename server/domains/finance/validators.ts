@@ -336,6 +336,7 @@ export const acquisisciFatturaXmlInput = z.object({
   mimeType: z.string().trim().max(100).default("application/xml"),
   dimensione: z.number().int().positive().max(5 * 1024 * 1024),
   contenutoBase64: z.string().min(16).max(7_100_000),
+  tipoMovimentoForzato: z.enum(["entrata", "uscita"]).optional(),
 });
 
 export const acquisisciFattureXmlBatchInput = z.object({
@@ -397,7 +398,6 @@ export const confermaFatturaAcquisitaInput = z.object({
     note: z.string().trim().max(500).optional(),
   })).min(1).max(120),
   righe: z.array(rigaConfermaFatturaInput).min(1).max(500),
-  confermaDuplicato: z.boolean().default(false),
 });
 
 // ── Type exports ──

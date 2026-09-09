@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
 
 export const FATTURA_XML_MAX_BYTES = 5 * 1024 * 1024;
-export const FATTURA_XML_PARSER_VERSION = "fatturapa-1.1";
+export const FATTURA_XML_PARSER_VERSION = "fatturapa-1.2";
 
 export type AvvisoFattura = {
   codice: "dati_mancanti" | "scadenza_mancante" | "scadenza_vicina" | "importi_non_allineati" | "importo_anomalo" | "classificazione_incerta" | "possibile_duplicato";
@@ -22,6 +22,15 @@ export type RigaFatturaXml = {
   naturaIva: string | null;
 };
 
+export type ParteFatturaXml = {
+  ragioneSociale: string;
+  partitaIva: string | null;
+  codiceFiscale: string | null;
+  indirizzo: string | null;
+  email: string | null;
+  iban: string | null;
+};
+
 export type ParsedFatturaXml = {
   versioneFatturaPa: string | null;
   progressivoInvio: string | null;
@@ -29,14 +38,9 @@ export type ParsedFatturaXml = {
   numeroDocumento: string;
   dataDocumento: string;
   valuta: string;
-  fornitore: {
-    ragioneSociale: string;
-    partitaIva: string | null;
-    codiceFiscale: string | null;
-    indirizzo: string | null;
-    email: string | null;
-    iban: string | null;
-  };
+  fornitore: ParteFatturaXml;
+  cedente: ParteFatturaXml;
+  cessionario: ParteFatturaXml;
   imponibile: number;
   importoIva: number;
   totale: number;
@@ -121,7 +125,15 @@ function supplierName(anagrafica: any): string {
   if (denominazione) return denominazione;
   const persona = [text(anagrafica?.Nome), text(anagrafica?.Cognome)].filter(Boolean).join(" ");
   if (persona) return persona;
-  throw new Error("La fattura non contiene la ragione sociale del fornitore");
+  throw new Error("La fattura non contiene la ragione sociale di una delle controparti");
+}
+
+function optionalPartyName(anagrafica: any): string {
+  try {
+    return supplierName(anagrafica);
+  } catch {
+    return "Controparte non indicata";
+  }
 }
 
 function supplierAddress(sede: any): string | null {
@@ -138,11 +150,10 @@ function lineCode(codici: unknown): string | null {
 }
 
 function isCommercialLine(item: any): boolean {
-  if (!lineCode(item?.CodiceArticolo)) return false;
   const values = [item?.Quantita, item?.PrezzoUnitario, item?.PrezzoTotale, item?.AliquotaIVA];
   if (values.some((value) => !text(value))) return false;
   const numericValues = values.map((value) => Number(text(value).replace(",", ".")));
-  return numericValues.every(Number.isFinite) && numericValues[0] > 0;
+  return numericValues.every(Number.isFinite) && numericValues[0] > 0 && numericValues[2] > 0;
 }
 
 function extractInvoiceRoot(parsed: Record<string, any>): any {
@@ -208,6 +219,8 @@ export function parseFatturaPaXml(xml: string, today = new Date()): ParsedFattur
   const body: any = bodies[0];
   const supplierData = header.CedentePrestatore?.DatiAnagrafici ?? {};
   const supplierOffice = header.CedentePrestatore?.Sede ?? {};
+  const customerData = header.CessionarioCommittente?.DatiAnagrafici ?? {};
+  const customerOffice = header.CessionarioCommittente?.Sede ?? {};
   const general = body.DatiGenerali?.DatiGeneraliDocumento ?? {};
   const goods = body.DatiBeniServizi ?? {};
   const summaries = arrayOf(goods.DatiRiepilogo as any);
@@ -217,7 +230,7 @@ export function parseFatturaPaXml(xml: string, today = new Date()): ParsedFattur
   const commercialDetails = details.filter(isCommercialLine);
   const excludedInformativeLines = details.length - commercialDetails.length;
   if (!commercialDetails.length) {
-    throw new Error("La fattura non contiene righe commerciali con codice articolo, quantità, prezzo unitario e aliquota IVA validi");
+    throw new Error("La fattura non contiene righe commerciali con quantità positiva, prezzo unitario, totale e aliquota IVA validi");
   }
 
   const righe: RigaFatturaXml[] = commercialDetails.map((item: any, index) => ({
@@ -263,7 +276,7 @@ export function parseFatturaPaXml(xml: string, today = new Date()): ParsedFattur
   })).filter((item) => item.importo > 0);
   const fornitoreIban = scadenze.find((item) => item.iban)?.iban ?? null;
 
-  const fornitore = {
+  const cedente: ParteFatturaXml = {
     ragioneSociale: supplierName(supplierData.Anagrafica),
     partitaIva: normalizeVat(supplierData.IdFiscaleIVA?.IdCodice),
     codiceFiscale: normalizeVat(supplierData.CodiceFiscale),
@@ -271,6 +284,15 @@ export function parseFatturaPaXml(xml: string, today = new Date()): ParsedFattur
     email: optionalText(header.CedentePrestatore?.Contatti?.Email),
     iban: fornitoreIban,
   };
+  const cessionario: ParteFatturaXml = {
+    ragioneSociale: optionalPartyName(customerData.Anagrafica),
+    partitaIva: normalizeVat(customerData.IdFiscaleIVA?.IdCodice),
+    codiceFiscale: normalizeVat(customerData.CodiceFiscale),
+    indirizzo: supplierAddress(customerOffice),
+    email: optionalText(header.CessionarioCommittente?.Contatti?.Email),
+    iban: null,
+  };
+  const fornitore = cedente;
   const numeroDocumento = text(general.Numero);
   if (!numeroDocumento) throw new Error("La fattura non contiene il numero documento");
   const dataDocumento = isoDate(general.Data, "Data documento");
@@ -280,11 +302,11 @@ export function parseFatturaPaXml(xml: string, today = new Date()): ParsedFattur
     avvisi.push({
       codice: "dati_mancanti",
       severita: "info",
-      messaggio: `${excludedInformativeLines} ${excludedInformativeLines === 1 ? "descrizione informativa è stata" : "descrizioni informative sono state"} ignorata${excludedInformativeLines === 1 ? "" : "e"} perché priva di codice articolo, quantità, prezzo unitario o aliquota IVA.`,
+      messaggio: `${excludedInformativeLines} ${excludedInformativeLines === 1 ? "descrizione informativa è stata" : "descrizioni informative sono state"} ignorata${excludedInformativeLines === 1 ? "" : "e"} perché priva di quantità positiva, prezzo unitario, totale o aliquota IVA.`,
     });
   }
-  if (!fornitore.partitaIva && !fornitore.codiceFiscale) {
-    avvisi.push({ codice: "dati_mancanti", severita: "alta", messaggio: "Manca partita IVA o codice fiscale del fornitore." });
+  if (!cedente.partitaIva && !cedente.codiceFiscale) {
+    avvisi.push({ codice: "dati_mancanti", severita: "alta", messaggio: "Manca partita IVA o codice fiscale del cedente/prestatore." });
   }
   if (!scadenze.length) {
     avvisi.push({ codice: "scadenza_mancante", severita: "attenzione", messaggio: "Nessuna scadenza presente: è stata proposta la data del documento." });
@@ -320,6 +342,8 @@ export function parseFatturaPaXml(xml: string, today = new Date()): ParsedFattur
     dataDocumento,
     valuta: text(general.Divisa).toUpperCase() || "EUR",
     fornitore,
+    cedente,
+    cessionario,
     imponibile,
     importoIva,
     totale,
