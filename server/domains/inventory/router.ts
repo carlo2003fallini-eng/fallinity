@@ -5,6 +5,7 @@ import {
   movimentiInput,
   createProdottoInput,
   movimentoInput,
+  scaricoRapidoInput,
   deleteProdottoInput,
 } from "./validators";
 
@@ -29,6 +30,10 @@ export const magazzinoRouter = router({
   movimento: protectedProcedure.input(movimentoInput).mutation(async ({ ctx, input }) => {
     const actor = await getActor(ctx);
     return inventoryService.registraMovimento(actor, input);
+  }),
+  scaricaRapido: protectedProcedure.input(scaricoRapidoInput).mutation(async ({ ctx, input }) => {
+    const actor = await getActor(ctx);
+    return inventoryService.scaricaRapido(actor, input);
   }),
   delete: protectedProcedure.input(deleteProdottoInput).mutation(async ({ ctx, input }) => {
     const actor = await getActor(ctx);

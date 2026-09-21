@@ -279,12 +279,15 @@ export const prodotti = mysqlTable("prodotti", {
   nome: varchar("nome", { length: 255 }).notNull(),
   codice: varchar("codice", { length: 100 }),
   categoria: varchar("categoria", { length: 100 }),
+  sottocategoria: varchar("sottocategoria", { length: 100 }),
   unitaMisura: varchar("unitaMisura", { length: 50 }),
   quantita: decimal("quantita", { precision: 12, scale: 3 }).default("0").notNull(),
   quantitaMinima: decimal("quantitaMinima", { precision: 12, scale: 3 }).default("0"),
   prezzoUnitario: decimal("prezzoUnitario", { precision: 12, scale: 2 }),
   fornitoreId: varchar("fornitoreId", { length: 36 }),
   note: text("note"),
+  ultimoScaricoQuantita: decimal("ultimoScaricoQuantita", { precision: 12, scale: 3 }),
+  ultimoScaricoAt: datetime("ultimoScaricoAt"),
   ...auditColumns,
 });
 export type Prodotto = typeof prodotti.$inferSelect;
@@ -297,7 +300,10 @@ export const movimentiMagazzino = mysqlTable("movimentiMagazzino", {
   tipo: mysqlEnum("tipo", ["carico", "scarico"]).notNull(),
   quantita: decimal("quantita", { precision: 12, scale: 3 }).notNull(),
   data: date("data").notNull(),
+  dataOra: datetime("dataOra"),
   descrizione: text("descrizione"),
+  causale: varchar("causale", { length: 120 }),
+  note: text("note"),
   operatore: varchar("operatore", { length: 255 }),
   ...auditColumns,
 });

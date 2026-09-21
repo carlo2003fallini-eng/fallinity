@@ -1331,3 +1331,13 @@
 - [x] Aggiungere regressioni per classificazioni differenti tra articoli della stessa fattura
 - [x] Verificare a 390×844, suite Vitest, TypeScript e build
 - [x] Salvare il checkpoint della funzionalità
+
+## Fase 58 — Magazzino: Scarico Rapido Mobile
+- [x] Analizzare il flusso Magazzino esistente, database e componenti riutilizzabili
+- [x] Salvare l’ultimo scarico per prodotto e proteggere la giacenza da scarichi non validi
+- [x] Conservare sul dispositivo la categoria, sottocategoria e filtri di Magazzino
+- [x] Rendere la lista prodotti espandibile con azioni rapide Scarico e Dettagli
+- [x] Realizzare il popup Scarico prodotto con quantità precompilata, causale e note opzionali
+- [x] Aggiornare immediatamente la giacenza e mostrare un toast non bloccante alla conferma
+- [x] Aggiungere test di regressione per contratto, quantità e memoria dell’ultimo scarico
+- [x] Verificare a 390×844, suite Vitest, TypeScript, build e salvare il checkpoint

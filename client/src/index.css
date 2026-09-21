@@ -269,6 +269,30 @@
   }
 }
 
+/* Controlli nativi coerenti per i form operativi del Magazzino. */
+.inventory-select {
+  width: 100%;
+  min-height: 2.5rem;
+  appearance: none;
+  border: 1px solid oklch(0.2 0.008 145);
+  border-radius: 0.5rem;
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  color: oklch(0.88 0.005 145);
+  background:
+    linear-gradient(45deg, transparent 50%, oklch(0.6 0.01 145) 50%) calc(100% - 15px) 50% / 5px 5px no-repeat,
+    linear-gradient(135deg, oklch(0.6 0.01 145) 50%, transparent 50%) calc(100% - 10px) 50% / 5px 5px no-repeat,
+    oklch(0.15 0.006 145);
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.inventory-select:focus {
+  border-color: oklch(0.65 0.18 142);
+  box-shadow: 0 0 0 3px oklch(0.65 0.18 142 / 0.17);
+}
+
+.inventory-select option { background: oklch(0.12 0.006 145); color: oklch(0.9 0.005 145); }
+
 /* ─── SPLASH SCREEN PWA ───────────────────────────────────────────────────── */
 .fallinity-splash {
   position: fixed;

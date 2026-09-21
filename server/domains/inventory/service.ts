@@ -1,7 +1,18 @@
 import type { ActorContext } from "../_core";
 import { inventoryRepository as repo } from "./repository";
 import { proposalsService } from "../finance/proposals.service";
-import type { CreateProdottoInput, MovimentoInput } from "./validators";
+import type { CreateProdottoInput, MovimentoInput, ScaricoRapidoInput } from "./validators";
+
+function italianBusinessDate(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Rome",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const value = (part: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === part)?.value ?? "";
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
 
 /** INVENTORY (Magazzino) — Service */
 export const inventoryService = {
@@ -13,9 +24,9 @@ export const inventoryService = {
     const rows = await repo.listProdotti(companyId);
     let valoreMagazzino = 0;
     let sottoScorta = 0;
-    for (const p of rows) {
-      valoreMagazzino += Number(p.quantita) * Number(p.prezzoUnitario ?? 0);
-      if (Number(p.quantitaMinima ?? 0) > 0 && Number(p.quantita) <= Number(p.quantitaMinima)) sottoScorta++;
+    for (const prodotto of rows) {
+      valoreMagazzino += Number(prodotto.quantita) * Number(prodotto.prezzoUnitario ?? 0);
+      if (Number(prodotto.quantitaMinima ?? 0) > 0 && Number(prodotto.quantita) <= Number(prodotto.quantitaMinima)) sottoScorta++;
     }
     return { totaleProdotti: rows.length, sottoScorta, valoreMagazzino };
   },
@@ -30,36 +41,40 @@ export const inventoryService = {
       quantita: String(input.quantita),
       quantitaMinima: String(input.quantitaMinima),
       prezzoUnitario: input.prezzoUnitario != null ? String(input.prezzoUnitario) : null,
+      ultimoScaricoQuantita: null,
+      ultimoScaricoAt: null,
     });
   },
 
-  /** Registra un movimento e aggiorna la giacenza del prodotto. */
+  /**
+   * Movimento generico per integrazioni esistenti. Carichi manuali restano possibili,
+   * ma la UI operativa privilegia il flusso `scaricaRapido`.
+   */
   async registraMovimento(actor: ActorContext, input: MovimentoInput) {
-    await repo.insertMovimento(actor, { ...input, quantita: String(input.quantita) });
-    const p = await repo.getProdotto(input.prodottoId);
-    if (p) {
-      const nuova = input.tipo === "carico"
-        ? Number(p.quantita) + input.quantita
-        : Number(p.quantita) - input.quantita;
-      await repo.updateQuantita(actor, input.prodottoId, String(Math.max(0, nuova)));
-    }
+    const result = await repo.registraMovimentoAtomico(actor, {
+      ...input,
+      quantita: String(input.quantita),
+      descrizione: input.descrizione || (input.tipo === "carico" ? "Carico manuale" : "Scarico manuale"),
+      causale: input.causale,
+      note: input.note,
+    });
 
     // Proposta finanziaria: carico = acquisto (uscita), scarico = consumo gestionale (no proposta)
-    if (input.tipo === "carico" && p) {
+    if (input.tipo === "carico") {
       try {
-        const prezzoUnitario = Number(p.prezzoUnitario ?? 0);
+        const prezzoUnitario = Number(result.prodotto.prezzoUnitario ?? 0);
         const importo = Math.round(prezzoUnitario * input.quantita * 100); // centesimi
         if (importo > 0) {
           await proposalsService.createOrGetProposal(actor, {
             tipo: "uscita",
             importo,
-            descrizione: `Acquisto ${p.nome} (${input.quantita} ${p.unitaMisura ?? "pz"})`,
+            descrizione: `Acquisto ${result.prodotto.nome} (${input.quantita} ${result.prodotto.unitaMisura ?? "pz"})`,
             dataOrigine: input.data,
             originModule: "inventory",
             originEntityType: "movimento",
-            originEntityId: input.prodottoId, // idempotenza per prodotto+evento
+            originEntityId: result.movimentoId,
             originEventType: `carico_${input.data}`,
-            originReference: p.codice ?? p.nome,
+            originReference: result.prodotto.codice ?? result.prodotto.nome,
           });
         }
       } catch {
@@ -67,7 +82,21 @@ export const inventoryService = {
       }
     }
 
-    return { success: true };
+    return result;
+  },
+
+  /** Scarico mobile in un gesto: validazione, audit e saldo aggiornato sono atomici. */
+  scaricaRapido(actor: ActorContext, input: ScaricoRapidoInput) {
+    const causale = input.causale?.trim();
+    return repo.registraMovimentoAtomico(actor, {
+      prodottoId: input.prodottoId,
+      tipo: "scarico",
+      quantita: String(input.quantita),
+      data: italianBusinessDate(),
+      descrizione: causale ? `Scarico rapido — ${causale}` : "Scarico rapido",
+      causale,
+      note: input.note?.trim(),
+    });
   },
 
   remove(actor: ActorContext, id: string) {
