@@ -49,6 +49,7 @@ const COLORS = [GREEN, GOLD, BLUE, PURPLE, RED, "#2dd4bf", "#fb923c", "#f472b6"]
 
 type Preset = "mese" | "anno" | "dodici_mesi" | "personalizzato";
 type Dimensione = "categorie" | "categorie_centri" | "soggetti" | "centri";
+type Direzione = "tutto" | "entrate" | "uscite";
 
 function isoDate(date: Date) {
   const y = date.getFullYear();
@@ -168,6 +169,7 @@ export default function AnalisiPage() {
   const [categoriaCentroId, setCategoriaCentroId] = useState("all");
   const [centroCostoId, setCentroCostoId] = useState("all");
   const [dimensione, setDimensione] = useState<Dimensione>("categorie");
+  const [direzione, setDirezione] = useState<Direzione>("tutto");
 
   const { data: soggetti = [] } = trpc.finanza.soggetti.list.useQuery(undefined);
   const { data: centriCosto = [] } = trpc.finanza.centriCosto.list.useQuery();
@@ -185,11 +187,12 @@ export default function AnalisiPage() {
     confrontoInizio,
     confrontoFine,
     granularita,
+    direzione,
     soggettoId: soggettoId === "all" ? undefined : soggettoId,
     categoriaId: categoriaId === "all" ? undefined : categoriaId,
     categoriaCentroId: categoriaCentroId === "all" ? undefined : categoriaCentroId,
     centroCostoId: centroCostoId === "all" ? undefined : centroCostoId,
-  }), [dataInizio, dataFine, confrontoInizio, confrontoFine, granularita, soggettoId, categoriaId, categoriaCentroId, centroCostoId]);
+  }), [dataInizio, dataFine, confrontoInizio, confrontoFine, granularita, direzione, soggettoId, categoriaId, categoriaCentroId, centroCostoId]);
 
   const { data, isLoading, isError } = trpc.finanza.analytics.overview.useQuery(queryInput);
 
@@ -252,16 +255,18 @@ export default function AnalisiPage() {
     setCompareOpen(false);
   }
 
-  const filtriAttivi = [soggettoId, categoriaCentroId, centroCostoId, categoriaId].filter((id) => id !== "all").length;
-  const comparisonRows = data ? [
+  const filtriAttivi = [soggettoId, categoriaCentroId, centroCostoId, categoriaId].filter((id) => id !== "all").length + (direzione === "tutto" ? 0 : 1);
+  const comparisonRows = (data ? [
     { label: "Entrate", current: data.kpi.entrate.valore, previous: data.kpi.entrate.precedente, difference: data.kpi.entrate.differenza },
     { label: "Uscite", current: data.kpi.uscite.valore, previous: data.kpi.uscite.precedente, difference: data.kpi.uscite.differenza },
     { label: "Risultato", current: data.kpi.utile.valore, previous: data.kpi.utile.precedente, difference: data.kpi.utile.differenza },
-  ] : [];
+  ] : []).filter((row) => direzione === "tutto" || (direzione === "entrate" ? row.label === "Entrate" : row.label === "Uscite"));
   const dimensionData = data ? (
     dimensione === "categorie" ? data.sottocategorie : dimensione === "categorie_centri" ? data.categorieCentri : dimensione === "soggetti" ? data.soggetti : data.centriCosto
   ).slice(0, 8).map((item: any) => ({ ...item, valore: item.totale })) : [];
-  const pieData = data?.sottocategorie.filter((item: any) => item.tipo === "uscita").slice(0, 8) ?? [];
+  const tipoGrafico = direzione === "entrate" ? "entrata" : "uscita";
+  const pieData = data?.sottocategorie.filter((item: any) => item.tipo === tipoGrafico).slice(0, 8) ?? [];
+  const nomeDirezione = direzione === "entrate" ? "Entrate" : direzione === "uscite" ? "Uscite" : "Entrate e uscite";
 
   return (
     <div className="min-h-screen bg-background pb-28">
@@ -333,6 +338,39 @@ export default function AnalisiPage() {
           <Button type="button" variant="outline" className="h-full min-h-14 bg-card" onClick={apriConfronto}><Scale className="mr-2 size-4 text-amber-300" />Confronta</Button>
         </div>
 
+        <Card>
+          <CardContent className="p-3">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold">Direzione dei dati</p>
+                <p className="text-xs text-muted-foreground">Separa entrate e uscite in tutti i grafici e confronti.</p>
+              </div>
+              <Badge variant="secondary" className="shrink-0">{nomeDirezione}</Badge>
+            </div>
+            <div className="grid grid-cols-3 gap-2" aria-label="Direzione dei dati">
+              {([
+                { value: "tutto", label: "Tutto", icon: Scale },
+                { value: "entrate", label: "Entrate", icon: ArrowDownRight },
+                { value: "uscite", label: "Uscite", icon: ArrowUpRight },
+              ] as const).map(({ value, label, icon: Icon }) => {
+                const active = direzione === value;
+                const tone = value === "entrate" ? "text-emerald-400" : value === "uscite" ? "text-red-400" : "text-amber-300";
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setDirezione(value)}
+                    className={`flex min-h-12 items-center justify-center gap-1.5 rounded-lg border px-2 text-xs font-semibold transition-colors ${active ? "border-amber-400/60 bg-amber-400 text-black" : `border-border bg-card ${tone}`}`}
+                  >
+                    <Icon className="size-4" />{label}
+                  </button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
         <Sheet open={compareOpen} onOpenChange={setCompareOpen}>
           <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto rounded-t-2xl pb-[calc(1rem+env(safe-area-inset-bottom))]">
             <SheetHeader className="text-left">
@@ -366,7 +404,7 @@ export default function AnalisiPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm">Filtri analisi</CardTitle>
-            {filtriAttivi > 0 && <Button variant="ghost" size="sm" onClick={() => { setSoggettoId("all"); setCategoriaId("all"); setCategoriaCentroId("all"); setCentroCostoId("all"); }}><FilterX className="mr-1 size-4" />Azzera</Button>}
+            {filtriAttivi > 0 && <Button variant="ghost" size="sm" onClick={() => { setSoggettoId("all"); setCategoriaId("all"); setCategoriaCentroId("all"); setCentroCostoId("all"); setDirezione("tutto"); }}><FilterX className="mr-1 size-4" />Azzera</Button>}
           </CardHeader>
           <CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             <Select value={soggettoId} onValueChange={setSoggettoId}>
@@ -397,15 +435,15 @@ export default function AnalisiPage() {
             <section>
               <div className="mb-2 flex items-center gap-2"><CircleDollarSign className="size-4 text-amber-300" /><h2 className="text-sm font-semibold">Sintesi del periodo</h2></div>
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                <KpiCard label="Entrate" value={fmtMoney(data.kpi.entrate.valore)} delta={data.kpi.entrate.percentuale} tone="green" />
-                <KpiCard label="Uscite" value={fmtMoney(data.kpi.uscite.valore)} delta={data.kpi.uscite.percentuale} tone="red" invert />
-                <KpiCard label="Risultato" value={fmtMoney(data.kpi.utile.valore)} delta={data.kpi.utile.percentuale} tone="gold" />
-                <KpiCard label="Margine" value={data.kpi.margine.valore == null ? "—" : `${data.kpi.margine.valore.toFixed(1)}%`} delta={data.kpi.margine.differenza} tone="blue" />
+                {direzione !== "uscite" && <KpiCard label="Entrate" value={fmtMoney(data.kpi.entrate.valore)} delta={data.kpi.entrate.percentuale} tone="green" />}
+                {direzione !== "entrate" && <KpiCard label="Uscite" value={fmtMoney(data.kpi.uscite.valore)} delta={data.kpi.uscite.percentuale} tone="red" invert />}
+                {direzione === "tutto" && <KpiCard label="Risultato" value={fmtMoney(data.kpi.utile.valore)} delta={data.kpi.utile.percentuale} tone="gold" />}
+                {direzione === "tutto" && <KpiCard label="Margine" value={data.kpi.margine.valore == null ? "—" : `${data.kpi.margine.valore.toFixed(1)}%`} delta={data.kpi.margine.differenza} tone="blue" />}
               </div>
             </section>
 
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm">Andamento entrate, uscite e risultato</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-sm">Andamento: {nomeDirezione.toLowerCase()}</CardTitle></CardHeader>
               <CardContent>
                 {data.trend.length ? (
                   <div className="h-64">
@@ -416,9 +454,9 @@ export default function AnalisiPage() {
                         <YAxis tickFormatter={fmtCompact} tick={{ fill: "#8a8a8a", fontSize: 10 }} axisLine={false} tickLine={false} />
                         <Tooltip content={<ChartTooltip />} />
                         <Legend wrapperStyle={{ fontSize: 11 }} />
-                        <Bar dataKey="entrate" name="Entrate" fill={GREEN} radius={[3, 3, 0, 0]} />
-                        <Bar dataKey="uscite" name="Uscite" fill={RED} radius={[3, 3, 0, 0]} />
-                        <Area type="monotone" dataKey="risultato" name="Risultato" stroke={GOLD} fill={GOLD} fillOpacity={0.08} strokeWidth={2} />
+                        {direzione !== "uscite" && <Bar dataKey="entrate" name="Entrate" fill={GREEN} radius={[3, 3, 0, 0]} />}
+                        {direzione !== "entrate" && <Bar dataKey="uscite" name="Uscite" fill={RED} radius={[3, 3, 0, 0]} />}
+                        {direzione === "tutto" && <Area type="monotone" dataKey="risultato" name="Risultato" stroke={GOLD} fill={GOLD} fillOpacity={0.08} strokeWidth={2} />}
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
@@ -442,12 +480,12 @@ export default function AnalisiPage() {
 
             <div className="grid gap-4 lg:grid-cols-2">
               <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm">Composizione delle uscite</CardTitle></CardHeader>
+                <CardHeader className="pb-2"><CardTitle className="text-sm">Composizione delle {tipoGrafico}</CardTitle></CardHeader>
                 <CardContent>
                   {pieData.length ? <>
                     <div className="h-48"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={pieData} dataKey="totale" nameKey="nome" innerRadius={48} outerRadius={78} paddingAngle={2}>{pieData.map((_: any, index: number) => <Cell key={index} fill={COLORS[index % COLORS.length]} />)}</Pie><Tooltip formatter={(value: number) => fmtMoney(value)} /></PieChart></ResponsiveContainer></div>
                     <div className="space-y-1.5">{pieData.slice(0, 5).map((item: any, index: number) => <div key={`${item.id}-${item.tipo}`} className="flex items-center justify-between text-xs"><span className="flex min-w-0 items-center gap-2"><span className="size-2 shrink-0 rounded-full" style={{ background: COLORS[index % COLORS.length] }} /><span className="truncate">{item.nome}</span></span><span className="font-medium">{fmtMoney(item.totale)}</span></div>)}</div>
-                  </> : <p className="py-12 text-center text-sm text-muted-foreground">Nessuna uscita da distribuire.</p>}
+                  </> : <p className="py-12 text-center text-sm text-muted-foreground">Nessun dato da distribuire.</p>}
                 </CardContent>
               </Card>
 

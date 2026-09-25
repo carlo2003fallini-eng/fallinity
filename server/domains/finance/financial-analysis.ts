@@ -17,6 +17,7 @@ export const financialAnalysisInput = z.object({
   confrontoInizio: dateField,
   confrontoFine: dateField,
   granularita: z.enum(["mese", "anno"]).default("mese"),
+  direzione: z.enum(["tutto", "entrate", "uscite"]).optional(),
   soggettoId: z.string().optional(),
   categoriaId: z.string().optional(),
   categoriaCentroId: z.string().optional(),
@@ -57,6 +58,8 @@ function condizioniBase(companyId: string, input: FinancialAnalysisInput, inizio
   ];
   if (input.soggettoId) condizioni.push(eq(documentiFinanziari.soggettoId, input.soggettoId));
   if (input.categoriaId) condizioni.push(eq(documentiFinanziari.categoriaId, input.categoriaId));
+  if (input.direzione === "entrate") condizioni.push(eq(documentiFinanziari.tipo, "entrata"));
+  if (input.direzione === "uscite") condizioni.push(eq(documentiFinanziari.tipo, "uscita"));
   if (input.categoriaCentroId) condizioni.push(sql`${documentiFinanziari.centroCostoId} IN (
     SELECT ${centriDiCosto.id} FROM ${centriDiCosto}
     WHERE ${centriDiCosto.companyId} = ${companyId}
@@ -187,19 +190,23 @@ async function distribuzioneSoggetti(companyId: string, input: FinancialAnalysis
 async function distribuzioneCentri(companyId: string, input: FinancialAnalysisInput) {
   const db = await getDb();
   if (!db) return [];
+  const tipoDaMostrare = input.direzione === "entrate" ? "entrata" : "uscita";
   const rows = await db.select({
     id: centriDiCosto.id,
     nome: centriDiCosto.nome,
-    totale: sql<number>`COALESCE(SUM(CASE WHEN ${documentiFinanziari.tipo} = 'uscita' THEN ${documentiFinanziari.totale} ELSE 0 END), 0)`,
+    totale: sql<number>`COALESCE(SUM(${documentiFinanziari.totale}), 0)`,
     movimenti: sql<number>`COUNT(${documentiFinanziari.id})`,
   }).from(documentiFinanziari)
     .leftJoin(centriDiCosto, and(
       eq(centriDiCosto.id, documentiFinanziari.centroCostoId),
       eq(centriDiCosto.companyId, documentiFinanziari.companyId),
     ))
-    .where(and(...condizioniBase(companyId, input, input.dataInizio, input.dataFine)))
+    .where(and(
+      ...condizioniBase(companyId, input, input.dataInizio, input.dataFine),
+      eq(documentiFinanziari.tipo, tipoDaMostrare),
+    ))
     .groupBy(centriDiCosto.id, centriDiCosto.nome)
-    .orderBy(desc(sql`COALESCE(SUM(CASE WHEN ${documentiFinanziari.tipo} = 'uscita' THEN ${documentiFinanziari.totale} ELSE 0 END), 0)`))
+    .orderBy(desc(sql`COALESCE(SUM(${documentiFinanziari.totale}), 0)`))
     .limit(10);
   return rows.map((row) => ({ ...row, nome: row.nome ?? "Non assegnato", totale: Number(row.totale), movimenti: Number(row.movimenti) }))
     .filter((row) => row.totale > 0);

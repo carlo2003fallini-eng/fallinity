@@ -44,10 +44,19 @@ describe("Analisi finanziaria — contratto UI", () => {
 
   it("mostra KPI, grafici, dimensioni e insight finanziari", () => {
     expect(analysisSource).toContain("Sintesi del periodo");
-    expect(analysisSource).toContain("Andamento entrate, uscite e risultato");
-    expect(analysisSource).toContain("Composizione delle uscite");
+    expect(analysisSource).toContain("Andamento: {nomeDirezione.toLowerCase()}");
+    expect(analysisSource).toContain("Composizione delle {tipoGrafico}");
     expect(analysisSource).toContain("Confronta dimensioni");
     expect(analysisSource).toContain("Lettura rapida dei dati");
+  });
+
+  it("permette di isolare entrate, uscite o tutti i dati nell’analisi", () => {
+    expect(analysisSource).toContain('type Direzione = "tutto" | "entrate" | "uscite"');
+    expect(analysisSource).toContain('setDirezione(value)');
+    expect(analysisSource).toContain('aria-label="Direzione dei dati"');
+    expect(analysisSource).toContain("Separa entrate e uscite in tutti i grafici e confronti.");
+    expect(analysisSource).toContain("direzione,");
+    expect(analysisSource).toContain('direzione === "tutto" && <Area');
   });
 
   it("non annida anchor nel link di ritorno", () => {

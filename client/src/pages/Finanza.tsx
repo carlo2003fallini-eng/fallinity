@@ -29,9 +29,16 @@ const BLUE_HEX = "#60a5fa";
 const MANUAL_ENTRY_ICON = "/manus-storage/finance-manual-entry_50e37e4c.png";
 const AI_ENTRY_ICON = "/manus-storage/finance-ai-entry_833a1992.png";
 
-const fmt = (n: number) =>
-  new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
+const fmt = (cents: number) =>
+  new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(Number(cents ?? 0) / 100);
 const fmtPct = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(1)}%`;
+
+function localIsoDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
 // ── Periodi preimpostati ──
 type PeriodoKey = "7gg" | "30gg" | "mese" | "trimestre" | "anno";
@@ -45,7 +52,7 @@ const PERIODI: { key: PeriodoKey; label: string; mesi: number }[] = [
 
 function getDateRange(key: PeriodoKey): { dataInizio: string; dataFine: string } {
   const oggi = new Date();
-  const dataFine = oggi.toISOString().split("T")[0];
+  const dataFine = localIsoDate(oggi);
   let inizio: Date;
   switch (key) {
     case "7gg": inizio = new Date(oggi.getTime() - 7 * 86400000); break;
@@ -54,7 +61,7 @@ function getDateRange(key: PeriodoKey): { dataInizio: string; dataFine: string }
     case "trimestre": inizio = new Date(oggi.getFullYear(), oggi.getMonth() - 2, 1); break;
     case "anno": inizio = new Date(oggi.getFullYear(), 0, 1); break;
   }
-  return { dataInizio: inizio.toISOString().split("T")[0], dataFine };
+  return { dataInizio: localIsoDate(inizio), dataFine };
 }
 
 export default function Finanza({ initialTab = "dashboard" }: { initialTab?: "dashboard" | "reintegrazione" }) {
@@ -76,7 +83,7 @@ export default function Finanza({ initialTab = "dashboard" }: { initialTab?: "da
   const { data: summary, isLoading: loadingSummary } = trpc.finanza.dashboard.summary.useQuery({
     ...dateRange, modalita,
   });
-  const { data: trend } = trpc.finanza.dashboard.trend.useQuery({ mesi: mesiTrend, modalita });
+  const { data: trend } = trpc.finanza.dashboard.trend.useQuery({ ...dateRange, mesi: mesiTrend, modalita });
   const { data: deadlines } = trpc.finanza.dashboard.deadlines.useQuery();
   const { data: creditsDebts } = trpc.finanza.dashboard.creditsDebts.useQuery();
   const { data: accounts } = trpc.finanza.dashboard.accounts.useQuery();
@@ -247,7 +254,7 @@ export default function Finanza({ initialTab = "dashboard" }: { initialTab?: "da
         <Card className="p-4 border-0" style={{ background: "oklch(0.11 0.006 145)" }}>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold" style={{ color: "oklch(0.8 0.005 145)" }}>Andamento</h3>
-            <span className="text-[10px]" style={{ color: "oklch(0.5 0.01 145)" }}>Ultimi {mesiTrend} mesi</span>
+            <span className="text-[10px]" style={{ color: "oklch(0.5 0.01 145)" }}>Periodo selezionato</span>
           </div>
           <div className="h-[180px]">
             <ResponsiveContainer width="100%" height="100%">

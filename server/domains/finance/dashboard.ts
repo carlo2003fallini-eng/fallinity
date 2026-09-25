@@ -26,12 +26,12 @@ export interface PeriodComparison {
   valore: number;
   valorePrecedente: number | null;
   differenza: number | null;
-  percentuale: number | null; // basis points (1234 = 12.34%)
+  percentuale: number | null;
 }
 
 function calcPercentuale(attuale: number, precedente: number | null): number | null {
   if (precedente === null || precedente === 0) return null;
-  return Math.round(((attuale - precedente) / Math.abs(precedente)) * 10000);
+  return Math.round(((attuale - precedente) / Math.abs(precedente)) * 1000) / 10;
 }
 
 function buildComparison(attuale: number, precedente: number | null): PeriodComparison {
@@ -56,6 +56,16 @@ function calcolaPeriodoPrecedente(dataInizio: string, dataFine: string): { dataI
   };
 }
 
+function documentoCompetenzaAttivo() {
+  return sql`${registrazioniEconomiche.documentoId} IN (
+    SELECT ${documentiFinanziari.id}
+    FROM ${documentiFinanziari}
+    WHERE ${documentiFinanziari.companyId} = ${registrazioniEconomiche.companyId}
+      AND ${documentiFinanziari.deletedAt} IS NULL
+      AND ${documentiFinanziari.stato} <> 'annullato'
+  )`;
+}
+
 // ── SUMMARY ──
 export async function dashboardSummary(filters: DashboardFilters) {
   const db = await getDb();
@@ -77,6 +87,7 @@ export async function dashboardSummary(filters: DashboardFilters) {
       .from(movimentiCassa)
       .where(and(
         eq(movimentiCassa.companyId, companyId),
+        isNull(movimentiCassa.deletedAt),
         eq(movimentiCassa.stato, "confermato"),
         eq(movimentiCassa.tipo, "entrata"),
         sql`${movimentiCassa.data} >= ${dataInizio}`,
@@ -88,6 +99,7 @@ export async function dashboardSummary(filters: DashboardFilters) {
       .from(movimentiCassa)
       .where(and(
         eq(movimentiCassa.companyId, companyId),
+        isNull(movimentiCassa.deletedAt),
         eq(movimentiCassa.stato, "confermato"),
         eq(movimentiCassa.tipo, "uscita"),
         sql`${movimentiCassa.data} >= ${dataInizio}`,
@@ -99,6 +111,7 @@ export async function dashboardSummary(filters: DashboardFilters) {
       .from(movimentiCassa)
       .where(and(
         eq(movimentiCassa.companyId, companyId),
+        isNull(movimentiCassa.deletedAt),
         eq(movimentiCassa.stato, "confermato"),
         eq(movimentiCassa.tipo, "entrata"),
         sql`${movimentiCassa.data} >= ${prev.dataInizio}`,
@@ -110,6 +123,7 @@ export async function dashboardSummary(filters: DashboardFilters) {
       .from(movimentiCassa)
       .where(and(
         eq(movimentiCassa.companyId, companyId),
+        isNull(movimentiCassa.deletedAt),
         eq(movimentiCassa.stato, "confermato"),
         eq(movimentiCassa.tipo, "uscita"),
         sql`${movimentiCassa.data} >= ${prev.dataInizio}`,
@@ -124,7 +138,11 @@ export async function dashboardSummary(filters: DashboardFilters) {
     uscitePrev = Number(uscitePrevRes.total);
   } else {
     // Competenza: registrazioniEconomiche
-    const baseConds: any[] = [eq(registrazioniEconomiche.companyId, companyId)];
+    const baseConds: any[] = [
+      eq(registrazioniEconomiche.companyId, companyId),
+      isNull(registrazioniEconomiche.deletedAt),
+      documentoCompetenzaAttivo(),
+    ];
     if (centroCostoId) baseConds.push(eq(registrazioniEconomiche.centroCostoId, centroCostoId));
     if (categoriaId) baseConds.push(eq(registrazioniEconomiche.categoriaId, categoriaId));
 
@@ -196,10 +214,14 @@ export async function dashboardTrend(filters: DashboardFilters & { mesi: number 
   if (!db) return null;
 
   const { companyId, modalita, mesi, centroCostoId, categoriaId } = filters;
-  const oggi = new Date();
-  const inizio = new Date(oggi.getFullYear(), oggi.getMonth() - mesi + 1, 1);
-  const dataInizio = inizio.toISOString().split("T")[0];
-  const dataFine = oggi.toISOString().split("T")[0];
+  const periodoFine = filters.dataFine ? new Date(`${filters.dataFine}T12:00:00`) : new Date();
+  const dataFine = filters.dataFine || periodoFine.toISOString().split("T")[0];
+  const periodoInizio = filters.dataInizio ? new Date(`${filters.dataInizio}T12:00:00`) : null;
+  const requestedMonths = periodoInizio
+    ? Math.max(1, ((periodoFine.getFullYear() - periodoInizio.getFullYear()) * 12) + (periodoFine.getMonth() - periodoInizio.getMonth()) + 1)
+    : mesi;
+  const inizio = periodoInizio ?? new Date(periodoFine.getFullYear(), periodoFine.getMonth() - requestedMonths + 1, 1);
+  const dataInizio = filters.dataInizio || inizio.toISOString().split("T")[0];
 
   type TrendPoint = { mese: string; entrate: number; uscite: number; utile: number };
   const result: TrendPoint[] = [];
@@ -208,7 +230,7 @@ export async function dashboardTrend(filters: DashboardFilters & { mesi: number 
     const rawTrend = (await db.execute(
       sql`SELECT DATE_FORMAT(data, '%Y-%m') as mese, tipo, COALESCE(SUM(importo), 0) as totale
           FROM movimentiCassa
-          WHERE companyId = ${companyId} AND stato = 'confermato'
+          WHERE companyId = ${companyId} AND deletedAt IS NULL AND stato = 'confermato'
             AND data >= ${dataInizio} AND data <= ${dataFine}
           GROUP BY DATE_FORMAT(data, '%Y-%m'), tipo`,
     ) as any[]);
@@ -223,7 +245,7 @@ export async function dashboardTrend(filters: DashboardFilters & { mesi: number 
       else entry.uscite = Number(r.totale);
     }
 
-    for (let i = 0; i < mesi; i++) {
+    for (let i = 0; i < requestedMonths; i++) {
       const d = new Date(inizio.getFullYear(), inizio.getMonth() + i, 1);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       const entry = map.get(key) || { entrate: 0, uscite: 0 };
@@ -243,8 +265,12 @@ export async function dashboardTrend(filters: DashboardFilters & { mesi: number 
     const rawTrend = (await db.execute(
       sql`SELECT DATE_FORMAT(dataCompetenza, '%Y-%m') as mese, tipo, COALESCE(SUM(importo), 0) as totale
           FROM registrazioniEconomiche
-          WHERE companyId = ${companyId}
+          WHERE companyId = ${companyId} AND deletedAt IS NULL
             AND dataCompetenza >= ${dataInizio} AND dataCompetenza <= ${dataFine}
+            AND documentoId IN (
+              SELECT id FROM documentiFinanziari
+              WHERE companyId = ${companyId} AND deletedAt IS NULL AND stato <> 'annullato'
+            )
             ${cdcFilter} ${catFilter}
           GROUP BY DATE_FORMAT(dataCompetenza, '%Y-%m'), tipo`,
     ) as any[]);
@@ -259,7 +285,7 @@ export async function dashboardTrend(filters: DashboardFilters & { mesi: number 
       else entry.uscite = Number(r.totale);
     }
 
-    for (let i = 0; i < mesi; i++) {
+    for (let i = 0; i < requestedMonths; i++) {
       const d = new Date(inizio.getFullYear(), inizio.getMonth() + i, 1);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       const entry = map.get(key) || { entrate: 0, uscite: 0 };
@@ -267,7 +293,7 @@ export async function dashboardTrend(filters: DashboardFilters & { mesi: number 
     }
   }
 
-  return { mesi, modalita, trend: result };
+  return { mesi: requestedMonths, modalita, periodo: { dataInizio, dataFine }, trend: result };
 }
 
 // ── COST CENTERS ──

@@ -1341,3 +1341,12 @@
 - [x] Aggiornare immediatamente la giacenza e mostrare un toast non bloccante alla conferma
 - [x] Aggiungere test di regressione per contratto, quantità e memoria dell’ultimo scarico
 - [x] Verificare a 390×844, suite Vitest, TypeScript, build e salvare il checkpoint
+
+## Fase 59 — Analisi Entrate/Uscite e Correzione Dashboard Finanza
+- [x] Analizzare aggregazioni, date e flussi Entrata/Uscita con dati reali e test esistenti
+- [x] Correggere le query dashboard per escludere dati non finanziari o non pertinenti al periodo/modalità
+- [x] Rendere coerenti KPI, andamento, categorie e centri di costo tra Entrate e Uscite
+- [x] Aggiungere nella sezione Analisi un filtro/selettore esplicito Entrate, Uscite e Tutto
+- [x] Aggiornare grafici, confronti e stati vuoti in base alla separazione selezionata
+- [x] Aggiungere test di regressione su aggregazioni, date e contratti UI
+- [x] Verificare a 390×844, suite Vitest, TypeScript, build e salvare il checkpoint

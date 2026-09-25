@@ -129,6 +129,37 @@ describe("Analisi finanziaria multidimensionale", () => {
     expect(result.soggetti.every((row) => !row.nome.includes("altra azienda"))).toBe(true);
   });
 
+  it("separa entrate e uscite in KPI, andamento e distribuzioni", async () => {
+    const entrate = await financialAnalysisOverview(COMPANY_ID, {
+      dataInizio: "2026-06-01",
+      dataFine: "2026-06-30",
+      confrontoInizio: "2026-05-01",
+      confrontoFine: "2026-05-31",
+      granularita: "mese",
+      direzione: "entrate",
+    });
+    const uscite = await financialAnalysisOverview(COMPANY_ID, {
+      dataInizio: "2026-06-01",
+      dataFine: "2026-06-30",
+      confrontoInizio: "2026-05-01",
+      confrontoFine: "2026-05-31",
+      granularita: "mese",
+      direzione: "uscite",
+    });
+
+    expect(entrate.kpi.entrate.valore).toBe(100_000);
+    expect(entrate.kpi.uscite.valore).toBe(0);
+    expect(entrate.kpi.movimenti.valore).toBe(1);
+    expect(entrate.trend).toEqual([{ periodo: "2026-06", entrate: 100_000, uscite: 0, risultato: 100_000 }]);
+    expect(entrate.sottocategorie.every((row) => row.tipo === "entrata")).toBe(true);
+
+    expect(uscite.kpi.entrate.valore).toBe(0);
+    expect(uscite.kpi.uscite.valore).toBe(40_000);
+    expect(uscite.kpi.movimenti.valore).toBe(1);
+    expect(uscite.trend).toEqual([{ periodo: "2026-06", entrate: 0, uscite: 40_000, risultato: -40_000 }]);
+    expect(uscite.sottocategorie.every((row) => row.tipo === "uscita")).toBe(true);
+  });
+
   it("genera confronti e insight deterministici", () => {
     expect(confrontaValore(125, 100)).toEqual({ valore: 125, precedente: 100, differenza: 25, percentuale: 25 });
     const insight = creaInsightFinanziari(
