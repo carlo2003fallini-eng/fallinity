@@ -257,6 +257,22 @@ export const registraPagamentiMultipliInput = z.object({
   note: z.string().trim().max(1000).optional(),
 });
 
+/** Regolarizza lo storico usando, per ogni fattura, la sua ultima scadenza ancora aperta. */
+export const regolarizzaScadenzeStoricheInput = z.object({
+  documentoIds: z.array(z.string().min(1)).min(1).max(500).refine(
+    (ids) => new Set(ids).size === ids.length,
+    { message: "Ogni fattura può essere selezionata una sola volta" },
+  ),
+  contoId: z.string().min(1),
+  metodoId: z.string().min(1).optional(),
+  riferimento: z.string().trim().max(100).optional(),
+  note: z.string().trim().max(1000).optional(),
+});
+
+export const listScadenzeStoricheInput = z.object({
+  limit: z.number().int().min(1).max(500).default(500),
+}).optional();
+
 /** Crea una singola scadenza per un documento */
 export const creaScadenzaInput = z.object({
   documentoId: z.string(),
@@ -423,6 +439,7 @@ export type CreateSoggettoInput = z.infer<typeof createSoggettoInput>;
 export type CreateContoInput = z.infer<typeof createContoInput>;
 export type RegistraPagamentoInput = z.infer<typeof registraPagamentoInput>;
 export type RegistraPagamentiMultipliInput = z.infer<typeof registraPagamentiMultipliInput>;
+export type RegolarizzaScadenzeStoricheInput = z.infer<typeof regolarizzaScadenzeStoricheInput>;
 export type CreaScadenzaInput = z.infer<typeof creaScadenzaInput>;
 export type CreaRateInput = z.infer<typeof creaRateInput>;
 export type CreaRicorrenzaInput = z.infer<typeof creaRicorrenzaInput>;

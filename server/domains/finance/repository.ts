@@ -20,6 +20,13 @@ import {
 } from "../../../drizzle/schema";
 import { withCreate, withUpdate, softDeletePayload, tenantScope, newId, type ActorContext } from "../_core";
 
+function businessIsoDate(value: unknown) {
+  if (typeof value === "string") return value.slice(0, 10);
+  const date = value instanceof Date ? value : new Date(String(value));
+  if (Number.isNaN(date.getTime())) throw new Error("Data di scadenza non valida");
+  return date.toISOString().slice(0, 10);
+}
+
 /**
  * FINANCE — Repository
  * Accesso dati puro: nessuna logica di business, solo query Drizzle/SQL.
@@ -856,6 +863,202 @@ export const financeRepository = {
         saldoDopo,
         pagamenti,
       };
+    });
+  },
+
+  /**
+   * Restituisce soltanto fatture passive aperte che hanno almeno una scadenza residua.
+   * La data proposta è sempre l'ultima rata ancora aperta del singolo documento.
+   */
+  async listFattureStoricheInScadenza(companyId: string, limit = 500) {
+    const db = await getDb();
+    if (!db) return [];
+    const documenti = await db.select({
+      ...getTableColumns(documentiFinanziari),
+      soggettoNome: sql<string | null>`COALESCE(${soggetti.nomeBreve}, ${soggetti.ragioneSociale})`,
+    }).from(documentiFinanziari)
+      .leftJoin(soggetti, and(
+        eq(soggetti.id, documentiFinanziari.soggettoId),
+        eq(soggetti.companyId, documentiFinanziari.companyId),
+        isNull(soggetti.deletedAt),
+      ))
+      .where(and(
+        eq(documentiFinanziari.companyId, companyId),
+        eq(documentiFinanziari.tipo, "uscita"),
+        inArray(documentiFinanziari.stato, ["registrato", "parzialmente_regolato", "scaduto"]),
+        sql`${documentiFinanziari.residuo} > 0`,
+        isNull(documentiFinanziari.deletedAt),
+      ))
+      .orderBy(asc(documentiFinanziari.dataDocumento))
+      .limit(limit);
+    if (!documenti.length) return [];
+
+    const scadenze = await db.select().from(scadenzeFinanziarie).where(and(
+      eq(scadenzeFinanziarie.companyId, companyId),
+      inArray(scadenzeFinanziarie.documentoId, documenti.map((documento) => documento.id)),
+      sql`${scadenzeFinanziarie.residuo} > 0`,
+      sql`${scadenzeFinanziarie.stato} NOT IN ('pagata', 'annullata')`,
+      isNull(scadenzeFinanziarie.deletedAt),
+    ));
+    const perDocumento = new Map<string, typeof scadenze>();
+    for (const scadenza of scadenze) {
+      const gruppo = perDocumento.get(scadenza.documentoId) ?? [];
+      gruppo.push(scadenza);
+      perDocumento.set(scadenza.documentoId, gruppo);
+    }
+
+    return documenti.flatMap((documento) => {
+      const aperte = perDocumento.get(documento.id) ?? [];
+      const ultima = aperte.sort((a, b) => businessIsoDate(a.dataScadenza).localeCompare(businessIsoDate(b.dataScadenza))).at(-1);
+      if (!ultima) return [];
+      return [{
+        ...documento,
+        scadenzeAperte: aperte.length,
+        scadenzaFinale: businessIsoDate(ultima.dataScadenza),
+      }];
+    }).sort((a, b) => a.scadenzaFinale.localeCompare(b.scadenzaFinale));
+  },
+
+  /**
+   * Regolarizza fatture passive storiche sulla rispettiva ultima scadenza aperta.
+   * Conto, fatture e scadenze vengono bloccati e aggiornati nella stessa transazione.
+   */
+  async regolarizzaScadenzeStoricheAtomico(actor: ActorContext, input: {
+    documentoIds: string[];
+    contoId: string;
+    metodoId?: string;
+    riferimento?: string;
+    note?: string;
+  }) {
+    const db = await getDb();
+    if (!db) throw new Error("DB non disponibile");
+
+    return db.transaction(async (tx) => {
+      const contoRows = await tx.select().from(contiFin).where(and(
+        eq(contiFin.id, input.contoId),
+        eq(contiFin.companyId, actor.companyId),
+        eq(contiFin.attivo, true),
+        isNull(contiFin.deletedAt),
+      )).for("update");
+      const conto = contoRows[0];
+      if (!conto) throw new Error("Conto non valido o non attivo");
+
+      if (input.metodoId) {
+        const metodi = await tx.select({ id: metodiPagamento.id }).from(metodiPagamento).where(and(
+          eq(metodiPagamento.id, input.metodoId),
+          eq(metodiPagamento.companyId, actor.companyId),
+          eq(metodiPagamento.attivo, true),
+          isNull(metodiPagamento.deletedAt),
+        )).for("update");
+        if (!metodi[0]) throw new Error("Metodo di pagamento non valido o non attivo");
+      }
+
+      const documenti = await tx.select().from(documentiFinanziari).where(and(
+        eq(documentiFinanziari.companyId, actor.companyId),
+        inArray(documentiFinanziari.id, input.documentoIds),
+        eq(documentiFinanziari.tipo, "uscita"),
+        isNull(documentiFinanziari.deletedAt),
+      )).for("update");
+      if (documenti.length !== input.documentoIds.length) {
+        throw new Error("Una o più fatture non sono disponibili per la regolarizzazione");
+      }
+      const nonRegolabili = documenti.find((documento) => (
+        !["registrato", "parzialmente_regolato", "scaduto"].includes(documento.stato)
+        || Number(documento.residuo ?? documento.totale) <= 0
+      ));
+      if (nonRegolabili) {
+        throw new Error(`La fattura ${nonRegolabili.codiceInterno ?? nonRegolabili.numero ?? nonRegolabili.id} non ha più un residuo da regolarizzare`);
+      }
+
+      const scadenze = await tx.select().from(scadenzeFinanziarie).where(and(
+        eq(scadenzeFinanziarie.companyId, actor.companyId),
+        inArray(scadenzeFinanziarie.documentoId, input.documentoIds),
+        isNull(scadenzeFinanziarie.deletedAt),
+      )).for("update");
+      const scadenzePerDocumento = new Map<string, typeof scadenze>();
+      for (const scadenza of scadenze) {
+        const gruppo = scadenzePerDocumento.get(scadenza.documentoId) ?? [];
+        gruppo.push(scadenza);
+        scadenzePerDocumento.set(scadenza.documentoId, gruppo);
+      }
+
+      const fatture = documenti.map((documento) => {
+        const scadenzeAperte = (scadenzePerDocumento.get(documento.id) ?? [])
+          .filter((scadenza) => Number(scadenza.residuo) > 0 && !["pagata", "annullata"].includes(scadenza.stato));
+        const ultimaScadenza = scadenzeAperte.sort((a, b) => businessIsoDate(a.dataScadenza).localeCompare(businessIsoDate(b.dataScadenza))).at(-1);
+        if (!ultimaScadenza) {
+          throw new Error(`La fattura ${documento.codiceInterno ?? documento.id} non ha una scadenza residua utilizzabile`);
+        }
+        const dataPagamento = businessIsoDate(ultimaScadenza.dataScadenza);
+        return { documento, scadenzeAperte, dataPagamento, importo: Number(documento.residuo ?? documento.totale) };
+      }).sort((a, b) => a.dataPagamento.localeCompare(b.dataPagamento) || a.documento.id.localeCompare(b.documento.id));
+
+      const totale = fatture.reduce((somma, fattura) => somma + fattura.importo, 0);
+      const saldoDopo = conto.saldoAttuale - totale;
+      await tx.update(contiFin).set(withUpdate(actor, { saldoAttuale: saldoDopo }) as any).where(and(
+        eq(contiFin.id, conto.id),
+        eq(contiFin.companyId, actor.companyId),
+      ));
+
+      let totaleRegistrato = 0;
+      const pagamenti: Array<{ documentoId: string; pagamentoId: string; importo: number; data: string }> = [];
+      for (const fattura of fatture) {
+        const pagamentoId = newId();
+        const saldoPrecedente = conto.saldoAttuale - totaleRegistrato;
+        const saldoDopoMovimento = saldoPrecedente - fattura.importo;
+        await tx.insert(pagamentiIncassi).values(withCreate(actor, {
+          id: pagamentoId,
+          documentoId: fattura.documento.id,
+          contoId: conto.id,
+          metodoId: input.metodoId,
+          importo: fattura.importo,
+          data: fattura.dataPagamento,
+          riferimento: input.riferimento,
+          note: input.note,
+          stato: "confermato",
+        }) as any);
+        await tx.update(documentiFinanziari).set(withUpdate(actor, {
+          totalePagato: Number(fattura.documento.totalePagato ?? 0) + fattura.importo,
+          residuo: 0,
+          stato: "pagato",
+        }) as any).where(and(
+          eq(documentiFinanziari.id, fattura.documento.id),
+          eq(documentiFinanziari.companyId, actor.companyId),
+        ));
+        await tx.insert(movimentiCassa).values(withCreate(actor, {
+          id: newId(),
+          contoId: conto.id,
+          tipo: "uscita",
+          importo: fattura.importo,
+          data: fattura.dataPagamento,
+          saldoPrecedente,
+          saldoDopo: saldoDopoMovimento,
+          descrizione: `Regolarizzazione storico · ${fattura.documento.codiceInterno ?? fattura.documento.numero ?? fattura.documento.id}`,
+          documentoId: fattura.documento.id,
+          pagamentoId,
+          stato: "confermato",
+        }) as any);
+        for (const scadenza of fattura.scadenzeAperte) {
+          await tx.update(scadenzeFinanziarie).set(withUpdate(actor, {
+            importoPagato: Number(scadenza.importo),
+            residuo: 0,
+            stato: "pagata",
+          }) as any).where(and(
+            eq(scadenzeFinanziarie.id, scadenza.id),
+            eq(scadenzeFinanziarie.companyId, actor.companyId),
+          ));
+        }
+        totaleRegistrato += fattura.importo;
+        pagamenti.push({ documentoId: fattura.documento.id, pagamentoId, importo: fattura.importo, data: fattura.dataPagamento });
+      }
+
+      await tx.update(acquisizioniFatture).set(withUpdate(actor, { stato: "pagata" }) as any).where(and(
+        eq(acquisizioniFatture.companyId, actor.companyId),
+        inArray(acquisizioniFatture.documentoFinanziarioId, input.documentoIds),
+        isNull(acquisizioniFatture.deletedAt),
+      ));
+
+      return { documentiRegolarizzati: pagamenti.length, totale, contoId: conto.id, saldoDopo, pagamenti };
     });
   },
 

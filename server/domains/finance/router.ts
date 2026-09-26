@@ -41,6 +41,8 @@ import {
   seedInput,
   registraPagamentoInput,
   registraPagamentiMultipliInput,
+  regolarizzaScadenzeStoricheInput,
+  listScadenzeStoricheInput,
   annullaPagamentoInput,
   creaRateInput,
   creaScadenzePersonalizzateInput,
@@ -266,6 +268,14 @@ export const finanzaRouter = router({
     registraMultipli: protectedProcedure.input(registraPagamentiMultipliInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);
       return financeService.registraPagamentiMultipli(actor, input);
+    }),
+    storicoInScadenza: protectedProcedure.input(listScadenzeStoricheInput).query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return financeService.listFattureStoricheInScadenza(actor.companyId, input?.limit);
+    }),
+    regolarizzaStorico: protectedProcedure.input(regolarizzaScadenzeStoricheInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return financeService.regolarizzaScadenzeStoriche(actor, input);
     }),
     annulla: protectedProcedure.input(annullaPagamentoInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);

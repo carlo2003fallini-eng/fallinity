@@ -1359,3 +1359,12 @@
 - [x] Aggiornare documenti, scadenze, conto, movimenti cassa e stato fatture in modo coerente
 - [x] Aggiungere test di regressione backend e contratto UI
 - [x] Verificare a 390×844, suite Vitest, TypeScript, build e salvare il checkpoint
+
+## Fase 61 — Regolarizzazione Storico Scadenze
+- [x] Analizzare pagamenti multipli, scadenze e accessi alle impostazioni
+- [x] Elencare le fatture di uscita aperte con la loro ultima scadenza disponibile
+- [x] Creare una transazione atomica che registri ogni saldo alla relativa ultima scadenza
+- [x] Aggiungere un accesso in Impostazioni Finanza e una selezione multipla mobile-first
+- [x] Rendere espliciti conto, metodo, totale, date applicate e conferma finale
+- [x] Aggiungere test di regressione backend e contratto UI
+- [x] Verificare a 390×844, suite Vitest, TypeScript, build e salvare il checkpoint

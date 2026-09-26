@@ -1,7 +1,7 @@
 import { financeRepository as repo } from "./repository";
 import { invoiceRepository } from "./invoice.repository";
 import type { ActorContext } from "../_core";
-import type { CreateMovimentoInput, UpdateMovimentoInput, RegistraPagamentoInput, RegistraPagamentiMultipliInput, CreaRateInput, CreaRicorrenzaInput } from "./validators";
+import type { CreateMovimentoInput, UpdateMovimentoInput, RegistraPagamentoInput, RegistraPagamentiMultipliInput, RegolarizzaScadenzeStoricheInput, CreaRateInput, CreaRicorrenzaInput } from "./validators";
 import {
   CATEGORIE_USCITE_DEFAULT,
   CATEGORIE_ENTRATE_DEFAULT,
@@ -611,6 +611,19 @@ export const financeService = {
    */
   async registraPagamentiMultipli(actor: ActorContext, input: RegistraPagamentiMultipliInput) {
     return repo.registraPagamentiMultipliAtomici(actor, input);
+  },
+
+  /** Elenca le fatture passive ancora regolabili con la rispettiva ultima scadenza. */
+  async listFattureStoricheInScadenza(companyId: string, limit?: number) {
+    return repo.listFattureStoricheInScadenza(companyId, limit);
+  },
+
+  /**
+   * Registra i saldi dello storico sulle date di scadenza finali di ogni fattura.
+   * Nessun dato viene scritto se una fattura selezionata non è più coerente o pagabile.
+   */
+  async regolarizzaScadenzeStoriche(actor: ActorContext, input: RegolarizzaScadenzeStoricheInput) {
+    return repo.regolarizzaScadenzeStoricheAtomico(actor, input);
   },
 
   /**

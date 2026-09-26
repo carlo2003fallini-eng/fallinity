@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Card } from "@/components/ui/card";
 import {
   ArrowLeft, ChevronRight, Tag, Users, Target, Wallet, CreditCard,
-  Settings2, Zap, SlidersHorizontal,
+  Settings2, History,
 } from "lucide-react";
 
 interface SettingCard {
@@ -67,6 +67,13 @@ export default function ImpostazioniFinanza() {
       path: "/finanza/impostazioni/metodi-pagamento",
       color: "oklch(0.65 0.15 280)",
       count: metodi.length,
+    },
+    {
+      icon: History,
+      title: "Regolarizza storico fatture",
+      description: "Chiudi le fatture aperte alla loro ultima scadenza",
+      path: "/finanza/impostazioni/regolarizza-storico",
+      color: "oklch(0.76 0.15 82)",
     },
     {
       icon: Settings2,

@@ -40,6 +40,7 @@ import ImpostazioniSoggetti from "./pages/finanza/ImpostazioniSoggetti";
 import ImpostazioniCentriCosto from "./pages/finanza/ImpostazioniCentriCosto";
 import ImpostazioniConti from "./pages/finanza/ImpostazioniConti";
 import ImpostazioniMetodi from "./pages/finanza/ImpostazioniMetodi";
+import RegolarizzaScadenzeStoriche from "./pages/finanza/RegolarizzaScadenzeStoriche";
 
 function Router() {
   return (
@@ -70,6 +71,7 @@ function Router() {
         <Route path="/finanza/impostazioni/centri-costo" component={ImpostazioniCentriCosto} />
         <Route path="/finanza/impostazioni/conti" component={ImpostazioniConti} />
         <Route path="/finanza/impostazioni/metodi-pagamento" component={ImpostazioniMetodi} />
+        <Route path="/finanza/impostazioni/regolarizza-storico" component={RegolarizzaScadenzeStoriche} />
         <Route path="/campi" component={Campi} />
         <Route path="/magazzino" component={Magazzino} />
         <Route path="/officina" component={Officina} />
