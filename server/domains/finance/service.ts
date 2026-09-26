@@ -613,17 +613,20 @@ export const financeService = {
     return repo.registraPagamentiMultipliAtomici(actor, input);
   },
 
-  /** Elenca le fatture passive ancora regolabili con la rispettiva ultima scadenza. */
-  async listFattureStoricheInScadenza(companyId: string, limit?: number) {
-    return repo.listFattureStoricheInScadenza(companyId, limit);
+  /** Elenca crediti o debiti ancora regolabili con la rispettiva ultima scadenza. */
+  async listFattureStoricheInScadenza(companyId: string, limit?: number, tipo: "entrata" | "uscita" = "uscita") {
+    return repo.listFattureStoricheInScadenza(companyId, limit, tipo);
   },
 
   /**
-   * Registra i saldi dello storico sulle date di scadenza finali di ogni fattura.
-   * Nessun dato viene scritto se una fattura selezionata non è più coerente o pagabile.
+   * Registra pagamenti o incassi storici sulle date finali di ogni documento.
+   * Nessun dato viene scritto se una selezione non è più coerente o regolabile.
    */
   async regolarizzaScadenzeStoriche(actor: ActorContext, input: RegolarizzaScadenzeStoricheInput) {
-    return repo.regolarizzaScadenzeStoricheAtomico(actor, input);
+    return repo.regolarizzaScadenzeStoricheAtomico(actor, {
+      ...input,
+      tipo: input.tipo ?? "uscita",
+    });
   },
 
   /**

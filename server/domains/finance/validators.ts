@@ -263,6 +263,7 @@ export const regolarizzaScadenzeStoricheInput = z.object({
     (ids) => new Set(ids).size === ids.length,
     { message: "Ogni fattura può essere selezionata una sola volta" },
   ),
+  tipo: z.enum(["entrata", "uscita"]).default("uscita"),
   contoId: z.string().min(1),
   metodoId: z.string().min(1).optional(),
   riferimento: z.string().trim().max(100).optional(),
@@ -271,6 +272,7 @@ export const regolarizzaScadenzeStoricheInput = z.object({
 
 export const listScadenzeStoricheInput = z.object({
   limit: z.number().int().min(1).max(500).default(500),
+  tipo: z.enum(["entrata", "uscita"]).default("uscita"),
 }).optional();
 
 /** Crea una singola scadenza per un documento */

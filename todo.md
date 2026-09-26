@@ -1368,3 +1368,11 @@
 - [x] Rendere espliciti conto, metodo, totale, date applicate e conferma finale
 - [x] Aggiungere test di regressione backend e contratto UI
 - [x] Verificare a 390×844, suite Vitest, TypeScript, build e salvare il checkpoint
+
+## Fase 62 — Regolarizzazione Storico Entrate
+- [x] Analizzare la regolarizzazione delle uscite e il flusso degli incassi
+- [x] Estendere elenco e transazione atomica a entrate e uscite
+- [x] Aggiungere selettore Entrate/Uscite e microcopy coerente
+- [x] Garantire saldo conto, stati documenti e scadenze coerenti per gli incassi
+- [x] Aggiungere regressioni per incassi storici e isolamento direzione
+- [x] Verificare a 390×844, suite Vitest, TypeScript, build e salvare il checkpoint

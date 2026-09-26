@@ -18,6 +18,7 @@ function isoDate(value: string | Date) {
 
 describe.sequential("Finance — regolarizzazione storico alla scadenza finale", () => {
   let categoriaUscitaId = "";
+  let categoriaEntrataId = "";
   let contoId = "";
   let metodoId = "";
 
@@ -25,6 +26,10 @@ describe.sequential("Finance — regolarizzazione storico alla scadenza finale",
     categoriaUscitaId = (await financeService.createCategoria(actor, {
       nome: `Uscite storico ${RUN_ID}`,
       tipo: "uscita",
+    })).id;
+    categoriaEntrataId = (await financeService.createCategoria(actor, {
+      nome: `Entrate storico ${RUN_ID}`,
+      tipo: "entrata",
     })).id;
     contoId = (await financeService.createConto(actor, {
       nome: `Conto storico ${RUN_ID}`,
@@ -114,6 +119,84 @@ describe.sequential("Finance — regolarizzazione storico alla scadenza finale",
       expect.objectContaining({ id: fatturaRateizzata.documentoId }),
       expect.objectContaining({ id: fatturaSingola.documentoId }),
     ]));
+  });
+
+  it("incassa le entrate storiche alla loro ultima scadenza e accredita il conto", async () => {
+    const entrataRateizzata = await financeService.creaMovimento(actor, {
+      tipo: "entrata",
+      tipoRegistrazione: "documento",
+      imponibile: 9_000,
+      aliquotaIva: 0,
+      importoIva: 0,
+      totale: 9_000,
+      dataDocumento: "2024-06-01",
+      dataScadenza: "2024-06-10",
+      categoriaId: categoriaEntrataId,
+      descrizione: `Entrata rateizzata ${RUN_ID}`,
+    });
+    await financeService.creaRate(actor, {
+      documentoId: entrataRateizzata.documentoId,
+      numeroRate: 2,
+      frequenza: "mensile",
+      dataInizio: "2024-06-10",
+    });
+    const entrataSingola = await financeService.creaMovimento(actor, {
+      tipo: "entrata",
+      tipoRegistrazione: "documento",
+      imponibile: 6_000,
+      aliquotaIva: 0,
+      importoIva: 0,
+      totale: 6_000,
+      dataDocumento: "2024-08-01",
+      dataScadenza: "2024-08-20",
+      categoriaId: categoriaEntrataId,
+      descrizione: `Entrata singola ${RUN_ID}`,
+    });
+    const saldoPrima = (await financeService.listConti(COMPANY_ID)).find((item) => item.id === contoId)?.saldoAttuale ?? 0;
+
+    const proposte = await financeService.listFattureStoricheInScadenza(COMPANY_ID, 50, "entrata");
+    expect(proposte.find((documento) => documento.id === entrataRateizzata.documentoId)).toMatchObject({
+      scadenzeAperte: 2,
+      scadenzaFinale: "2024-07-10",
+      residuo: 9_000,
+      tipo: "entrata",
+    });
+    expect(proposte.find((documento) => documento.id === entrataSingola.documentoId)).toMatchObject({
+      scadenzaFinale: "2024-08-20",
+      residuo: 6_000,
+      tipo: "entrata",
+    });
+    expect(proposte).not.toEqual(expect.arrayContaining([expect.objectContaining({ tipo: "uscita" })]));
+
+    const result = await financeService.regolarizzaScadenzeStoriche(actor, {
+      documentoIds: [entrataSingola.documentoId, entrataRateizzata.documentoId],
+      tipo: "entrata",
+      contoId,
+      metodoId,
+      riferimento: `INCASSI-${RUN_ID}`,
+    });
+    expect(result).toMatchObject({ documentiRegolarizzati: 2, totale: 15_000, saldoDopo: saldoPrima + 15_000, tipo: "entrata" });
+    expect(result.pagamenti).toEqual(expect.arrayContaining([
+      expect.objectContaining({ documentoId: entrataRateizzata.documentoId, importo: 9_000, data: "2024-07-10" }),
+      expect.objectContaining({ documentoId: entrataSingola.documentoId, importo: 6_000, data: "2024-08-20" }),
+    ]));
+
+    const [dettaglioRateizzato, dettaglioSingolo] = await Promise.all([
+      financeService.dettaglioMovimento(COMPANY_ID, entrataRateizzata.documentoId),
+      financeService.dettaglioMovimento(COMPANY_ID, entrataSingola.documentoId),
+    ]);
+    expect(dettaglioRateizzato).toMatchObject({ stato: "incassato", totalePagato: 9_000, residuo: 0 });
+    expect(dettaglioSingolo).toMatchObject({ stato: "incassato", totalePagato: 6_000, residuo: 0 });
+    expect(dettaglioRateizzato?.scadenze.filter((scadenza) => scadenza.stato === "incassata")).toHaveLength(2);
+    expect(isoDate(dettaglioRateizzato?.pagamenti.find((pagamento) => pagamento.riferimento === `INCASSI-${RUN_ID}`)?.data as Date)).toBe("2024-07-10");
+
+    const conto = (await financeService.listConti(COMPANY_ID)).find((item) => item.id === contoId);
+    expect(conto?.saldoAttuale).toBe(saldoPrima + 15_000);
+    const movimentiCassa = await financeRepository.listMovimentiCassa(COMPANY_ID, contoId, 20);
+    const incassi = movimentiCassa.filter((movimento) => movimento.descrizione?.startsWith("Incasso storico ·"));
+    expect(incassi).toHaveLength(2);
+    expect(incassi.every((movimento) => movimento.tipo === "entrata")).toBe(true);
+    expect(incassi.map((movimento) => isoDate(movimento.data))).toEqual(expect.arrayContaining(["2024-07-10", "2024-08-20"]));
   });
 
   it("non registra alcuna fattura se la selezione contiene un documento già chiuso", async () => {

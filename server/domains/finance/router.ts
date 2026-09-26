@@ -271,7 +271,7 @@ export const finanzaRouter = router({
     }),
     storicoInScadenza: protectedProcedure.input(listScadenzeStoricheInput).query(async ({ ctx, input }) => {
       const actor = await getActor(ctx);
-      return financeService.listFattureStoricheInScadenza(actor.companyId, input?.limit);
+      return financeService.listFattureStoricheInScadenza(actor.companyId, input?.limit, input?.tipo);
     }),
     regolarizzaStorico: protectedProcedure.input(regolarizzaScadenzeStoricheInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);

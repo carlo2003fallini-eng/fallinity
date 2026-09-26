@@ -867,10 +867,10 @@ export const financeRepository = {
   },
 
   /**
-   * Restituisce soltanto fatture passive aperte che hanno almeno una scadenza residua.
+   * Restituisce soltanto documenti aperti del verso scelto con almeno una scadenza residua.
    * La data proposta è sempre l'ultima rata ancora aperta del singolo documento.
    */
-  async listFattureStoricheInScadenza(companyId: string, limit = 500) {
+  async listFattureStoricheInScadenza(companyId: string, limit = 500, tipo: "entrata" | "uscita" = "uscita") {
     const db = await getDb();
     if (!db) return [];
     const documenti = await db.select({
@@ -884,7 +884,7 @@ export const financeRepository = {
       ))
       .where(and(
         eq(documentiFinanziari.companyId, companyId),
-        eq(documentiFinanziari.tipo, "uscita"),
+        eq(documentiFinanziari.tipo, tipo),
         inArray(documentiFinanziari.stato, ["registrato", "parzialmente_regolato", "scaduto"]),
         sql`${documentiFinanziari.residuo} > 0`,
         isNull(documentiFinanziari.deletedAt),
@@ -920,11 +920,12 @@ export const financeRepository = {
   },
 
   /**
-   * Regolarizza fatture passive storiche sulla rispettiva ultima scadenza aperta.
-   * Conto, fatture e scadenze vengono bloccati e aggiornati nella stessa transazione.
+   * Regolarizza incassi o pagamenti storici sulla rispettiva ultima scadenza aperta.
+   * Conto, documenti e scadenze vengono bloccati e aggiornati nella stessa transazione.
    */
   async regolarizzaScadenzeStoricheAtomico(actor: ActorContext, input: {
     documentoIds: string[];
+    tipo: "entrata" | "uscita";
     contoId: string;
     metodoId?: string;
     riferimento?: string;
@@ -956,18 +957,18 @@ export const financeRepository = {
       const documenti = await tx.select().from(documentiFinanziari).where(and(
         eq(documentiFinanziari.companyId, actor.companyId),
         inArray(documentiFinanziari.id, input.documentoIds),
-        eq(documentiFinanziari.tipo, "uscita"),
+        eq(documentiFinanziari.tipo, input.tipo),
         isNull(documentiFinanziari.deletedAt),
       )).for("update");
       if (documenti.length !== input.documentoIds.length) {
-        throw new Error("Una o più fatture non sono disponibili per la regolarizzazione");
+        throw new Error("Uno o più documenti non sono disponibili per la regolarizzazione");
       }
       const nonRegolabili = documenti.find((documento) => (
         !["registrato", "parzialmente_regolato", "scaduto"].includes(documento.stato)
         || Number(documento.residuo ?? documento.totale) <= 0
       ));
       if (nonRegolabili) {
-        throw new Error(`La fattura ${nonRegolabili.codiceInterno ?? nonRegolabili.numero ?? nonRegolabili.id} non ha più un residuo da regolarizzare`);
+        throw new Error(`Il documento ${nonRegolabili.codiceInterno ?? nonRegolabili.numero ?? nonRegolabili.id} non ha più un residuo da regolarizzare`);
       }
 
       const scadenze = await tx.select().from(scadenzeFinanziarie).where(and(
@@ -987,14 +988,16 @@ export const financeRepository = {
           .filter((scadenza) => Number(scadenza.residuo) > 0 && !["pagata", "annullata"].includes(scadenza.stato));
         const ultimaScadenza = scadenzeAperte.sort((a, b) => businessIsoDate(a.dataScadenza).localeCompare(businessIsoDate(b.dataScadenza))).at(-1);
         if (!ultimaScadenza) {
-          throw new Error(`La fattura ${documento.codiceInterno ?? documento.id} non ha una scadenza residua utilizzabile`);
+          throw new Error(`Il documento ${documento.codiceInterno ?? documento.id} non ha una scadenza residua utilizzabile`);
         }
         const dataPagamento = businessIsoDate(ultimaScadenza.dataScadenza);
         return { documento, scadenzeAperte, dataPagamento, importo: Number(documento.residuo ?? documento.totale) };
       }).sort((a, b) => a.dataPagamento.localeCompare(b.dataPagamento) || a.documento.id.localeCompare(b.documento.id));
 
       const totale = fatture.reduce((somma, fattura) => somma + fattura.importo, 0);
-      const saldoDopo = conto.saldoAttuale - totale;
+      const saldoDopo = input.tipo === "entrata"
+        ? conto.saldoAttuale + totale
+        : conto.saldoAttuale - totale;
       await tx.update(contiFin).set(withUpdate(actor, { saldoAttuale: saldoDopo }) as any).where(and(
         eq(contiFin.id, conto.id),
         eq(contiFin.companyId, actor.companyId),
@@ -1004,8 +1007,12 @@ export const financeRepository = {
       const pagamenti: Array<{ documentoId: string; pagamentoId: string; importo: number; data: string }> = [];
       for (const fattura of fatture) {
         const pagamentoId = newId();
-        const saldoPrecedente = conto.saldoAttuale - totaleRegistrato;
-        const saldoDopoMovimento = saldoPrecedente - fattura.importo;
+        const saldoPrecedente = input.tipo === "entrata"
+          ? conto.saldoAttuale + totaleRegistrato
+          : conto.saldoAttuale - totaleRegistrato;
+        const saldoDopoMovimento = input.tipo === "entrata"
+          ? saldoPrecedente + fattura.importo
+          : saldoPrecedente - fattura.importo;
         await tx.insert(pagamentiIncassi).values(withCreate(actor, {
           id: pagamentoId,
           documentoId: fattura.documento.id,
@@ -1020,7 +1027,7 @@ export const financeRepository = {
         await tx.update(documentiFinanziari).set(withUpdate(actor, {
           totalePagato: Number(fattura.documento.totalePagato ?? 0) + fattura.importo,
           residuo: 0,
-          stato: "pagato",
+          stato: input.tipo === "entrata" ? "incassato" : "pagato",
         }) as any).where(and(
           eq(documentiFinanziari.id, fattura.documento.id),
           eq(documentiFinanziari.companyId, actor.companyId),
@@ -1028,12 +1035,12 @@ export const financeRepository = {
         await tx.insert(movimentiCassa).values(withCreate(actor, {
           id: newId(),
           contoId: conto.id,
-          tipo: "uscita",
+          tipo: input.tipo,
           importo: fattura.importo,
           data: fattura.dataPagamento,
           saldoPrecedente,
           saldoDopo: saldoDopoMovimento,
-          descrizione: `Regolarizzazione storico · ${fattura.documento.codiceInterno ?? fattura.documento.numero ?? fattura.documento.id}`,
+          descrizione: `${input.tipo === "entrata" ? "Incasso storico" : "Regolarizzazione storico"} · ${fattura.documento.codiceInterno ?? fattura.documento.numero ?? fattura.documento.id}`,
           documentoId: fattura.documento.id,
           pagamentoId,
           stato: "confermato",
@@ -1042,7 +1049,7 @@ export const financeRepository = {
           await tx.update(scadenzeFinanziarie).set(withUpdate(actor, {
             importoPagato: Number(scadenza.importo),
             residuo: 0,
-            stato: "pagata",
+            stato: input.tipo === "entrata" ? "incassata" : "pagata",
           }) as any).where(and(
             eq(scadenzeFinanziarie.id, scadenza.id),
             eq(scadenzeFinanziarie.companyId, actor.companyId),
@@ -1052,13 +1059,15 @@ export const financeRepository = {
         pagamenti.push({ documentoId: fattura.documento.id, pagamentoId, importo: fattura.importo, data: fattura.dataPagamento });
       }
 
-      await tx.update(acquisizioniFatture).set(withUpdate(actor, { stato: "pagata" }) as any).where(and(
-        eq(acquisizioniFatture.companyId, actor.companyId),
-        inArray(acquisizioniFatture.documentoFinanziarioId, input.documentoIds),
-        isNull(acquisizioniFatture.deletedAt),
-      ));
+      if (input.tipo === "uscita") {
+        await tx.update(acquisizioniFatture).set(withUpdate(actor, { stato: "pagata" }) as any).where(and(
+          eq(acquisizioniFatture.companyId, actor.companyId),
+          inArray(acquisizioniFatture.documentoFinanziarioId, input.documentoIds),
+          isNull(acquisizioniFatture.deletedAt),
+        ));
+      }
 
-      return { documentiRegolarizzati: pagamenti.length, totale, contoId: conto.id, saldoDopo, pagamenti };
+      return { documentiRegolarizzati: pagamenti.length, totale, contoId: conto.id, saldoDopo, tipo: input.tipo, pagamenti };
     });
   },
 

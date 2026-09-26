@@ -22,26 +22,32 @@ describe("Impostazioni Finanza — regolarizzazione storico", () => {
     expect(appSource).toContain("RegolarizzaScadenzeStoriche");
   });
 
-  it("permette di selezionare tutte le fatture e mostra la loro ultima scadenza", () => {
-    expect(pageSource).toContain("Seleziona tutte le fatture in scadenza");
+  it("separa entrate e uscite, consentendo la selezione totale con ultima scadenza", () => {
+    expect(pageSource).toContain("Uscite da pagare");
+    expect(pageSource).toContain("Entrate da incassare");
+    expect(pageSource).toContain('setTipo("entrata")');
+    expect(pageSource).toContain('setTipo("uscita")');
+    expect(pageSource).toContain("Seleziona tutte le {tipo === \"entrata\" ? \"entrate\" : \"uscite\"} in scadenza");
     expect(pageSource).toContain("selezionaTutte");
     expect(pageSource).toContain("Ultima scadenza:");
     expect(pageSource).toContain("fattura.scadenzaFinale");
     expect(pageSource).toContain("fattura.scadenzeAperte");
   });
 
-  it("richiede conto e conferma esplicita mostrando gli importi e le date applicate", () => {
-    expect(pageSource).toContain("Conto di addebito *");
+  it("richiede conto e conferma esplicita mostrando importi, date e verso applicato", () => {
+    expect(pageSource).toContain("Conto di {tipo === \"entrata\" ? \"accredito\" : \"addebito\"} *");
     expect(pageSource).toContain("Saldo previsto dopo la registrazione");
-    expect(pageSource).toContain("Regolarizzare {fattureSelezionate.length} fatture?");
+    expect(pageSource).toContain("{tipo === \"entrata\" ? \"Incassare\" : \"Regolarizzare\"}");
+    expect(pageSource).toContain("Totale da {tipo === \"entrata\" ? \"incassare\" : \"regolarizzare\"}");
     expect(pageSource).toContain("Date applicate");
-    expect(pageSource).toContain("Conferma e registra");
+    expect(pageSource).toContain("Conferma e ${tipo === \"entrata\" ? \"incassa\" : \"registra\"}");
     expect(pageSource).toContain("La data documento non viene modificata.");
   });
 
   it("invia esclusivamente il comando dedicato alla regolarizzazione storica", () => {
     expect(pageSource).toContain("trpc.finanza.pagamenti.regolarizzaStorico.useMutation");
     expect(pageSource).toContain("documentoIds: fattureSelezionate.map");
+    expect(pageSource).toContain("tipo,");
     expect(pageSource).toContain("contoId: form.contoId");
     expect(pageSource).toContain('metodoId: form.metodoId === "__none__"');
   });
