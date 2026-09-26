@@ -1,19 +1,23 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { MovimentoActions } from "@/components/finance/MovimentoActions";
 import {
   ArrowDownRight, ArrowUpRight, Search, Calendar, Receipt,
   Clock, CheckCircle2, XCircle, AlertTriangle, SlidersHorizontal, X, FilterX,
+  Banknote, ListChecks, WalletCards,
 } from "lucide-react";
+import { toast } from "sonner";
 
 const GREEN = "oklch(0.65 0.18 142)";
 const RED = "oklch(0.55 0.22 25)";
@@ -47,6 +51,9 @@ const statoLabel: Record<string, string> = {
 };
 
 type TabFilter = "tutti" | "entrate" | "uscite" | "da_regolare";
+const STATI_PAGABILI = ["registrato", "parzialmente_regolato", "scaduto"] as const;
+
+const oggi = () => new Date().toISOString().slice(0, 10);
 
 export default function ListaMovimenti() {
   const [, setLocation] = useLocation();
@@ -58,8 +65,20 @@ export default function ListaMovimenti() {
   const [centroCostoId, setCentroCostoId] = useState("all");
   const [dataInizio, setDataInizio] = useState("");
   const [dataFine, setDataFine] = useState("");
+  const [selezionati, setSelezionati] = useState<string[]>([]);
+  const [pagamentoMultiploOpen, setPagamentoMultiploOpen] = useState(false);
+  const [pagamentoMultiplo, setPagamentoMultiplo] = useState({
+    contoId: "",
+    metodoId: "__none__",
+    data: oggi(),
+    riferimento: "",
+    note: "",
+  });
 
   const { data: soggetti = [] } = trpc.finanza.soggetti.list.useQuery(undefined);
+  const { data: conti = [] } = trpc.finanza.conti.list.useQuery();
+  const { data: metodi = [] } = trpc.finanza.metodi.list.useQuery();
+  const utils = trpc.useUtils();
   const categoryQueryInput = useMemo(() => ({
     centroCostoId: centroCostoId === "all" ? undefined : centroCostoId,
     categoriaCentroId: centroCostoId === "all" && categoriaCentroId !== "all" ? categoriaCentroId : undefined,
@@ -71,8 +90,8 @@ export default function ListaMovimenti() {
 
   const tipoFilter: "entrata" | "uscita" | undefined = tab === "entrate" ? "entrata" : tab === "uscite" ? "uscita" : undefined;
   const queryInput = useMemo(() => ({
-    tipo: tipoFilter,
-    stato: tab === "da_regolare" ? "registrato" : undefined,
+    tipo: tab === "da_regolare" ? "uscita" : tipoFilter,
+    stati: tab === "da_regolare" ? [...STATI_PAGABILI] : undefined,
     search: search || undefined,
     soggettoId: soggettoId === "all" ? undefined : soggettoId,
     categoriaId: categoriaId === "all" ? undefined : categoriaId,
@@ -82,6 +101,57 @@ export default function ListaMovimenti() {
     dataFine: dataFine || undefined,
   }), [tipoFilter, tab, search, soggettoId, categoriaId, categoriaCentroId, centroCostoId, dataInizio, dataFine]);
   const { data: movimenti = [], isLoading } = trpc.finanza.movimenti.list.useQuery(queryInput);
+
+  const registraMultipli = trpc.finanza.pagamenti.registraMultipli.useMutation({
+    onSuccess: async (result) => {
+      await utils.finanza.invalidate();
+      toast.success(`${result.documentiPagati} fatture pagate · ${fmtCents(result.totale)}`);
+      setSelezionati([]);
+      setPagamentoMultiploOpen(false);
+      setPagamentoMultiplo((form) => ({ ...form, riferimento: "", note: "" }));
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const fatturePagabili = useMemo(() => (movimenti as any[]).filter((movimento) => (
+    movimento.tipo === "uscita"
+    && STATI_PAGABILI.includes(movimento.stato)
+    && Number(movimento.residuo ?? movimento.totale) > 0
+  )), [movimenti]);
+  const fattureSelezionate = useMemo(() => {
+    const ids = new Set(selezionati);
+    return fatturePagabili.filter((movimento) => ids.has(movimento.id));
+  }, [fatturePagabili, selezionati]);
+  const totaleSelezionato = useMemo(
+    () => fattureSelezionate.reduce((somma, movimento) => somma + Number(movimento.residuo ?? movimento.totale), 0),
+    [fattureSelezionate],
+  );
+  const contoSelezionato = (conti as any[]).find((conto) => conto.id === pagamentoMultiplo.contoId);
+  const saldoPrevisto = contoSelezionato ? Number(contoSelezionato.saldoAttuale) - totaleSelezionato : null;
+  const contiAttivi = (conti as any[]).filter((conto) => conto.attivo !== false);
+  const metodiAttivi = (metodi as any[]).filter((metodo) => metodo.attivo !== false);
+  const tutteSelezionate = fatturePagabili.length > 0 && fattureSelezionate.length === fatturePagabili.length;
+
+  useEffect(() => {
+    const disponibili = new Set(fatturePagabili.map((movimento) => movimento.id));
+    setSelezionati((correnti) => {
+      const aggiornati = correnti.filter((id) => disponibili.has(id));
+      return aggiornati.length === correnti.length ? correnti : aggiornati;
+    });
+  }, [fatturePagabili]);
+
+  useEffect(() => {
+    if (tab !== "da_regolare") setSelezionati([]);
+  }, [tab]);
+
+  const cambiaSelezione = (id: string, selezionato: boolean) => {
+    setSelezionati((correnti) => selezionato
+      ? Array.from(new Set([...correnti, id]))
+      : correnti.filter((corrente) => corrente !== id));
+  };
+  const selezionaTutte = (selezionate: boolean) => {
+    setSelezionati(selezionate ? fatturePagabili.map((movimento) => movimento.id) : []);
+  };
 
   const labelFor = (items: any[], id: string, fallback: string) => {
     const item = items.find((candidate) => candidate.id === id);
@@ -235,6 +305,40 @@ export default function ListaMovimenti() {
         </div>
       )}
 
+      {tab === "da_regolare" && (
+        <section className="sticky top-2 z-10 rounded-2xl border border-amber-400/25 bg-background/95 p-3 shadow-lg shadow-black/15 backdrop-blur" aria-label="Pagamento multiplo fatture">
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="seleziona-tutte-fatture"
+              checked={tutteSelezionate}
+              onCheckedChange={(checked) => selezionaTutte(checked === true)}
+              disabled={!fatturePagabili.length}
+              className="mt-1 size-5"
+            />
+            <div className="min-w-0 flex-1">
+              <label htmlFor="seleziona-tutte-fatture" className="cursor-pointer text-sm font-semibold">Pagamento multiplo</label>
+              <p className="mt-0.5 text-xs text-muted-foreground">Seleziona le fatture di uscita e saldale con un unico conto, metodo e data.</p>
+            </div>
+            {selezionati.length > 0 && <Badge variant="secondary" className="shrink-0">{selezionati.length}</Badge>}
+          </div>
+          <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-amber-400/10 p-2.5">
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">Totale selezionato</p>
+              <p className="truncate text-base font-bold text-amber-300">{fmtCents(totaleSelezionato)}</p>
+            </div>
+            <Button
+              type="button"
+              className="h-10 shrink-0 bg-amber-400 font-semibold text-black hover:bg-amber-300"
+              disabled={fattureSelezionate.length < 2}
+              onClick={() => setPagamentoMultiploOpen(true)}
+            >
+              <Banknote className="mr-2 size-4" />Paga {fattureSelezionate.length || ""} fatture
+            </Button>
+          </div>
+          {fattureSelezionate.length < 2 && <p className="mt-2 text-xs text-muted-foreground">Seleziona almeno due fatture per usare il pagamento multiplo.</p>}
+        </section>
+      )}
+
       {/* Lista */}
       {isLoading ? (
         <div className="space-y-3">
@@ -260,11 +364,28 @@ export default function ListaMovimenti() {
                 </span>
               </div>
               <div className="space-y-2">
-                {items.map((m: any) => (
+                {items.map((m: any) => {
+                  const selezionabile = tab === "da_regolare"
+                    && m.tipo === "uscita"
+                    && STATI_PAGABILI.includes(m.stato)
+                    && Number(m.residuo ?? m.totale) > 0;
+                  const selezionata = selezionati.includes(m.id);
+                  const residuo = Number(m.residuo ?? m.totale);
+                  return (
                   <div
                     key={m.id}
-                    className="flex w-full items-center rounded-xl border bg-card pr-1 transition-colors hover:bg-accent/50"
+                    className={`flex w-full items-center rounded-xl border bg-card pr-1 transition-colors hover:bg-accent/50 ${selezionata ? "border-amber-400/60 bg-amber-400/5" : ""}`}
                   >
+                    {selezionabile && (
+                      <div className="flex shrink-0 self-stretch items-center pl-3 pr-1">
+                        <Checkbox
+                          checked={selezionata}
+                          onCheckedChange={(checked) => cambiaSelezione(m.id, checked === true)}
+                          aria-label={`Seleziona ${m.descrizione || m.codiceInterno || "fattura"} per il pagamento`}
+                          className="size-5"
+                        />
+                      </div>
+                    )}
                     <button
                       type="button"
                       onClick={() => setLocation(`/finanza/movimento/${m.id}`)}
@@ -289,6 +410,7 @@ export default function ListaMovimenti() {
                           <span className="text-xs text-muted-foreground">{statoLabel[m.stato] || m.stato}</span>
                           <span className="text-xs text-muted-foreground">• {fmtDate(m.dataDocumento)}</span>
                         </div>
+                        {selezionabile && <p className="mt-1 text-xs font-medium text-amber-300">Da pagare: {fmtCents(residuo)}</p>}
                       </div>
                       <div className="shrink-0 text-right">
                         <p className="text-sm font-semibold" style={{ color: m.tipo === "entrata" ? GREEN : RED }}>
@@ -301,12 +423,110 @@ export default function ListaMovimenti() {
                     </button>
                     <MovimentoActions movimento={m} />
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}
         </div>
       )}
+
+      <Sheet open={pagamentoMultiploOpen} onOpenChange={setPagamentoMultiploOpen}>
+        <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto rounded-t-2xl pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          <SheetHeader className="text-left">
+            <SheetTitle>Conferma pagamento multiplo</SheetTitle>
+            <SheetDescription>Ogni fattura selezionata sarà saldata per il suo residuo. L’operazione registra un pagamento distinto e tracciabile per ciascuna fattura.</SheetDescription>
+          </SheetHeader>
+
+          <div className="space-y-4 py-5">
+            <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-amber-300">Da pagare</p>
+                  <p className="mt-1 text-2xl font-bold text-amber-200">{fmtCents(totaleSelezionato)}</p>
+                </div>
+                <Badge className="bg-amber-400 text-black">{fattureSelezionate.length} fatture</Badge>
+              </div>
+              <div className="mt-3 max-h-40 space-y-1.5 overflow-y-auto rounded-lg bg-black/15 p-2">
+                {fattureSelezionate.map((fattura) => (
+                  <div key={fattura.id} className="flex items-center justify-between gap-3 text-xs">
+                    <span className="min-w-0 truncate text-muted-foreground">{fattura.codiceInterno ?? fattura.numero ?? fattura.descrizione ?? "Fattura"}</span>
+                    <span className="shrink-0 font-semibold">{fmtCents(Number(fattura.residuo ?? fattura.totale))}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Conto di addebito *</Label>
+              <Select value={pagamentoMultiplo.contoId} onValueChange={(contoId) => setPagamentoMultiplo((form) => ({ ...form, contoId }))}>
+                <SelectTrigger><SelectValue placeholder="Seleziona il conto" /></SelectTrigger>
+                <SelectContent>
+                  {contiAttivi.map((conto) => <SelectItem key={conto.id} value={conto.id}>{conto.nome} · {fmtCents(Number(conto.saldoAttuale))}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {contoSelezionato && (
+                <p className={`text-xs ${Number(saldoPrevisto) < 0 ? "text-red-400" : "text-muted-foreground"}`}>
+                  Saldo previsto dopo il pagamento: <strong>{fmtCents(Number(saldoPrevisto))}</strong>
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Metodo di pagamento</Label>
+              <Select value={pagamentoMultiplo.metodoId} onValueChange={(metodoId) => setPagamentoMultiplo((form) => ({ ...form, metodoId }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Non specificato</SelectItem>
+                  {metodiAttivi.map((metodo) => <SelectItem key={metodo.id} value={metodo.id}>{metodo.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Data pagamento *</Label>
+                <Input type="date" value={pagamentoMultiplo.data} onChange={(event) => setPagamentoMultiplo((form) => ({ ...form, data: event.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Riferimento</Label>
+                <Input value={pagamentoMultiplo.riferimento} onChange={(event) => setPagamentoMultiplo((form) => ({ ...form, riferimento: event.target.value }))} placeholder="Es. bonifico #123" />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Nota comune</Label>
+              <Textarea rows={3} value={pagamentoMultiplo.note} onChange={(event) => setPagamentoMultiplo((form) => ({ ...form, note: event.target.value }))} placeholder="Facoltativa: verrà salvata su ogni pagamento" />
+            </div>
+
+            <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+              <div className="flex items-start gap-2"><WalletCards className="mt-0.5 size-4 shrink-0 text-amber-300" /><p>Confermando, saranno aggiornati insieme residui, scadenze, saldo del conto e movimenti di cassa. Se una fattura non è più pagabile, nessun pagamento verrà registrato.</p></div>
+            </div>
+          </div>
+
+          <SheetFooter className="grid grid-cols-2 gap-2">
+            <SheetClose asChild><Button type="button" variant="outline">Indietro</Button></SheetClose>
+            <Button
+              type="button"
+              disabled={fattureSelezionate.length < 2 || !pagamentoMultiplo.contoId || !pagamentoMultiplo.data || registraMultipli.isPending}
+              onClick={() => {
+                if (fattureSelezionate.length < 2) return toast.error("Seleziona almeno due fatture");
+                if (!pagamentoMultiplo.contoId) return toast.error("Seleziona un conto di addebito");
+                registraMultipli.mutate({
+                  documentoIds: fattureSelezionate.map((fattura) => fattura.id),
+                  contoId: pagamentoMultiplo.contoId,
+                  metodoId: pagamentoMultiplo.metodoId === "__none__" ? undefined : pagamentoMultiplo.metodoId,
+                  data: pagamentoMultiplo.data,
+                  riferimento: pagamentoMultiplo.riferimento.trim() || undefined,
+                  note: pagamentoMultiplo.note.trim() || undefined,
+                });
+              }}
+            >
+              {registraMultipli.isPending ? "Registrazione..." : "Conferma pagamento"}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

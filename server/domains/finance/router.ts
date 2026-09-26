@@ -40,6 +40,7 @@ import {
   deleteMovimentoInput,
   seedInput,
   registraPagamentoInput,
+  registraPagamentiMultipliInput,
   annullaPagamentoInput,
   creaRateInput,
   creaScadenzePersonalizzateInput,
@@ -261,6 +262,10 @@ export const finanzaRouter = router({
     registra: protectedProcedure.input(registraPagamentoInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);
       return financeService.registraPagamento(actor, input);
+    }),
+    registraMultipli: protectedProcedure.input(registraPagamentiMultipliInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return financeService.registraPagamentiMultipli(actor, input);
     }),
     annulla: protectedProcedure.input(annullaPagamentoInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);

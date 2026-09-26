@@ -1,4 +1,4 @@
-import { and, desc, eq, getTableColumns, isNull, sql, like, or, asc } from "drizzle-orm";
+import { and, desc, eq, getTableColumns, inArray, isNull, sql, like, or, asc } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
   transazioni,
@@ -15,6 +15,7 @@ import {
   movimentiCassa,
   registrazioniEconomiche,
   allegatiFinanziari,
+  acquisizioniFatture,
   ricorrenzeFinanziarie,
 } from "../../../drizzle/schema";
 import { withCreate, withUpdate, softDeletePayload, tenantScope, newId, type ActorContext } from "../_core";
@@ -392,7 +393,7 @@ export const financeRepository = {
   // DOCUMENTI FINANZIARI
   // ══════════════════════════════════════════════════════════════════════════
   async listDocumenti(companyId: string, filters?: {
-    tipo?: string; stato?: string; categoriaId?: string; categoriaCentroId?: string; centroCostoId?: string;
+    tipo?: string; stato?: string; stati?: string[]; categoriaId?: string; categoriaCentroId?: string; centroCostoId?: string;
     contoId?: string; soggettoId?: string; search?: string;
     dataInizio?: string; dataFine?: string; limit?: number; offset?: number;
   }) {
@@ -401,6 +402,7 @@ export const financeRepository = {
     const conds: any[] = [eq(documentiFinanziari.companyId, companyId), isNull(documentiFinanziari.deletedAt)];
     if (filters?.tipo) conds.push(eq(documentiFinanziari.tipo, filters.tipo as any));
     if (filters?.stato) conds.push(eq(documentiFinanziari.stato, filters.stato as any));
+    if (filters?.stati?.length) conds.push(inArray(documentiFinanziari.stato, filters.stati as any));
     if (filters?.categoriaId) conds.push(eq(documentiFinanziari.categoriaId, filters.categoriaId));
     if (filters?.categoriaCentroId) conds.push(eq(centriDiCosto.categoriaCentroId, filters.categoriaCentroId));
     if (filters?.centroCostoId) conds.push(eq(documentiFinanziari.centroCostoId, filters.centroCostoId));
@@ -709,6 +711,152 @@ export const financeRepository = {
     await db.update(pagamentiIncassi).set(withUpdate(actor, data) as any)
       .where(and(eq(pagamentiIncassi.id, id), eq(pagamentiIncassi.companyId, actor.companyId)));
     return { success: true };
+  },
+  /**
+   * Registra il saldo completo di più fatture di uscita in un'unica transazione.
+   * Blocca fatture e conto durante il calcolo per evitare doppi pagamenti concorrenti.
+   */
+  async registraPagamentiMultipliAtomici(actor: ActorContext, input: {
+    documentoIds: string[];
+    contoId: string;
+    metodoId?: string;
+    data: string;
+    riferimento?: string;
+    note?: string;
+  }) {
+    const db = await getDb();
+    if (!db) throw new Error("DB non disponibile");
+
+    return db.transaction(async (tx) => {
+      const contoRows = await tx.select().from(contiFin).where(and(
+        eq(contiFin.id, input.contoId),
+        eq(contiFin.companyId, actor.companyId),
+        eq(contiFin.attivo, true),
+        isNull(contiFin.deletedAt),
+      )).for("update");
+      const conto = contoRows[0];
+      if (!conto) throw new Error("Conto non valido o non attivo");
+
+      if (input.metodoId) {
+        const metodi = await tx.select({ id: metodiPagamento.id }).from(metodiPagamento).where(and(
+          eq(metodiPagamento.id, input.metodoId),
+          eq(metodiPagamento.companyId, actor.companyId),
+          eq(metodiPagamento.attivo, true),
+          isNull(metodiPagamento.deletedAt),
+        )).for("update");
+        if (!metodi[0]) throw new Error("Metodo di pagamento non valido o non attivo");
+      }
+
+      const documenti = await tx.select().from(documentiFinanziari).where(and(
+        eq(documentiFinanziari.companyId, actor.companyId),
+        inArray(documentiFinanziari.id, input.documentoIds),
+        eq(documentiFinanziari.tipo, "uscita"),
+        isNull(documentiFinanziari.deletedAt),
+      )).for("update");
+
+      if (documenti.length !== input.documentoIds.length) {
+        throw new Error("Una o più fatture non sono disponibili per il pagamento");
+      }
+
+      const perId = new Map(documenti.map((documento) => [documento.id, documento]));
+      const documentiOrdinati = input.documentoIds.map((id) => perId.get(id)!);
+      const nonPagabili = documentiOrdinati.find((documento) => (
+        !["registrato", "parzialmente_regolato", "scaduto"].includes(documento.stato)
+        || Number(documento.residuo ?? documento.totale) <= 0
+      ));
+      if (nonPagabili) {
+        throw new Error(`La fattura ${nonPagabili.codiceInterno ?? nonPagabili.numero ?? nonPagabili.id} non ha più un residuo da pagare`);
+      }
+
+      const scadenze = await tx.select().from(scadenzeFinanziarie).where(and(
+        eq(scadenzeFinanziarie.companyId, actor.companyId),
+        inArray(scadenzeFinanziarie.documentoId, input.documentoIds),
+        isNull(scadenzeFinanziarie.deletedAt),
+      )).for("update");
+      const scadenzePerDocumento = new Map<string, typeof scadenze>();
+      for (const scadenza of scadenze) {
+        const esistenti = scadenzePerDocumento.get(scadenza.documentoId) ?? [];
+        esistenti.push(scadenza);
+        scadenzePerDocumento.set(scadenza.documentoId, esistenti);
+      }
+
+      const totale = documentiOrdinati.reduce((somma, documento) => somma + Number(documento.residuo ?? documento.totale), 0);
+      const saldoDopo = conto.saldoAttuale - totale;
+      await tx.update(contiFin).set(withUpdate(actor, { saldoAttuale: saldoDopo }) as any).where(and(
+        eq(contiFin.id, conto.id),
+        eq(contiFin.companyId, actor.companyId),
+      ));
+
+      const pagamenti: Array<{ documentoId: string; pagamentoId: string; importo: number }> = [];
+      for (const documento of documentiOrdinati) {
+        const importo = Number(documento.residuo ?? documento.totale);
+        const pagamentoId = newId();
+        const scadenzeDocumento = (scadenzePerDocumento.get(documento.id) ?? [])
+          .filter((scadenza) => Number(scadenza.residuo) > 0 && !["pagata", "annullata"].includes(scadenza.stato));
+
+        await tx.insert(pagamentiIncassi).values(withCreate(actor, {
+          id: pagamentoId,
+          documentoId: documento.id,
+          contoId: conto.id,
+          metodoId: input.metodoId,
+          importo,
+          data: input.data,
+          riferimento: input.riferimento,
+          note: input.note,
+          stato: "confermato",
+        }) as any);
+        await tx.update(documentiFinanziari).set(withUpdate(actor, {
+          totalePagato: Number(documento.totalePagato ?? 0) + importo,
+          residuo: 0,
+          stato: "pagato",
+        }) as any).where(and(
+          eq(documentiFinanziari.id, documento.id),
+          eq(documentiFinanziari.companyId, actor.companyId),
+        ));
+        await tx.insert(movimentiCassa).values(withCreate(actor, {
+          id: newId(),
+          contoId: conto.id,
+          tipo: "uscita",
+          importo,
+          data: input.data,
+          saldoPrecedente: conto.saldoAttuale - pagamenti.reduce((somma, pagamento) => somma + pagamento.importo, 0),
+          saldoDopo: conto.saldoAttuale - pagamenti.reduce((somma, pagamento) => somma + pagamento.importo, 0) - importo,
+          descrizione: `Pagamento multiplo · ${documento.codiceInterno ?? documento.numero ?? documento.id}`,
+          documentoId: documento.id,
+          pagamentoId,
+          stato: "confermato",
+        }) as any);
+
+        for (const scadenza of scadenzeDocumento) {
+          await tx.update(scadenzeFinanziarie).set(withUpdate(actor, {
+            // Una chiusura del residuo documento completa anche le rate rimaste aperte.
+            // È compatibile con pagamenti parziali storici non associati a una rata precisa.
+            importoPagato: Number(scadenza.importo),
+            residuo: 0,
+            stato: "pagata",
+          }) as any).where(and(
+            eq(scadenzeFinanziarie.id, scadenza.id),
+            eq(scadenzeFinanziarie.companyId, actor.companyId),
+          ));
+        }
+
+        pagamenti.push({ documentoId: documento.id, pagamentoId, importo });
+      }
+
+      await tx.update(acquisizioniFatture).set(withUpdate(actor, { stato: "pagata" }) as any).where(and(
+        eq(acquisizioniFatture.companyId, actor.companyId),
+        inArray(acquisizioniFatture.documentoFinanziarioId, input.documentoIds),
+        isNull(acquisizioniFatture.deletedAt),
+      ));
+
+      return {
+        documentiPagati: pagamenti.length,
+        totale,
+        contoId: conto.id,
+        saldoDopo,
+        pagamenti,
+      };
+    });
   },
 
   // ══════════════════════════════════════════════════════════════════════════

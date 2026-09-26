@@ -1,7 +1,7 @@
 import { financeRepository as repo } from "./repository";
 import { invoiceRepository } from "./invoice.repository";
 import type { ActorContext } from "../_core";
-import type { CreateMovimentoInput, UpdateMovimentoInput, RegistraPagamentoInput, CreaRateInput, CreaRicorrenzaInput } from "./validators";
+import type { CreateMovimentoInput, UpdateMovimentoInput, RegistraPagamentoInput, RegistraPagamentiMultipliInput, CreaRateInput, CreaRicorrenzaInput } from "./validators";
 import {
   CATEGORIE_USCITE_DEFAULT,
   CATEGORIE_ENTRATE_DEFAULT,
@@ -603,6 +603,14 @@ export const financeService = {
     }
 
     return { pagamentoId, nuovoStato, residuo: Math.max(0, nuovoResiduo) };
+  },
+
+  /**
+   * Salda più fatture passive con una sola conferma dell'utente.
+   * La persistenza è atomica: ogni fattura viene saldata oppure non viene registrato nulla.
+   */
+  async registraPagamentiMultipli(actor: ActorContext, input: RegistraPagamentiMultipliInput) {
+    return repo.registraPagamentiMultipliAtomici(actor, input);
   },
 
   /**

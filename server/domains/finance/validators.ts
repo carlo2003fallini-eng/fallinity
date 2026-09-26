@@ -177,6 +177,8 @@ export const createMovimentoInput = z.object({
 export const listMovimentiInput = z.object({
   tipo: z.enum(["entrata", "uscita"]).optional(),
   stato: z.string().optional(),
+  stati: z.array(z.enum(["bozza", "registrato", "parzialmente_regolato", "pagato", "incassato", "scaduto", "annullato"]))
+    .min(1).max(7).optional(),
   categoriaId: z.string().optional(),
   categoriaCentroId: z.string().optional(),
   centroCostoId: z.string().optional(),
@@ -240,6 +242,19 @@ export const registraPagamentoInput = z.object({
   data: z.string(),
   riferimento: z.string().optional(),
   note: z.string().optional(),
+});
+
+/** Salda in una sola conferma il residuo di più fatture/documenti di uscita. */
+export const registraPagamentiMultipliInput = z.object({
+  documentoIds: z.array(z.string().min(1)).min(2).max(100).refine(
+    (ids) => new Set(ids).size === ids.length,
+    { message: "Ogni fattura può essere selezionata una sola volta" },
+  ),
+  contoId: z.string().min(1),
+  metodoId: z.string().min(1).optional(),
+  data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Inserisci una data valida"),
+  riferimento: z.string().trim().max(100).optional(),
+  note: z.string().trim().max(1000).optional(),
 });
 
 /** Crea una singola scadenza per un documento */
@@ -407,6 +422,7 @@ export type CreateCategoriaInput = z.infer<typeof createCategoriaInput>;
 export type CreateSoggettoInput = z.infer<typeof createSoggettoInput>;
 export type CreateContoInput = z.infer<typeof createContoInput>;
 export type RegistraPagamentoInput = z.infer<typeof registraPagamentoInput>;
+export type RegistraPagamentiMultipliInput = z.infer<typeof registraPagamentiMultipliInput>;
 export type CreaScadenzaInput = z.infer<typeof creaScadenzaInput>;
 export type CreaRateInput = z.infer<typeof creaRateInput>;
 export type CreaRicorrenzaInput = z.infer<typeof creaRicorrenzaInput>;

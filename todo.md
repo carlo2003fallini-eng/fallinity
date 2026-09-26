@@ -1350,3 +1350,12 @@
 - [x] Aggiornare grafici, confronti e stati vuoti in base alla separazione selezionata
 - [x] Aggiungere test di regressione su aggregazioni, date e contratti UI
 - [x] Verificare a 390×844, suite Vitest, TypeScript, build e salvare il checkpoint
+
+## Fase 60 — Pagamento Multiplo Fatture
+- [x] Analizzare movimenti, documenti aperti e flusso pagamenti esistente
+- [x] Creare il contratto e la transazione atomica per pagare più fatture insieme
+- [x] Rendere selezionabili solo fatture di uscita con residuo nei Movimenti
+- [x] Aggiungere riepilogo, conto, metodo, data e conferma unica mobile-first
+- [x] Aggiornare documenti, scadenze, conto, movimenti cassa e stato fatture in modo coerente
+- [x] Aggiungere test di regressione backend e contratto UI
+- [x] Verificare a 390×844, suite Vitest, TypeScript, build e salvare il checkpoint
