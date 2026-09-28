@@ -1376,3 +1376,11 @@
 - [x] Garantire saldo conto, stati documenti e scadenze coerenti per gli incassi
 - [x] Aggiungere regressioni per incassi storici e isolamento direzione
 - [x] Verificare a 390×844, suite Vitest, TypeScript, build e salvare il checkpoint
+
+## Fase 63 — Memoria Magazzino nelle Fatture Automatiche
+- [x] Analizzare classificazione e memoria Magazzino nelle fatture XML
+- [x] Persistire la scelta aggiorna Magazzino nelle regole di apprendimento
+- [x] Precompilare la scelta nelle nuove fatture e nelle riletture XML
+- [x] Garantire che le Entrate non ereditino mai un carico Magazzino
+- [x] Aggiungere regressioni per memoria, modifica e isolamento per verso
+- [x] Verificare a 390×844, suite Vitest, TypeScript, build e salvare il checkpoint

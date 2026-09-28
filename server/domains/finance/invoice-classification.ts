@@ -13,6 +13,7 @@ type Rule = {
   categoriaId: string;
   centroCostoId: string | null;
   destinazione: "costo" | "magazzino" | "investimento" | "altro";
+  aggiornaMagazzino: boolean;
   prodottoId: string | null;
 };
 
@@ -176,15 +177,18 @@ export async function classifyInvoiceLines(input: {
       : null;
     const rule = historicCode ?? historicDescription ?? historicProduct;
     if (rule && categories.some((item) => item.id === rule.categoriaId)) {
+      const aggiornaMagazzino = tipoMovimento === "uscita" && rule.aggiornaMagazzino === true;
       return {
         ...line,
         categoriaId: rule.categoriaId,
         centroCostoId: centers.some((item) => item.id === rule.centroCostoId) ? rule.centroCostoId : null,
-        destinazione: tipoMovimento === "entrata" && rule.destinazione === "magazzino" ? "costo" : rule.destinazione,
+        destinazione: tipoMovimento === "entrata"
+          ? (rule.destinazione === "magazzino" ? "costo" : rule.destinazione)
+          : (aggiornaMagazzino ? "magazzino" : rule.destinazione),
         fonteClassificazione: historicCode || (historicProduct && Boolean(line.codiceArticolo)) ? "storico_codice" as const : "storico_descrizione" as const,
         confidenza: historicProduct ? 94 : 96,
         prodottoId: rule.prodottoId && input.products.some((item) => item.id === rule.prodottoId) ? rule.prodottoId : matchedProduct?.id ?? null,
-        aggiornaMagazzino: false,
+        aggiornaMagazzino,
         creaProdotto: false,
         nomeProdotto: line.descrizione.slice(0, 255),
       };

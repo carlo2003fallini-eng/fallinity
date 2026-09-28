@@ -19,14 +19,14 @@ describe("Classificazione righe fattura", () => {
     const result = await classifyInvoiceLines({
       partitaIva: "01234567890",
       lines: [baseLine],
-      rules: [{ codiceArticolo: "MANG-01", descrizioneNormalizzata: "mangime bovini", categoriaId: "cat-feed", centroCostoId: "cdc-feed", destinazione: "magazzino", prodottoId: "prod-feed" }],
+      rules: [{ codiceArticolo: "MANG-01", descrizioneNormalizzata: "mangime bovini", categoriaId: "cat-feed", centroCostoId: "cdc-feed", destinazione: "magazzino", aggiornaMagazzino: true, prodottoId: "prod-feed" }],
       categories: [{ id: "cat-feed", nome: "Mangimi", tipo: "uscita", attivo: true }],
       centers: [{ id: "cdc-feed", nome: "Alimentazione", attivo: true }],
       products: [{ id: "prod-feed", nome: "Mangime bovini", codice: "MANG-01" }],
       enableAi: false,
     });
     expect(result.aiUsed).toBe(false);
-    expect(result.lines[0]).toMatchObject({ categoriaId: "cat-feed", centroCostoId: "cdc-feed", fonteClassificazione: "storico_codice", confidenza: 96, prodottoId: "prod-feed" });
+    expect(result.lines[0]).toMatchObject({ categoriaId: "cat-feed", centroCostoId: "cdc-feed", fonteClassificazione: "storico_codice", confidenza: 96, prodottoId: "prod-feed", aggiornaMagazzino: true });
   });
 
   it("usa regole lessicali e lascia ogni proposta modificabile", async () => {
@@ -45,6 +45,52 @@ describe("Classificazione righe fattura", () => {
   it("genera chiavi diverse per fornitori diversi", () => {
     expect(buildClassificationRuleKey("IT111", "ABC", "Mangime"))
       .not.toBe(buildClassificationRuleKey("IT222", "ABC", "Mangime"));
+  });
+
+  it("ricorda separatamente la scelta di non aggiornare il Magazzino", async () => {
+    const result = await classifyInvoiceLines({
+      partitaIva: "01234567890",
+      tipoMovimento: "uscita",
+      lines: [baseLine],
+      rules: [{
+        fornitorePartitaIva: "01234567890",
+        codiceArticolo: "MANG-01",
+        descrizioneNormalizzata: "mangime bovini",
+        categoriaId: "cat-feed",
+        centroCostoId: "cdc-feed",
+        destinazione: "magazzino",
+        aggiornaMagazzino: false,
+        prodottoId: "prod-feed",
+      }],
+      categories: [{ id: "cat-feed", nome: "Mangimi", tipo: "uscita", attivo: true }],
+      centers: [{ id: "cdc-feed", nome: "Alimentazione", attivo: true }],
+      products: [{ id: "prod-feed", nome: "Mangime bovini", codice: "MANG-01" }],
+      enableAi: false,
+    });
+    expect(result.lines[0]).toMatchObject({ destinazione: "magazzino", aggiornaMagazzino: false, prodottoId: "prod-feed" });
+  });
+
+  it("non propone mai un carico Magazzino per una fattura in Entrata", async () => {
+    const result = await classifyInvoiceLines({
+      partitaIva: "01234567890",
+      tipoMovimento: "entrata",
+      lines: [baseLine],
+      rules: [{
+        fornitorePartitaIva: "01234567890",
+        codiceArticolo: "MANG-01",
+        descrizioneNormalizzata: "mangime bovini",
+        categoriaId: "cat-sale",
+        centroCostoId: "cdc-sale",
+        destinazione: "magazzino",
+        aggiornaMagazzino: true,
+        prodottoId: "prod-feed",
+      }],
+      categories: [{ id: "cat-sale", nome: "Vendite mangimi", tipo: "entrata", attivo: true }],
+      centers: [{ id: "cdc-sale", nome: "Commerciale", attivo: true }],
+      products: [{ id: "prod-feed", nome: "Mangime bovini", codice: "MANG-01" }],
+      enableAi: false,
+    });
+    expect(result.lines[0]).toMatchObject({ destinazione: "costo", aggiornaMagazzino: false, prodottoId: "prod-feed" });
   });
 });
 
@@ -68,6 +114,8 @@ describe("Contratti di sicurezza acquisizione e conferma", () => {
     expect(repositorySource).toContain("tx.insert(scadenzeFinanziarie)");
     expect(repositorySource).toContain("tx.insert(registrazioniEconomiche)");
     expect(repositorySource).toContain('if (line.aggiornaMagazzino && input.tipoMovimento === "uscita")');
+    expect(repositorySource).toContain("aggiornaMagazzino: line.aggiornaMagazzino");
+    expect(serviceSource).toContain("aggiornaMagazzino: line.aggiornaMagazzino");
   });
 
   it("blocca duplicati senza override ed espone soltanto procedure protette", () => {
@@ -107,8 +155,9 @@ describe("Precompilazione classificazione prodotto", () => {
         descrizioneNormalizzata: "mangime storico",
         categoriaId: "cat-feed",
         centroCostoId: "cdc-feed",
-        destinazione: "magazzino",
-        prodottoId: "prod-feed",
+      destinazione: "magazzino",
+      aggiornaMagazzino: true,
+      prodottoId: "prod-feed",
       }],
       categories: [{ id: "cat-feed", nome: "Mangimi", tipo: "uscita", attivo: true }],
       centers: [{ id: "cdc-feed", nome: "Alimentazione", attivo: true }],
@@ -120,16 +169,21 @@ describe("Precompilazione classificazione prodotto", () => {
       categoriaId: "cat-feed",
       centroCostoId: "cdc-feed",
       destinazione: "magazzino",
+      aggiornaMagazzino: true,
       confidenza: 94,
     });
   });
 
   it("espone un prodotto associato e conserva la regola confermata per azienda", () => {
     const repositorySource = readFileSync(new URL("./domains/finance/invoice.repository.ts", import.meta.url), "utf8");
+    const serviceSource = readFileSync(new URL("./domains/finance/invoice.service.ts", import.meta.url), "utf8");
     const pageSource = readFileSync(new URL("../client/src/pages/finanza/NuovoMovimentoAutomatico.tsx", import.meta.url), "utf8");
     expect(repositorySource).toContain("isNotNull(regoleClassificazioneFatture.prodottoId)");
     expect(repositorySource).toContain("prodottoId: productId");
+    expect(repositorySource).toContain("aggiornaMagazzino: line.aggiornaMagazzino");
+    expect(serviceSource).toContain("aggiornaMagazzino: line.aggiornaMagazzino");
     expect(pageSource).toContain("Prodotto associato");
-    expect(pageSource).toContain("verranno riproposti nelle prossime fatture");
+    expect(pageSource).toContain("scelta Magazzino verranno riproposti nelle prossime fatture");
+    expect(pageSource).toContain("aggiornaMagazzino: line.aggiornaMagazzino");
   });
 });

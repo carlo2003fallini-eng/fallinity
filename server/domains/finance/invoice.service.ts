@@ -348,7 +348,7 @@ export const invoiceService = {
       destinazione: line.destinazione,
       fonteClassificazione: line.fonteClassificazione,
       confidenza: line.confidenza,
-      aggiornaMagazzino: false,
+      aggiornaMagazzino: line.aggiornaMagazzino,
       prodottoId: line.prodottoId,
       creaProdotto: false,
       nomeProdotto: line.nomeProdotto,

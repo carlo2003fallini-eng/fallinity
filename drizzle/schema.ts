@@ -982,6 +982,7 @@ export const regoleClassificazioneFatture = mysqlTable("regoleClassificazioneFat
   categoriaId: varchar("categoriaId", { length: 36 }).notNull(),
   centroCostoId: varchar("centroCostoId", { length: 36 }),
   destinazione: mysqlEnum("destinazione", ["costo", "magazzino", "investimento", "altro"]).default("costo").notNull(),
+  aggiornaMagazzino: boolean("aggiornaMagazzino").default(false).notNull(),
   prodottoId: varchar("prodottoId", { length: 36 }),
   utilizzi: int("utilizzi").default(1).notNull(),
   ultimoUtilizzoAt: datetime("ultimoUtilizzoAt").notNull(),
