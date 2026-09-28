@@ -252,6 +252,9 @@ export async function financialAnalysisOverview(companyId: string, input: Financ
   return {
     periodo: { inizio: input.dataInizio, fine: input.dataFine },
     confronto: { inizio: input.confrontoInizio, fine: input.confrontoFine },
+    // Il confronto è significativo soltanto se esiste almeno un movimento nel periodo precedente.
+    // I valori assoluti restano disponibili, ma la UI non deve mostrare delta o percentuali fuorvianti.
+    confrontoDisponibile: precedente.movimenti > 0,
     kpi: {
       entrate: confrontaValore(attuale.entrate, precedente.entrate),
       uscite: confrontaValore(attuale.uscite, precedente.uscite),

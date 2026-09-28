@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   ArrowDownRight, ArrowUpRight, TrendingUp, TrendingDown,
   Wallet, CreditCard, AlertTriangle, Bell, ChevronRight, BarChart3,
-  Calendar, FileText, RefreshCw, Landmark, Banknote, CircleDollarSign, ClipboardList, Settings2, Receipt,
+  Calendar, FileText, RefreshCw, Landmark, Banknote, CircleDollarSign, ClipboardList, Settings2, Receipt, HelpCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -188,14 +189,28 @@ export default function Finanza({ initialTab = "dashboard" }: { initialTab?: "da
         </div>
         <div className="flex items-center gap-1 p-0.5 rounded-lg" style={{ background: "oklch(0.13 0.006 145)" }}>
           {(["cassa", "competenza"] as const).map(m => (
-            <button key={m} onClick={() => setModalita(m)}
+            <div key={m} className="flex items-center">
+            <button onClick={() => setModalita(m)}
               className="px-2.5 py-1.5 rounded-md text-xs font-medium transition-all capitalize"
               style={{
                 background: modalita === m ? "oklch(0.18 0.01 145)" : "transparent",
                 color: modalita === m ? "oklch(0.9 0.005 145)" : "oklch(0.5 0.01 145)",
               }}>
-              {m}
+              {m === "competenza" ? "Contabile" : "Cassa"}
             </button>
+            {m === "competenza" && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button type="button" aria-label="Spiegazione modalità Contabile" className="-ml-1 mr-1 grid size-5 place-items-center rounded-full text-[10px] text-amber-300 transition-colors hover:bg-amber-300/10">
+                    <HelpCircle size={12} />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent side="bottom" align="end" className="w-64 border-amber-300/20 bg-[#0b1711] p-3 text-xs leading-relaxed text-emerald-50 shadow-2xl">
+                  Mostra ricavi e costi nel periodo a cui appartengono, anche se il pagamento o l’incasso avviene in un momento diverso.
+                </PopoverContent>
+              </Popover>
+            )}
+            </div>
           ))}
         </div>
       </div>
@@ -262,11 +277,7 @@ export default function Finanza({ initialTab = "dashboard" }: { initialTab?: "da
                 <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.2 0.005 145)" />
                 <XAxis dataKey="mese" tick={{ fontSize: 10, fill: "oklch(0.5 0.01 145)" }} />
                 <YAxis tick={{ fontSize: 10, fill: "oklch(0.5 0.01 145)" }} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
-                <Tooltip
-                  contentStyle={{ background: "oklch(0.14 0.008 145)", border: "1px solid oklch(0.22 0.01 145)", borderRadius: 8, fontSize: 12 }}
-                  labelStyle={{ color: "oklch(0.7 0.005 145)" }}
-                  formatter={(v: number) => fmt(v)}
-                />
+                <Tooltip content={<DashboardChartTooltip />} />
                 <Bar dataKey="entrate" fill={GREEN_HEX} radius={[3, 3, 0, 0]} opacity={0.8} />
                 <Bar dataKey="uscite" fill={RED_HEX} radius={[3, 3, 0, 0]} opacity={0.8} />
                 <Line type="monotone" dataKey="utile" stroke={GOLD_HEX} strokeWidth={2} dot={false} />
@@ -497,6 +508,24 @@ function KPICard({ label, icon: Icon, color, valore, percentuale, loading, isPer
         </>
       )}
     </Card>
+  );
+}
+
+function DashboardChartTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="min-w-36 rounded-xl border px-3 py-2.5 text-xs shadow-2xl backdrop-blur"
+      style={{ background: "oklch(0.11 0.01 145 / .96)", borderColor: "oklch(0.32 0.04 145)", color: "oklch(0.92 0.005 145)" }}>
+      <p className="mb-2 font-semibold" style={{ color: "oklch(0.72 0.02 145)" }}>{label || "Dettaglio"}</p>
+      <div className="space-y-1.5">
+        {payload.map((item: any) => (
+          <div key={`${item.dataKey}-${item.name}`} className="flex items-center justify-between gap-4">
+            <span className="flex items-center gap-1.5" style={{ color: "oklch(0.72 0.01 145)" }}><span className="size-1.5 rounded-full" style={{ background: item.color }} />{item.name}</span>
+            <span className="font-semibold">{fmt(Number(item.value ?? 0))}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

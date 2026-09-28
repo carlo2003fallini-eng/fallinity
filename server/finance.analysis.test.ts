@@ -110,6 +110,22 @@ describe("Analisi finanziaria multidimensionale", () => {
     expect(result.kpi.utile.precedente).toBe(30_000);
     expect(result.kpi.margine.valore).toBe(60);
     expect(result.kpi.movimenti.valore).toBe(2);
+    expect(result.confrontoDisponibile).toBe(true);
+  });
+
+  it("segnala quando il periodo precedente non ha movimenti", async () => {
+    const result = await financialAnalysisOverview(COMPANY_ID, {
+      dataInizio: "2026-06-01",
+      dataFine: "2026-06-30",
+      confrontoInizio: "2026-01-01",
+      confrontoFine: "2026-01-31",
+      granularita: "mese",
+    });
+
+    expect(result.kpi.entrate.valore).toBe(100_000);
+    expect(result.kpi.entrate.precedente).toBe(0);
+    expect(result.confrontoDisponibile).toBe(false);
+    expect(result.kpi.entrate.percentuale).toBeNull();
   });
 
   it("produce trend e confronti per categoria, soggetto e centro di costo", async () => {

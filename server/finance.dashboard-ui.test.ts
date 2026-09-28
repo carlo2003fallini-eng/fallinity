@@ -21,4 +21,17 @@ describe("Dashboard Finanza — contratto dati", () => {
     expect(dashboardSource).toContain("function localIsoDate(date: Date)");
     expect(dashboardSource).toContain("const dataFine = localIsoDate(oggi)");
   });
+
+  it("chiama la modalità competenza Contabile senza modificare il valore tecnico", () => {
+    expect(dashboardSource).toContain('m === "competenza" ? "Contabile" : "Cassa"');
+    expect(dashboardSource).toContain('setModalita(m)');
+    expect(dashboardSource).toContain("Spiegazione modalità Contabile");
+    expect(dashboardSource).toContain("Mostra ricavi e costi nel periodo a cui appartengono");
+  });
+
+  it("mantiene un tooltip grafico leggibile e coerente con il tema dark", () => {
+    expect(dashboardSource).toContain("DashboardChartTooltip");
+    expect(dashboardSource).toContain("oklch(0.11 0.01 145 / .96)");
+    expect(dashboardSource).toContain('font-semibold">{fmt(Number(item.value ?? 0))}');
+  });
 });

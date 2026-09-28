@@ -20,7 +20,7 @@ describe("Analisi finanziaria — contratto UI", () => {
   });
 
   it("mostra le date Custom solo nell’editor dedicato e le applica con Seleziona", () => {
-    expect(analysisSource).toContain("customEditorOpen &&");
+    expect(analysisSource).toContain('<Sheet open={customEditorOpen}');
     expect(analysisSource).toContain("Periodo Custom");
     expect(analysisSource).toContain("selezionaCustom");
     expect(analysisSource).toContain("setDataInizio(customInizio)");
@@ -43,7 +43,7 @@ describe("Analisi finanziaria — contratto UI", () => {
   });
 
   it("mostra KPI, grafici, dimensioni e insight finanziari", () => {
-    expect(analysisSource).toContain("Sintesi del periodo");
+    expect(analysisSource).toContain("Risultato del periodo");
     expect(analysisSource).toContain("Andamento: {nomeDirezione.toLowerCase()}");
     expect(analysisSource).toContain("Composizione delle {tipoGrafico}");
     expect(analysisSource).toContain("Confronta dimensioni");
@@ -54,9 +54,39 @@ describe("Analisi finanziaria — contratto UI", () => {
     expect(analysisSource).toContain('type Direzione = "tutto" | "entrate" | "uscite"');
     expect(analysisSource).toContain('setDirezione(value)');
     expect(analysisSource).toContain('aria-label="Direzione dei dati"');
-    expect(analysisSource).toContain("Separa entrate e uscite in tutti i grafici e confronti.");
+    expect(analysisSource).toContain("Entrate e uscite");
     expect(analysisSource).toContain("direzione,");
     expect(analysisSource).toContain('direzione === "tutto" && <Area');
+  });
+
+  it("compatta i controlli e sposta la lettura rapida prima dei grafici", () => {
+    expect(analysisSource).toContain("Prima la risposta, poi l’approfondimento");
+    expect(analysisSource).toContain("Variazioni, voci principali e ciò che merita attenzione.");
+    expect(analysisSource.indexOf("Lettura rapida dei dati")).toBeLessThan(analysisSource.indexOf("Andamento: {nomeDirezione.toLowerCase()}"));
+    expect(analysisSource).toContain('filtriAttivi === 1 ? "1 filtro"');
+  });
+
+  it("usa un pannello ricercabile per i filtri e una conferma semplice", () => {
+    expect(analysisSource).toContain("Filtri analisi");
+    expect(analysisSource).toContain("Cerca ${activeMeta?.label.toLocaleLowerCase");
+    expect(analysisSource).toContain("Applica filtro");
+    expect(analysisSource).toContain("Sottocategorie");
+    expect(analysisSource).toContain("Categorie centri");
+    expect(analysisSource).toContain("Centri di costo");
+  });
+
+  it("evita delta fuorvianti quando manca il periodo precedente", () => {
+    expect(analysisSource).toContain("confrontoDisponibile");
+    expect(analysisSource).toContain("Periodo precedente non disponibile");
+    expect(analysisSource).toContain("Nessun dato di confronto");
+    expect(analysisSource).toContain("Le variazioni non vengono calcolate.");
+  });
+
+  it("mantiene tooltip e stati di caricamento coerenti con il tema dark", () => {
+    expect(analysisSource).toContain("bg-[#0a1510]/95");
+    expect(analysisSource).toContain("shadow-[0_18px_45px_rgba(0,0,0,.45)]");
+    expect(analysisSource).toContain("AnalysisSkeleton");
+    expect(analysisSource).toContain("bg-white/[0.055]");
   });
 
   it("non annida anchor nel link di ritorno", () => {

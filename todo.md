@@ -1392,3 +1392,13 @@
 - [x] Non esporre XML tecnico o azioni di modifica in questa vista
 - [x] Aggiungere regressioni per collegamento e stati senza fattura associata
 - [x] Verificare a 390×844, suite Vitest, TypeScript, build e salvare il checkpoint
+
+## Fase 65 — Analisi Finanziaria Più Chiara e Compatta
+- [x] Analizzare Analisi, dashboard e contratti dati esistenti
+- [x] Compattare i controlli e portare sintesi e Lettura rapida in primo piano
+- [x] Rendere i filtri mobile-first con pannelli ricercabili e conferma semplice
+- [x] Gestire confronti non disponibili e migliorare la leggibilità di Confronta dimensioni
+- [x] Rinominare Competenza in Contabile con aiuto contestuale, senza cambiare logica
+- [x] Allineare tooltip dei grafici e skeleton al tema dark Fallinity
+- [x] Aggiungere regressioni UI per gerarchia, filtri, confronto e terminologia
+- [x] Verificare a 390×844, suite Vitest, TypeScript, build e salvare il checkpoint
