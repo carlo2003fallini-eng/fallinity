@@ -22,6 +22,7 @@ import NuovoMovimento from "./pages/finanza/NuovoMovimento";
 import NuovoMovimentoAutomatico from "./pages/finanza/NuovoMovimentoAutomatico";
 import ArchivioFatture from "./pages/finanza/ArchivioFatture";
 import DettaglioMovimento from "./pages/finanza/DettaglioMovimento";
+import VisualizzaFattura from "./pages/finanza/VisualizzaFattura";
 import Cashflow from "./pages/finanza/Cashflow";
 import Proposte from "./pages/finanza/Proposte";
 import BudgetPage from "./pages/finanza/Budget";
@@ -55,6 +56,7 @@ function Router() {
         <Route path="/finanza/nuovo" component={NuovoMovimento} />
         <Route path="/finanza/nuovo-automatico" component={NuovoMovimentoAutomatico} />
         <Route path="/finanza/fatture-acquisite" component={ArchivioFatture} />
+        <Route path="/finanza/movimento/:documentoId/fattura" component={VisualizzaFattura} />
         <Route path="/finanza/movimento/:id" component={DettaglioMovimento} />
         <Route path="/finanza/cashflow" component={Cashflow} />
         <Route path="/finanza/proposte" component={Proposte} />

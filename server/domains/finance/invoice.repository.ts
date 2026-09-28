@@ -194,6 +194,19 @@ export const invoiceRepository = {
     return { acquisition, lines };
   },
 
+  /** Recupera la fattura XML collegata a un documento finanziario, sempre nello stesso perimetro aziendale. */
+  async getDetailByFinancialDocument(companyId: string, documentoId: string) {
+    const db = await getDb();
+    if (!db) return null;
+    const rows = await db.select({ id: acquisizioniFatture.id }).from(acquisizioniFatture).where(and(
+      eq(acquisizioniFatture.companyId, companyId),
+      eq(acquisizioniFatture.documentoFinanziarioId, documentoId),
+      isNull(acquisizioniFatture.deletedAt),
+    )).limit(1);
+    const acquisizioneId = rows[0]?.id;
+    return acquisizioneId ? this.getDetail(companyId, acquisizioneId) : null;
+  },
+
   async findSupplier(companyId: string, partitaIva: string | null, codiceFiscale: string | null) {
     const db = await getDb();
     if (!db || (!partitaIva && !codiceFiscale)) return null;

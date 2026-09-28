@@ -1384,3 +1384,11 @@
 - [x] Garantire che le Entrate non ereditino mai un carico Magazzino
 - [x] Aggiungere regressioni per memoria, modifica e isolamento per verso
 - [x] Verificare a 390×844, suite Vitest, TypeScript, build e salvare il checkpoint
+
+## Fase 64 — Fattura dal Dettaglio Movimento
+- [x] Analizzare collegamento tra movimento e fattura acquisita
+- [x] Esporre il dettaglio fattura legato al movimento in modo protetto
+- [x] Aggiungere accesso e vista fattura in sola lettura dai movimenti
+- [x] Non esporre XML tecnico o azioni di modifica in questa vista
+- [x] Aggiungere regressioni per collegamento e stati senza fattura associata
+- [x] Verificare a 390×844, suite Vitest, TypeScript, build e salvare il checkpoint

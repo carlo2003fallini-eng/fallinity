@@ -396,6 +396,12 @@ export const invoiceService = {
     return detail ? publicDetail(detail) : null;
   },
 
+  /** Vista in sola lettura della fattura registrata dal dettaglio del movimento. */
+  async detailByFinancialDocument(companyId: string, documentoId: string) {
+    const detail = await invoiceRepository.getDetailByFinancialDocument(companyId, documentoId);
+    return detail ? publicDetail(detail) : null;
+  },
+
   async confirm(actor: ActorContext, input: ConfermaFatturaAcquisitaInput) {
     const detail = await invoiceRepository.getDetail(actor.companyId, input.acquisizioneId);
     if (!detail) throw new Error("Fattura acquisita non trovata");

@@ -53,6 +53,7 @@ import {
   acquisisciFattureXmlBatchInput,
   listArchivioFattureInput,
   dettaglioAcquisizioneFatturaInput,
+  fatturaPerMovimentoInput,
   confermaFatturaAcquisitaInput,
 } from "./validators";
 import { z } from "zod";
@@ -215,6 +216,10 @@ export const finanzaRouter = router({
     dettaglio: protectedProcedure.input(dettaglioAcquisizioneFatturaInput).query(async ({ ctx, input }) => {
       const actor = await getActor(ctx);
       return invoiceService.detail(actor.companyId, input.id);
+    }),
+    perMovimento: protectedProcedure.input(fatturaPerMovimentoInput).query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return invoiceService.detailByFinancialDocument(actor.companyId, input.documentoId);
     }),
     rileggi: protectedProcedure.input(dettaglioAcquisizioneFatturaInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);

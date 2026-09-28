@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import {
   ArrowLeft, ArrowDownRight, ArrowUpRight, Calendar, Receipt,
   Clock, CheckCircle2, XCircle, AlertTriangle, CreditCard,
-  Plus, Banknote, SplitSquareVertical, Trash2, RotateCcw,
+  Plus, Banknote, SplitSquareVertical, Trash2, RotateCcw, FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -202,6 +202,17 @@ export default function DettaglioMovimento() {
             </div>
           </CardContent>
         </Card>
+
+        {doc.originEntityType === "fattura_xml" && (
+          <button
+            type="button"
+            onClick={() => setLocation(`/finanza/movimento/${id}/fattura`)}
+            className="flex w-full items-center justify-between gap-3 rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.06] p-4 text-left transition hover:bg-emerald-300/[0.1] active:scale-[0.99]"
+          >
+            <span className="flex min-w-0 items-center gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-300/12 text-emerald-300"><FileText className="h-5 w-5" /></span><span className="min-w-0"><span className="block text-sm font-semibold">Visualizza fattura</span><span className="mt-0.5 block truncate text-xs text-muted-foreground">Apri dati fiscali, righe e scadenze del documento</span></span></span>
+            <span className="shrink-0 text-sm font-medium text-emerald-500">Apri</span>
+          </button>
+        )}
 
         {/* Azioni rapide */}
         {!isChiuso && (

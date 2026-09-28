@@ -406,6 +406,11 @@ export const dettaglioAcquisizioneFatturaInput = z.object({
   id: z.string().min(1),
 });
 
+/** Visualizzazione protetta della fattura elettronica collegata al movimento finanziario. */
+export const fatturaPerMovimentoInput = z.object({
+  documentoId: z.string().min(1),
+});
+
 export const rigaConfermaFatturaInput = z.object({
   rigaId: z.string().min(1),
   categoriaId: z.string().min(1),
