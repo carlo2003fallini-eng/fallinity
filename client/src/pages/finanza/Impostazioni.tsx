@@ -2,7 +2,7 @@ import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Card } from "@/components/ui/card";
 import {
-  ArrowLeft, ChevronRight, Tag, Users, Target, Wallet, CreditCard,
+  ArrowLeft, ChevronRight, Tag, Users, Target, Wallet, CreditCard, Receipt,
   Settings2, History,
 } from "lucide-react";
 
@@ -81,6 +81,13 @@ export default function ImpostazioniFinanza() {
       description: "Forma giuridica, regime IVA, qualifiche",
       path: "/azienda/fiscale",
       color: "oklch(0.55 0.22 25)",
+    },
+    {
+      icon: Receipt,
+      title: "IVA",
+      description: "Registri, aliquote e riepiloghi IVA",
+      path: "/finanza/iva",
+      color: "oklch(0.6 0.15 30)",
     },
   ];
 

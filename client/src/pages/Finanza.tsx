@@ -434,17 +434,9 @@ export default function Finanza({ initialTab = "dashboard" }: { initialTab?: "da
       )}
 
       {/* ── AZIONI RAPIDE ── */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <ActionButton icon={FileText} label="Movimenti" onClick={() => setLocation("/finanza/movimenti")} color={BLUE} />
-        <ActionButton icon={BarChart3} label="Cashflow" onClick={() => setLocation("/finanza/cashflow")} color={GOLD} />
         <ActionButton icon={ClipboardList} label="Proposte" onClick={() => setLocation("/finanza/proposte")} color="oklch(0.65 0.15 280)" />
-      </div>
-      <div className="grid grid-cols-3 gap-2 mt-2">
-        <ActionButton icon={Landmark} label="Budget" onClick={() => setLocation("/finanza/budget")} color="oklch(0.6 0.15 250)" />
-        <ActionButton icon={CircleDollarSign} label="Investim." onClick={() => setLocation("/finanza/investimenti")} color="oklch(0.6 0.18 160)" />
-        <ActionButton icon={Banknote} label="Scenari" onClick={() => setLocation("/finanza/scenari")} color="oklch(0.6 0.12 300)" />
-      </div>
-      <div className="grid grid-cols-4 gap-2 mt-2">
         <ActionButton icon={BarChart3} label="Analisi" onClick={() => setLocation("/finanza/analisi")} color="oklch(0.65 0.12 200)" />
         <ActionButton icon={FileText} label="Report" onClick={() => setLocation("/finanza/report")} color="oklch(0.55 0.1 180)" />
         <ActionButton icon={Receipt} label="IVA" onClick={() => setLocation("/finanza/iva")} color="oklch(0.6 0.15 30)" />

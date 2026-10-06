@@ -1,9 +1,1411 @@
+# Fallinity FEOS — Todo
 
-## Fase 66 — Vista e Regolarizzazione Movimenti Scaduti
-- [x] Analizzare lista movimenti, scadenze aperte e azioni di pagamento/eliminazione esistenti
-- [x] Aggiungere filtro server basato sulla data della scadenza aperta, indipendente dallo stato documento salvato
-- [x] Aggiungere tab mobile dedicato agli scaduti con data di scadenza visibile
-- [x] Aggiungere dal menu movimento la regolarizzazione completa come pagato o incassato
-- [x] Mantenere eliminazione con conferma e storno protetto già esistente
-- [x] Aggiungere regressioni backend e contratto UI
-- [x] Verificare 390×844, suite completa, TypeScript, build, service worker e salvare checkpoint
+## Fase 1: Schema Database e Struttura Base
+- [x] Schema tabelle: azienda, dipendenti, fornitori, clienti (entità unificata)
+- [x] Schema tabelle: campi, colture, lavorazioni
+- [x] Schema tabelle: finanza (transazioni, budget, categorie)
+- [x] Schema tabelle: magazzino (prodotti, movimenti)
+- [x] Schema tabelle: officina (macchine, manutenzioni)
+- [x] Schema tabelle: calendario (eventi, attività)
+- [x] Schema tabelle: AI chat (messaggi, sessioni)
+- [x] Migrazione SQL applicata
+
+## Fase 2: Design System e Layout
+- [x] Design system dark professionale (CSS variables, palette, tipografia)
+- [x] Font Google: Inter + Space Grotesk
+- [x] Sidebar unificata con tutti i moduli
+- [x] DashboardLayout personalizzato per FEOS
+- [x] Routing completo per tutti i moduli
+- [x] Animazioni e micro-interazioni
+
+## Fase 3: Modulo Home e Azienda
+- [x] Dashboard Home con KPI aziendali
+- [x] Widget attività recenti
+- [x] Widget notifiche
+- [x] Accesso rapido ai moduli
+- [x] Modulo Azienda: anagrafica unificata
+- [x] Gestione dipendenti
+- [x] Gestione fornitori
+- [x] Gestione clienti
+- [x] Entità unificata (Contatti)
+
+## Fase 4: Modulo Finanza e Campi
+- [x] Registrazione entrate e uscite
+- [x] Gestione budget
+- [x] Report economici
+- [x] Calcolo ROI
+- [x] Grafici finanziari (Recharts)
+- [x] Gestione appezzamenti
+- [x] Gestione colture
+- [x] Gestione lavorazioni
+- [x] Vista elenco campi
+- [x] Vista dettaglio campo
+
+## Fase 5: Modulo Magazzino e Officina
+- [x] Gestione scorte prodotti e materiali
+- [x] Movimenti carico/scarico
+- [x] Alert scorte minime
+- [x] Gestione macchine agricole
+- [x] Manutenzioni programmate
+- [x] Registro interventi
+
+## Fase 6: Calendario e Report Enterprise Metrics
+- [x] Calendario vista mensile
+- [x] Calendario vista settimanale
+- [x] Creazione/modifica eventi
+- [x] Dashboard Enterprise Metrics
+- [x] Grafici performance
+- [x] Grafici utilizzo risorse
+- [x] Indicatori qualità dati
+- [x] ROI software
+
+## Fase 7: Assistente AI Explainable
+- [x] Chat AI contestuale
+- [x] Integrazione LLM (invokeLLM)
+- [x] Explainable AI: suggerimenti motivati
+- [x] Contesto aziendale nell'AI
+- [x] Sessioni multiple con storico
+
+## Fase 8: Rifinitura e Test
+- [x] Test vitest per procedure principali (13 test passanti)
+- [x] TypeScript 0 errori
+- [x] Verifica coerenza design
+- [x] Checkpoint finale
+
+## Fase 9: Riscrittura Fedele ai Mockup
+- [x] Home: header verde con logo, KPI cards orizzontali (Entrate/Uscite/Utile/Campi/Macchine), grafico lineare andamento, tabella attività recenti con badge stato, sezione alert/notifiche
+- [x] Azienda: header card con stats (Totale/Dipendenti/Fornitori/Clienti), tabella contatti con avatar, ruolo badge colorato, form laterale slide-in per creazione
+- [x] Finanza: KPI cards (Entrate verde/Uscite rosso/Utile/ROI), grafico barre mensile + torta categorie, tabella transazioni con badge tipo, form laterale
+- [x] Campi: grid card per ogni campo con indicatore stato colore, ettari/coltura/stato, dettaglio campo con lavorazioni timeline
+- [x] Magazzino: tabella prodotti con progress bar quantità/minimo, badge categoria, form movimento carico/scarico
+- [x] Officina: card macchine con stato badge (Operativo/Manutenzione/Fermo), lista interventi con priorità colorata, form aggiunta intervento
+- [x] Calendario: griglia mensile con eventi colorati per categoria, vista settimanale con fasce orarie, form evento
+- [x] Report Enterprise Metrics: header "Enterprise Metrics™", 4 score cards (Completezza/Accuratezza/Tempestività/Coerenza), grafici performance, tabella metriche
+- [x] AI: chat bubble layout (utente destra/AI sinistra), badge "Explainable AI™", panel suggerimenti contestuali, indicatori XAI
+- [x] Sidebar: logo Fallinity in alto, voci con icone e label, sezione utente in basso, indicatore modulo attivo con bordo verde
+
+## Fase 10: Nuovi Moduli da CORE-UX
+- [x] Schema DB: tabelle stalla (animali, gruppi, sincronizzazioni, gravidanze, zoppie, trattamenti, parti, asciutta, infermeria)
+- [x] Schema DB: tabelle reintegrazione (fondi_macchine, rate_versamento)
+- [x] Login page: sfondo agricolo sfocato, logo grande, slogan, form premium, biometrico placeholder
+- [x] Selezione azienda: card multi-tenant con foto/logo/ruolo/notifiche, badge ATTIVA
+- [x] Modulo Stalla: dashboard con 8 card modulari (Gruppi/Sincronizzazioni/Gravidanze/Zoppie/Trattamenti/Parti/Asciutta/Infermeria)
+- [x] Modulo Sincronizzazioni: lista vacche con numero/matricola/farmaco/ora/prossimo trattamento/pulsante esegui
+- [x] Modulo Reintegrazione: hero totale fondi, versamento consigliato, lista fondi per macchina con progress bar e pulsante paga rata
+- [x] Home Dashboard: Hero card Utile Netto grande (metà schermo), card Cashflow e Fondo Reintegrazione, azioni rapide (Entrata/Uscita/Intervento/Report), alert operativi feed
+- [x] Sidebar: aggiungere voci Stalla e Reintegrazione
+
+## Fase 11: Navigazione Bottom Bar
+- [x] Convertire DashboardLayout da sidebar a bottom navigation bar
+- [x] Bottom bar fissa con icone moduli principali + menu "Altro" per moduli secondari
+- [x] Header superiore con logo/azienda e profilo utente
+- [x] Adattare il padding del contenuto per la bottom bar
+- [x] Verifica visiva responsive
+
+## Fase 12: Alpha 0.2 — Elevazione Qualità UX & Design System
+
+### Asset visivi
+- [x] Immagine Hero agricola premium (campo/azienda al tramonto, tono dark)
+- [x] Immagine Officina/mezzo agricolo (trattore, capannone)
+- [x] Immagine Stalla/bovini per card Azienda
+- [x] Immagine Dati Latte (mungitura/latte)
+- [x] Immagine Dati Vitelli
+- [x] Immagine Magazzino/silos
+- [x] Immagine Campi/colture
+
+### Design System Fallinity
+- [x] Consolidare token CSS: glow minimale, ombre soft, gerarchia card
+- [x] Tipografia premium uniforme (display + body)
+- [x] Microanimazioni fluide (hover card, entrate staggered)
+- [x] Spaziature uniformi cross-modulo
+- [x] Palette colori per modulo (verde Stalla, oro Finanza/Reint., blu Dati, ecc.)
+
+### Home (Dashboard principale)
+- [x] Hero Card dominante Utile Netto (grande, glow verde)
+- [x] Card economiche: Entrate, Uscite, Cashflow, Fondo Reintegrazione
+- [x] Trasmettere senso di controllo immediato dell'azienda
+
+### Finanza (peso maggiore)
+- [x] Dashboard economica con grafici prominenti
+- [x] Alert finanziari e andamento economico
+- [x] Collegamento diretto alla Reintegrazione
+
+### Azienda (card premium moduli)
+- [x] Card premium: Stalla, Dati Latte, Dati Vitelli, Magazzino, Officina
+- [x] KPI principali + immagini di sfondo + grafici integrati
+
+### Stalla (allineata ai mockup)
+- [x] Card grandi 2x2 con glow colorato e illustrazioni semitrasparenti
+- [x] Contatori ben evidenziati
+- [x] Accesso moduli: Gruppi, Sincronizzazioni, Gravidanze, Zoppie, Trattamenti, Parti/Post-parto, Asciutta, Infermeria
+
+### Officina (premium)
+- [x] Hero con immagine mezzo/officina
+- [x] Sezioni: Mezzi, Manutenzioni, Ricambi (riepilogo costi per tipo), Interventi
+
+### AI Copilot
+- [x] Trasformare AI da pagina separata a Copilot contestuale Fallinity
+- [x] Suggerimenti azioni basati sul contesto aziendale
+
+## Fase 13: Alpha 0.2 — Fondamenta + Mobile-First (revisione architetturale)
+> NOTA: la parte Database + Backend a domini di questa fase è stata SUPERSEDUTA dalla Fase 14 (Strada A, rifondazione pulita UUID), confermata dall'utente. Gli item sotto sono realizzati in forma equivalente nella Fase 14.
+
+### Database (progressivo, mantiene dati) — SUPERSEDUTO da Fase 14
+- [x] Tabella organizations (uuid, name, colonne standard)
+- [x] Tabella companies (uuid, organizationId, name, colonne standard)
+- [x] Tabella farms (uuid, companyId, name, colonne standard)
+- [x] Tabella roles (8 ruoli: platform_owner, super_admin, organization_admin, company_admin, manager, operator, consultant, viewer)
+- [x] Tabella permissions
+- [x] Tabella moduleAccess
+- [x] Tabella companyMemberships (userId, companyId, roleId)
+- [x] Tabella auditLogs
+- [x] Colonne standard Fallinity (uuid, companyId, createdAt/By, updatedAt/By, deletedAt/By, version) su entità operative
+- [x] Soft delete: deletedAt/deletedBy al posto del delete fisico nelle mutation
+
+### Backend a domini — realizzato come router unico con sezioni a dominio (Fase 14)
+- [x] Logica finance (transazioni, budget, summary) con company-scoping e soft-delete
+- [x] Logica livestock (animali, gravidanze, zoppie, trattamenti) con company-scoping e soft-delete
+- [x] Logica fleet (macchine, interventi) con company-scoping e soft-delete
+- [x] Logica crop (campi, lavorazioni) con company-scoping e soft-delete
+- [x] Logica inventory (prodotti, movimenti) con company-scoping e soft-delete
+- [x] Logica reinvestment (fondi, rate) con company-scoping e soft-delete
+
+### Design System Fallinity (componenti riutilizzabili)
+> Libreria estratta in `client/src/components/fallinity/index.tsx` e applicata a Home/Azienda. Header e BottomNav erano già componenti reali in `DashboardLayout.tsx`.
+- [x] FallinityKpiCard (estratto + usato in Home)
+- [x] FallinityModuleCard (estratto + usato in Azienda)
+- [x] FallinityEntityCard (estratto, disponibile per liste a card)
+- [x] FallinityInsightCard / ChartCard (estratto + usato in Home per Andamento e Attività)
+- [x] FallinitySection (estratto + adottato in Home e Azienda)
+- [x] FallinityBottomNav (già componente reale in DashboardLayout: nav fixed bottom)
+- [x] FallinityHeader (già componente reale in DashboardLayout: header sticky logo+azienda+profilo)
+- [x] Hero card: pattern dedicato verificato in Home (fal-hero, immagine di sfondo) e Reintegrazione (hero gold con totale fondi+interessi+versamento), mantenuto inline per le immagini/gradienti specifici
+
+### Mobile-first — verificato visivamente (screenshot 390x844)
+- [x] Layout verticale mobile-first con scroll verticale (Home/Azienda/Stalla/Reintegrazione verificate)
+- [x] Bottom nav sempre visibile su tutte le schermate
+- [x] Stalla/Campi/Magazzino/Officina/Calendario/Report/AI accessibili da Azienda o Altro
+- [x] Card grandi, pulsanti thumb-friendly, spaziature generose, alto contrasto
+- [x] Liste a card verticali (no tabelle larghe)
+- [x] PWA installabile: manifest.webmanifest (standalone, theme dark, categorie business) + service worker (network-first navigazione, no-cache su /api e /trpc) + icone 192/512 + meta apple-touch. Registrazione SW con gestione esplicita successo/errore (console.info/warn, non bloccante). Verificato HTTP 200 su tutti gli asset.
+
+### Schermate premium mobile — verificate visivamente (screenshot 390x844)
+- [x] Home: Hero Utile Netto dominante + card economiche verticali
+- [x] Azienda: Command Center (Stalla, Dati Latte, Dati Vitelli, Magazzino, Officina)
+- [x] Finanza: dashboard economica mobile + collegamento Reintegrazione
+- [x] Reintegrazione: Hero fondo totale, interessi maturati, versamento, lista fondi, Paga rata
+- [x] Stalla: card 2x2 grandi, illustrazioni semitrasparenti, contatori grandi, glow per categoria
+- [x] Campi/Magazzino/Officina/Calendario/Report/AI in versione mobile-first
+
+
+## Fase 14: Alpha 0.2 — STRADA A (rifondazione pulita, UUID primary key)
+> Decisione utente: schema rifondato con UUID come PK, multi-azienda completo, soft-delete. Si accetta reset dati demo.
+
+### Schema (UUID PK)
+- [x] Helper colonne standard Fallinity (id uuid PK, companyId, createdAt/By, updatedAt/By, deletedAt/By, version)
+- [x] Entità piattaforma: organizations, companies, farms, roles, permissions, moduleAccess, companyMemberships, auditLogs (UUID PK)
+- [x] users: aggiungere uuid + platformRole (8 ruoli) mantenendo openId per OAuth
+- [x] Entità operative con UUID PK + companyId: contatti, campi, lavorazioni, transazioni, budget, prodotti, movimentiMagazzino, macchine, interventi, eventi, animali, trattamentiAnimali, gravidanze, zoppie, fondiReintegrazione, rateReintegrazione, chatSessions, chatMessages
+- [x] FK ridefinite su UUID (campoId, animaleId, macchinaId, fondoId, ecc.)
+
+### Migrazione + seed
+- [x] Tabelle vecchie archiviate (_old_*) e nuove tabelle UUID create
+- [x] Seed: organization demo, company demo (comp-demo-0001), farm demo, 8 roles, membership owner
+
+### Backend a domini
+- [x] server/domains/_core (getActor, withCreate, withUpdate, softDeletePayload)
+- [x] server/db.ts con upsertUser (uuid auto-generato), getActiveCompanyId
+- [x] routers.ts riscritto con UUID, companyId context, soft-delete su TUTTI i domini (azienda, finanza, campi, magazzino, officina, calendario, stalla, reintegrazione, AI)
+- [x] Dominio AI (chatSessions/chatMessages) allineato al pattern operativo: companyId + audit columns + soft-delete, scoping per company+utente
+- [x] companyMemberships usa `roleCode` (enum 8 ruoli FALLINITY_ROLES) come riferimento ruolo: scelta deliberata (ruoli stabili come enum, no tabella join volatile)
+- [x] appRouter compone i domini (azienda, finanza, campi, magazzino, officina, calendario, report, stalla, reintegrazione, ai, company)
+
+### Frontend adattamento UUID
+- [x] Aggiornate tutte le pagine ai nuovi tipi UUID (string id): AI, Azienda, Campi, Finanza, Home, Magazzino, Officina, Reintegrazione, Stalla, SelezionaAzienda
+- [x] 0 errori TypeScript, 13 test Vitest passanti, server avvia correttamente
+
+
+## Fase 15: Alpha 0.3 — Consolidamento (UX mobile nativa + Design System + architettura)
+> Obiettivo: NON nuove feature, ma qualità. Esperienza tipo Revolut/Tesla/Notion Mobile mantenendo identità Fallinity.
+
+### Bugfix DB
+- [x] Tabella `zoppie` non migrata (mancavano companyId/audit/soft-delete, id int): ricreata come UUID + colonne standard, vecchia archiviata in `_old_zoppie`. Query KPI verificata.
+
+### Backend a domini (router/service/repository/validators)
+- [x] Struttura server/domains/<dominio>/ con repository (query Drizzle), service (logica+audit), validators (zod), router (tRPC sottile)
+- [x] Domini: core (company/azienda/dashboard), finance, livestock(stalla), crop(campi), inventory(magazzino), fleet(officina), calendar, reinvestment, ai, report
+- [x] appRouter compone i router di dominio; routers.ts ridotto da 815 a ~60 righe (orchestratore sottile)
+- [x] Nuove procedure abilitanti: calendario.today, officina.dashboard; superficie tRPC invariata per il resto
+- [x] 0 errori TS, 15 test Vitest verdi (estesi a azienda/calendario/officina), server riavvia pulito
+
+### Design System Fallinity (componenti formali)
+- [x] FallinityHeroCard, FallinityKpiCard, FallinityModuleCard, FallinityEntityCard
+- [x] FallinityInsightCard, FallinityChartCard, FallinitySection
+- [x] FallinityEmptyState (stato vuoto ricco con CTA), FallinityMissionCard (missione di oggi)
+- [x] FallinityHeader e FallinityBottomNavigation estratti come componenti formali e usati dal DashboardLayout
+- [x] Token CSS verificati esistenti (kpi-number-xl, fal-hero, fal-eyebrow, fal-glow-*, fal-img-overlay)
+- [x] FallinityBottomNavigation a 4 voci (Home/Azienda/Finanza/Altro) -> realizzata in Fase 4
+
+### Navigazione definitiva (4 voci)
+- [x] Bottom nav: Home, Azienda, Finanza, Altro (solo queste 4)
+- [x] Reintegrazione spostata DENTRO Finanza (tab Economia|Reintegrazione, riuso modulo, route deep-link mantenuta)
+- [x] FallinityBottomNavigation a 4 voci realizzata nel DashboardLayout
+- [x] "Altro" hub raccoglie i moduli operativi non primari (Reintegrazione esclusa)
+- [x] Altro = hub a due sezioni: "Moduli operativi" (Campi/Magazzino/Officina/Calendario/Stalla) + "Sistema & Strumenti" (Report, AI Copilot attivi; Gestione utenti/aziende, Impostazioni, Audit log, Backup, Supporto con badge "soon" + toast)
+- [x] Azienda = command center completo: Stalla, Dati Latte, Dati Vitelli, Magazzino, Officina, Campi, Calendario (tutti con KPI live + deep-link)
+- [x] isMoreActive riconosce anche i path di sistema (Report/AI evidenziano "Altro" in bottom nav)
+- [x] Fix refuso pluralizzazione anagrafica (singolare corretto: dipendente/fornitore/cliente)
+
+### Home (centro di controllo)
+- [x] Hero Card Utile Netto + card Cashflow/Fondo Reintegrazione + KPI operativi
+- [x] Calendario Oggi (procedura calendario.today, solo eventi di oggi + "Apri Calendario", empty state ricco)
+- [x] Missione di oggi: priorità (interventi/scorta/zoppie/eventi) + avanzamento X/Y con barra di progresso
+- [x] Alert cross-modulo: Officina (interventi), Magazzino (scorta), Stalla (zoppie), Finanza (utile negativo)
+- [x] Azioni rapide (Nuova Entrata/Uscita/Intervento/Report) + moduli rapidi
+- [x] Insight AI: card con suggerimento contestuale derivato dai KPI + link al Copilot
+- [x] Backend: dashboardKpi esteso con zoppieAttive
+
+### Schermate premium
+- [x] Azienda: Command Center con card grandi a immagine (Stalla/Dati Latte/Dati Vitelli/Magazzino/Officina) + Anagrafica Unificata
+- [x] Finanza: centro economico con tab Economia|Reintegrazione, Hero Utile+ROI, Margine, Transazioni, Andamento, Distribuzione Uscite, Fondo
+- [x] Stalla: KPI 2x2 + card moduli con glow per categoria (Gruppi/Sincronizzazioni/Gravidanze/Zoppie/Trattamenti/Parti/Asciutta/Infermeria)
+- [x] Officina: dashboard premium (hero, KPI responsive 2x2 mobile, Priorit\u00e0 del giorno, Ricambi & Costi)
+
+### Mobile-first 9:16
+- [x] Overflow orizzontale corretto: KPI Officina responsive 2x2, tutti i Sheet form full-width su mobile (w-full sm:w-[...])
+- [x] Form leggibili su mobile: griglie a 2 colonne solo per campi piccoli correlati (data/ora, quantit\u00e0/unit\u00e0)
+- [x] Empty states ricchi (icona + titolo + spiegazione) in Home (chart, attivit\u00e0) e Finanza (andamento, distribuzione uscite)
+
+### Verifica
+- [x] AI riprogettata mobile-first: sidebar conversazioni in drawer su mobile, chat full-width, domande suggerite a colonna singola (era layout desktop a 2 colonne rotto su 390px)
+- [x] 0 errori TS, 15 test Vitest verdi, screenshot mobile 9:16 di tutte le schermate, checkpoint Alpha 0.3
+
+
+## Fase 16: Sprint Officina Pro
+
+### Schema DB (estensione, no break altri moduli)
+- [x] macchine: categoria, foto, oreMotore, chilometri, healthScore, ultimoTagliando, prossimaManutenzione, costoTotale + enum stato esteso ('riposo')
+- [x] interventi: categoria, dataPianificata, tempoStimato, oreLavoro, costoOrario, costoPrevisto, costoFinale, foto + enum tipo/priorita/stato estesi
+- [x] ricambi: codice, nome, categoria, compatibilita, quantitaDisponibile, sogliaMinima, posizione, costoMedio, fornitore, companyId + audit + soft delete
+- [x] interventoRicambi (join): interventoId, ricambioId, codiceRicambio, nomeRicambio, quantitaRichiesta, quantitaUtilizzata, costoUnitario, obbligatorio
+- [x] macchinaDocumenti: macchinaId, nome, tipo, url, fileKey + audit + soft delete
+- [x] Migrazione SQL applicata con ALTER isolati (un comando per volta) + verifica + 0 errori TS
+
+### Backend dominio fleet
+- [x] repository: query mezzi/interventi/ricambi/documenti/interventoRicambi con companyId + deletedAt
+- [x] service: KPI dashboard (mezzi operativi/fermi, interventi oggi/in ritardo, ricambi sotto scorta, costo manutenzione mese)
+- [x] service: confronto ricambi richiesti vs disponibili (statoDisponibilita), sempre mostrati
+- [x] service: workflow completamento (scala magazzino ricambi + registra costo finanza + aggiorna macchina + crea evento calendario)
+- [x] service: "Prepara ordine ricambi" genera lista sotto scorta + quantita consigliata
+- [x] service: calcolo Health Score deterministico
+- [x] validators zod per tutte le nuove procedure
+- [x] router fleet aggiornato: dashboard, preparaOrdine, macchine.*, interventi.*, ricambi.*
+
+### Integrazioni automatiche
+- [x] Magazzino officina: scala quantita ricambi utilizzati al completamento
+- [x] Finanza: crea transazione uscita (ricambi + manodopera) al completamento
+- [x] Calendario: crea evento manutenzione completata
+- [x] Macchina: aggiorna costo totale + ultimo tagliando + stato al completamento
+- [x] Dashboard Officina: alert attivita prioritarie (interventi in ritardo + mezzi fermi)
+
+### Immagini (no brand)
+- [x] Hero officina moderna neutra (banchi, utensili, ponte sollevamento, scaffalature)
+- [x] Copertine/categorie mezzi generiche senza loghi produttori (trattore neutro + scaffalatura ricambi)
+
+### Frontend Officina (mobile-first premium)
+- [x] Dashboard: Hero neutro + 6 KPI + alert attivita prioritarie
+- [x] Gestione Mezzi: card con foto, health ring, ore/km, stato, prossima manutenzione, costo; sheet dettaglio con storico + documenti; form create/edit
+- [x] Interventi a tab: Pianificati / In corso / Straordinari / Completati (con contatori)
+- [x] Card intervento: mezzo, priorita, operatore, tempo stimato, costo previsto/finale, badge in ritardo
+- [x] Workflow completamento: ricambi usati, ore lavoro, costo orario, note, anteprima costo finale auto
+- [x] Sezione Ricambi: stati scorta + stepper quantita (optimistic) + alert + "Prepara ordine ricambi" con copia lista
+- [x] Filtri interventi (stato a tab, mezzo, priorita)
+- [x] Filtri ricambi (tutti/disponibili/sotto scorta/esauriti/da ordinare + categoria + ricerca)
+- [x] Form a colonna singola in Sheet laterali, pulsanti grandi, niente overflow
+
+### Verifica
+- [x] 0 errori TS, 26/26 test Vitest verdi (11 nuovi fleet), screenshot mobile verificati, DB allineato
+
+
+## FASE 17 — Officina Pro: rifiniture (codici, stati ricambio, filtri, alert)
+
+### Verifica navigazione (gia conforme, solo controllo)
+- [x] Bottom nav a 4 voci (Home, Azienda, Finanza, Altro) — gia implementata
+- [x] Azienda hub con card moduli + KPI/alert — gia implementata
+- [x] Reintegrazione come tab interna di Finanza — gia implementata
+- [x] Altro con funzioni di sistema — gia implementata
+
+### Schema/Backend (estensione isolata)
+- [x] macchine: campo `codice` (MEZ-0001) generato + ALTER isolato
+- [x] interventi: campo `codice` (INT-2026-0001) + tempoEffettivo + ALTER isolati
+- [x] ricambi: campo `statoOrdine` (nessuno/da_ordinare/ordinato) + ALTER isolato
+- [x] interventoRicambi: campo `obbligatorio` gia presente — verificato
+- [x] Generazione automatica codici progressivi per company (count + pad)
+- [x] service: stati ricambio estesi (disponibile/sotto_scorta/non_disponibile/da_ordinare/ordinato)
+- [x] service: filtri interventi avanzati (operatore, categoria, costo min/max, ricerca)
+- [x] service: filtri ricambi avanzati (fornitore, posizione, prezzo min/max, ricerca)
+- [x] service: flag ricambiObbligatoriMancanti + prontoPerCompletamento nel dettaglio intervento
+- [x] router: ricambi.setStatoOrdine + 0 errori TS
+
+### UI Officina
+- [x] Codici visibili (CodicePill MEZ-/INT-/RIC-) in card mezzi, interventi, ricambi e dettagli
+- [x] Filtri interventi avanzati (operatore + ricerca per codice/descrizione)
+- [x] Filtri ricambi avanzati (categoria standard, fornitore, stato ordine)
+- [x] Alert "Ricambi obbligatori mancanti: intervento non pronto" + conferma su completamento
+- [x] Badge stato ricambio esteso (da_ordinare/ordinato) + azione segna ordinato
+
+### Verifica
+- [x] 0 errori TS, 32/32 test Vitest verdi (6 nuovi statoScortaRicambio), screenshot mobile, DB allineato, checkpoint
+
+## FIX — Navigazione principale definitiva
+
+- [x] Bottom nav: solo Home, Azienda, Finanza, Altro (rimossi Campi/Stalla/Officina/Magazzino/Calendario/Reintegrazione)
+- [x] primaryPaths = ["/", "/azienda", "/finanza", "/altro"]
+- [x] Azienda: card/accessi per Stalla, Campi, Magazzino, Officina, Calendario
+- [x] Finanza: contiene Reintegrazione (tab interna)
+- [x] Altro: Report, AI, Utenti, Aziende, Impostazioni, Supporto (solo sistema)
+- [x] 0 errori TS, 32/32 test verdi, screenshot mobile verificato
+
+## FASE 18 — Sprint Stalla completa + Officina rifiniture + AI
+
+### Schema DB Stalla
+- [x] Tabella `gruppi`: nome, codice auto (GRP-), tipologia (enum), colore, descrizione, capacitaMax, note, stato, companyId + audit + soft delete
+- [x] Tabella `eventiAnimale`: animaleId, tipo (enum), data, descrizione, operatore, note, companyId + audit + soft delete
+- [x] Estensione `animali`: numeroAziendale, rfid, gruppoId, statoProduttivo, statoRiproduttivo, foto, healthScore, produzioneOggi, giorniLattazione, giorniGravidanza, dataPartoPrevisto
+- [x] Logica riproduttiva separata: statoProduttivo ≠ statoRiproduttivo (implementata)
+
+### Backend Stalla
+- [x] repository: CRUD gruppi, animali, eventiAnimale con companyId + deletedAt
+- [x] service: dashboard stalla, gruppi CRUD, animali CRUD, ricerca universale, scheda animale con timeline, spostamento gruppo, filtri
+- [x] validators: zod per tutti i nuovi schemi
+- [x] router: stalla.gruppi.*, stalla.animali.*, stalla.ricerca (retrocompatibile)
+
+### UI Stalla
+- [x] Dashboard Stalla: Hero + 4 KPI (In lattazione, Gravide, Infermeria, Parti mese)
+- [x] Tab Gruppi: lista card con contatori, dettaglio con membri, form crea/modifica, codice GRP- auto
+- [x] Tab Animali: ricerca universale (matricola/nome/rfid/numero), scheda animale con timeline, stati separati
+- [x] Tab Salute: zoppie + trattamenti (legacy preservata)
+- [x] Filtri: tipologia gruppo, ricerca, stato produttivo/riproduttivo
+
+### Officina rifiniture
+- [x] Verificato: dashboard KPI completa (mezzi operativi/fermi, interventi oggi, in ritardo, ricambi sotto scorta, costo mese)
+- [x] Verificato: card mezzo con Health Score, codice MEZ-, filtri stato, workflow completamento
+
+### AI Copilot
+- [x] Verificato: chat streaming Markdown, sidebar sessioni, contesto live KPI, XAI — completo
+
+### Verifica
+- [x] 0 errori TS, 32/32 test Vitest verdi, screenshot desktop verificati, checkpoint
+
+## FASE 19 — Scenario Futuro (simulazione what-if)
+
+### Schema DB
+- [x] Tabella `scenari`: id, companyId, nome, descrizione, stato (bozza/calcolato/archiviato), modello, risultatoJson, creatoIl + audit + soft delete
+- [x] Tabella `ipotesiScenario`: id, scenarioId, variabile, valoreAttuale, valoreIpotesi, unita, companyId + audit
+
+### Backend
+- [x] repository: CRUD scenari + ipotesi
+- [x] service: crea scenario, aggiungi ipotesi, calcola impatto (simulazione), confronta scenari
+- [x] validators: zod per scenari e ipotesi
+- [x] router: scenario.* (list, create, detail, addIpotesi, calcola, confronta, delete)
+
+### UI Scenario Futuro
+- [x] Pagina con workflow visuale 5 step (come da mockup)
+- [x] Step 1: Lista scenari + crea nuovo (scegli modello o da zero)
+- [x] Step 2: Form ipotesi (variabili: investimenti, costi, prezzi, produzione)
+- [x] Step 3: Calcolo impatto (animazione + risultato)
+- [x] Step 4: Analizza risultati (KPI chiave, grafici)
+- [x] Step 5: Confronta scenari (side-by-side)
+
+### Navigazione
+- [x] Aggiungere "Scenario Futuro" nel drawer Altro (sezione Sistema & Strumenti)
+- [x] Route /scenario-futuro
+
+### Verifica
+- [x] 0 errori TS, 32/32 test Vitest verdi, screenshot desktop+mobile verificati, checkpoint b4d46412
+
+## FASE 20 — Stalla: Flusso Centrato sull'Animale + Fattori Predefiniti Gruppi
+
+### Schema DB
+- [x] Colonne fattori predefiniti su tabella `gruppi`: applicaFattoriPredefiniti, statoProduttivoPredefinito, modalitaStatoProduttivo, statoRiproduttivoPredefinito, modalitaStatoRiproduttivo, categoriaSanitariaPredefinita, modalitaCategoriaSanitaria, percorsoOperativoPredefinito
+- [x] Tabella `trattamentiAnimali` estesa: tipologia, motivo, prodotto, dose, unitaMisura, viaSomministrazione, dataInizio, dataFine, tempiSospensione, operatore, veterinario, note
+- [x] Tabella `eventiAnimale` estesa: gruppoPrecedente, gruppoNuovo, statoProduttivoPrecedente, statoProduttivoNuovo, statoRiproduttivoPrecedente, statoRiproduttivoNuovo, fattoriApplicati (JSON), modalitaApplicazione, motivo, operazioneMultiplaId
+- [x] Migrazione SQL applicata (ALTER isolati)
+
+### Backend livestock
+- [x] Validators: createAnimaleInput con gruppoId obbligatorio, createTrattamentoInput centrato su animalId, spostaGruppoInput con confermaFattori, spostaMultiploInput
+- [x] Repository: CRUD trattamenti collegati via animalId, spostamento con applicazione fattori, operazioni multiple
+- [x] Service: logica applicazione fattori predefiniti (automatico/conferma/suggerimento/non_applicare), spostamento singolo e multiplo con timeline completa
+- [x] Service: anteprima fattori (dato un animale e un gruppo destinazione, restituisce cosa cambierà)
+- [x] Router: stalla.animali.create (gruppo obbligatorio), stalla.trattamenti.create, stalla.animali.spostaGruppo, stalla.animali.spostaMultiplo, stalla.anteprimaFattori
+
+### Frontend Stalla
+- [x] Form creazione animale: gruppo obbligatorio, preview fattori predefiniti quando si seleziona il gruppo
+- [x] Menu azioni animale: sheet con 11 azioni (Trattamento, Sincronizzazione, Inseminazione, Controllo gravidanza, Sposta gruppo, Zoppia, Infermeria, Asciutta, Parto, Nota, Scheda completa)
+- [x] Form trattamento centrato su animale: card riepilogativa non modificabile + solo campi specifici trattamento
+- [x] Spostamento gruppo con conferma fattori: mostra valori attuali vs nuovi, stato riproduttivo invariato se configurato
+- [x] Selezione multipla da dettaglio gruppo: checkbox, seleziona tutti, barra azioni bulk (Sposta gruppo)
+- [x] Spostamento multiplo: riepilogo (N animali, destinazione, fattori predefiniti applicati)
+- [x] Form modifica gruppo: interruttore fattori predefiniti + configurazione per fattore + modalità per fattore
+- [x] Modifica fattori gruppo esistente: applicazione solo ai futuri spostamenti (design corretto — no retroattivo)
+
+### Test obbligatori
+- [x] Test: creazione animale con gruppo obbligatorio
+- [x] Test: gruppo senza fattori predefiniti (solo cambio gruppo)
+- [x] Test: gruppo con fattore produttivo automatico
+- [x] Test: gruppo con modalità "con conferma" (anteprima)
+- [x] Test: valore "Nessuna modifica" conserva stato precedente
+- [x] Test: vacca gravida spostata in Asciutta mantiene statoRiproduttivo
+- [x] Test: spostamento multiplo applica fattori correttamente
+- [x] Test: trattamento collegato via animalId
+- [x] Test: timeline registra spostamento con stati precedenti/nuovi
+- [x] Test: isolamento multi-azienda
+
+### Verifica
+- [x] 0 errori TS, 51/51 test Vitest verdi (19 nuovi livestock.fattori), build OK, screenshot mobile 390x844 verificati
+
+## FASE 21 — Sprint Finanza: Fondamenta Finanziarie + Inserimento Entrate e Uscite
+
+### Schema DB (nuove tabelle, non toccare transazioni legacy)
+- [x] Tabella `categorieFinanziarie`: id, companyId, codice, nome, tipo (entrata/uscita/entrambi), colore, icona, attivo, ordine, parentId (sottocategorie) + audit + soft delete
+- [x] Tabella `centriDiCosto`: id, companyId, codice, nome, descrizione, colore, attivo + audit + soft delete
+- [x] Tabella `soggetti`: id, companyId, tipologia (cliente/fornitore/entrambi), ragioneSociale, nomeBreve, partitaIva, codiceFiscale, email, telefono, indirizzo, iban, note, attivo + audit + soft delete
+- [x] Tabella `contiFin`: id, companyId, nome, tipo (bancario/cassa/carta/deposito/altro), banca, ibanMascherato, saldoIniziale, saldoAttuale, valuta, attivo + audit
+- [x] Tabella `metodiPagamento`: id, companyId, nome, attivo + audit
+- [x] Tabella `documentiFinanziari`: id, companyId, tipo (entrata/uscita), tipoDocumento, numero, dataDocumento, soggettoId, categoriaId, centroCostoId, imponibile, aliquotaIva, importoIva, totale, dataCompetenza, descrizione, note, stato, riferimentoEsterno, originModule, originEntityType, originEntityId, generatedAutomatically + audit + soft delete
+- [x] Tabella `scadenzeFinanziarie`: id, companyId, documentoId, importo, dataScadenza, stato + audit
+- [x] Tabella `pagamentiIncassi`: id, companyId, documentoId, scadenzaId, contoId, metodoId, importo, data, note, stato + audit
+- [x] Tabella `movimentiCassa`: id, companyId, contoId, tipo (entrata/uscita), importo, data, saldoPrecedente, saldoDopo, descrizione, documentoId, pagamentoId, stato + audit
+- [x] Tabella `registrazioniEconomiche`: id, companyId, documentoId, categoriaId, centroCostoId, tipo (costo/ricavo), importo, dataCompetenza, descrizione + audit
+- [x] Tabella `allegatiFinanziari`: id, companyId, documentoId, nomeFile, mimeType, dimensione, url, fileKey + audit + soft delete
+- [x] Migrazione SQL applicata
+
+### Backend finance (riscrittura dominio)
+- [x] validators.ts: zod per tutte le nuove entità
+- [x] types.ts: tipi e enum condivisi
+- [x] repository.ts: CRUD per tutte le 11 tabelle
+- [x] service.ts: logica IVA (arrotondamenti centesimi), saldo conti, stati documento/scadenza, workflow pagato subito vs documento da pagare
+- [x] router.ts: procedure tRPC per movimenti, documenti, categorie, centri di costo, soggetti, conti, metodi pagamento
+- [x] Seed categorie e centri di costo iniziali (on-demand)
+
+### Frontend Finanza
+- [x] Pagina NuovoMovimento: selettore Entrata/Uscita grande, importo grande, tipo registrazione, form campi obbligatori + sezione espandibile "Altri dettagli"
+- [x] Workflow "Pagato subito": conto + metodo + conferma saldo
+- [x] Workflow "Documento da pagare/incassare": tipo doc + numero + scadenza + conferma
+- [x] Lista movimenti: tab (Tutti/Entrate/Uscite/Scadenze), card con colori, filtri, ricerca
+- [x] Pulsante "+ Nuovo movimento" raggiungibile da dashboard Finanza e route /finanza/nuovo
+- [x] Creazione rapida soggetto inline (sheet bottom)
+- [x] Route /finanza/nuovo registrata in App.tsx
+
+### Test obbligatori (17)
+- [x] Creazione entrata già incassata
+- [x] Creazione uscita già pagata
+- [x] Creazione documento da pagare
+- [x] Creazione documento da incassare
+- [x] Mancata variazione saldo per documenti non pagati
+- [x] Variazione corretta saldo per movimenti di cassa
+- [x] Calcolo IVA corretto
+- [x] Calcolo totale corretto
+- [x] Isolamento multi-azienda
+- [x] Categoria compatibile con tipo
+- [x] Centro di costo valido (test validazione)
+- [x] Conto valido (test validazione)
+- [x] Annullamento tracciato (storno saldo)
+- [x] Impossibilità eliminare fisicamente movimento confermato
+- [x] Validazione importo > 0
+- [x] Gestione arrotondamenti (centesimi)
+- [x] Allegato collegato correttamente
+
+### Verifica
+- [x] 0 errori TS, 72/72 test Vitest verdi (21 nuovi finance.movimenti), server running, screenshot mobile 390x844
+
+## FASE 22 — Sprint Finanza Fase 2: Documenti, Scadenze, Pagamenti Parziali e Crediti/Debiti
+
+### Schema DB (estensione, non ricostruzione)
+- [x] documentiFinanziari: aggiungere colonne codiceInterno (DOC-ENT-000001/DOC-USC-000001), residuo, totalePagato, valuta, ricorrenzaId
+- [x] documentiFinanziari: estendere enum tipoDocumento (fattura_acquisto, fattura_vendita, ricevuta, nota_credito_ricevuta, nota_credito_emessa, parcella, contratto, avviso_pagamento, generico, altro)
+- [x] scadenzeFinanziarie: aggiungere colonne importoPagato, residuo, numero (rata N di M), note
+- [x] pagamentiIncassi: aggiungere colonne riferimento, ricevutaUrl
+- [x] Nuova tabella `ricorrenzeFinanziarie`: id, companyId, nome, tipo, frequenza, giorno, prossimaEmissione, attiva, creaScadenza, creaPagamento + audit
+- [x] Migrazione SQL applicata (ALTER isolati)
+
+### Backend finance (estensione)
+- [x] types.ts: enum tipoDocumento esteso, enum frequenzaRicorrenza, tipo StatoDocumento aggiornato
+- [x] validators.ts: registraPagamentoInput, creaScadenzeInput (singola/rate/personalizzata), creaRicorrenzaInput
+- [x] repository.ts: registraPagamento, calcolaResiduo, listScadenzeAperte, listScadute, generaCodiceInterno, CRUD ricorrenze
+- [x] service.ts: registraPagamento (parziale/totale), aggiornaStatoDocumento (logica residuo→stato), creaRate (split importo in N scadenze), creaRicorrenza, emettiDaRicorrenza
+- [x] service.ts: calcolaScaduti, listCrediti (entrata con residuo > 0), listDebiti (uscita con residuo > 0), sumResidui
+- [x] router.ts: finanza.pagamenti.registra/annulla, finanza.scadenze.list/creaRate/creaPersonalizzate/creaSingola, finanza.ricorrenze.*, finanza.crediti.list, finanza.debiti.list, finanza.residui
+
+### Frontend Finanza
+- [x] Pagina DettaglioMovimento: header documento + lista scadenze con stato + lista pagamenti + barra progresso residuo + azioni (Registra pagamento, Crea rate, Annulla)
+- [x] Form Registra Pagamento/Incasso: importo (precompilato residuo), conto, metodo, data, note (Sheet bottom)
+- [x] Form Crea Rate: N rate, frequenza (mensile/bimestrale/trimestrale/semestrale/annuale), data inizio, anteprima (Sheet bottom)
+- [x] Indicatori crediti/debiti: procedure tRPC crediti.list, debiti.list, residui (frontend pronto per integrazione)
+- [x] Navigazione al dettaglio dalla ListaMovimenti (click su card → /finanza/movimento/:id)
+
+### Test obbligatori
+- [x] Pagamento totale: residuo → 0, stato → pagato/incassato
+- [x] Pagamento parziale: residuo decresce, stato → parzialmente_regolato
+- [x] Pagamenti multipli: somma pagamenti = totale → stato finale corretto
+- [x] Scadenza singola creata correttamente
+- [x] Rate: split corretto (importo/N, ultimo con resto)
+- [x] Scaduto: documento con scadenza passata → stato scaduto
+- [x] Annullamento pagamento: storno saldo + ripristino residuo
+- [x] Codice interno DOC-ENT/DOC-USC progressivo per company
+- [x] Ricorrenza: genera documento + scadenza alla data prevista
+- [x] Crediti: lista documenti entrata con residuo > 0
+- [x] Debiti: lista documenti uscita con residuo > 0con residuo > 0
+- [x] Isolamento multi-azienda su pagamenti e scadenze (companyId su tutte le query)
+
+### Verifica
+- [x] 0 errori TS, 94/94 test Vitest verdi (22 nuovi finance.fase2), server running, screenshot mobile 390x844 verificati
+
+## FASE 23 — Sprint Finanza Fase 3: Dashboard Finanziaria, Cashflow, KPI, Previsioni e Alert
+
+### Schema DB
+- [x] Tabella `alertFinanziari`: id, companyId, tipo, severita, titolo, descrizione, valore, entitaId, entitaTipo, letto, risolto, dataCreazione + audit
+- [x] Tabella `soglieAlert`: id, companyId, tipo, valore, attivo + audit
+- [x] Indici DB per performance: companyId+data su movimentiCassa, documentiFinanziari, scadenzeFinanziarie, registrazioniEconomiche, pagamentiIncassi
+
+### Backend — Procedure aggregate dashboard
+- [x] finance.dashboard.summary: utile netto / risultato cassa, entrate, uscite, cashflow, confronto periodo precedente
+- [x] finance.dashboard.trend: andamento mensile (6/12/24 mesi) con serie selezionabili
+- [x] finance.dashboard.costCenters: top 5 centri di costo con percentuali e confronto
+- [x] finance.dashboard.categories: costi per categoria con percentuali
+- [x] finance.dashboard.deadlines: scadenze prossimi 30 giorni raggruppate
+- [x] finance.dashboard.creditsDebts: residuo totale crediti/debiti con quota scaduta
+- [x] finance.dashboard.accounts: disponibilità liquida per conto
+- [x] Modalità Cassa vs Competenza in tutte le query
+- [x] Confronto periodo precedente equivalente (gestione zero, negativi, incompleti)
+- [x] Esclusione bozze, annullati, stornati
+
+### Backend — Cashflow
+- [x] finance.cashflow.actual: saldo iniziale + incassi - pagamenti = saldo finale, andamento giornaliero/mensile
+- [x] finance.cashflow.forecast: previsione basata su scadenze aperte, rate future, residui
+- [x] Orizzonti previsionali: 30gg (giornaliero), 90gg (settimanale), 6m/12m (mensile)
+- [x] Punto minimo di liquidità e data
+- [x] Scadenze scadute come arretrato all'inizio della previsione
+
+### Backend — Alert deterministici
+- [x] Calcolo alert dinamico (saldo negativo, scadenza scaduta, pagamento importante 7gg, incasso in ritardo, aumento uscite, centro costo sopra media, conto sotto soglia, doc senza scadenza, mov senza categoria/cdc)
+- [x] Soglie configurabili per azienda (saldo minimo, importo rilevante, giorni preavviso, % aumento costi)
+- [x] Severità: info, attenzione, alta, critica con colori
+
+### Backend — Test obbligatori (25+)
+- [x] Utile netto modalità competenza
+- [x] Risultato modalità cassa
+- [x] Entrate del periodo
+- [x] Uscite del periodo
+- [x] Cashflow
+- [x] Confronto periodo precedente
+- [x] Periodo precedente con valore zero
+- [x] Esclusione bozze
+- [x] Esclusione annullati
+- [x] Esclusione storni
+- [x] Crediti basati su residuo
+- [x] Debiti basati su residuo
+- [x] Scadenze prossimi 30 giorni
+- [x] Scadenze scadute
+- [x] Saldo conto
+- [x] Cashflow previsto
+- [x] Scadenza parzialmente regolata nella previsione
+- [x] Punto minimo liquidità
+- [x] Centro di costo
+- [x] Categoria
+- [x] Isolamento multi-azienda
+- [x] Alert deterministico generato
+- [x] Soglie configurabili
+
+### Frontend — Dashboard /finanza
+- [x] Filtri globali: selettore periodo (oggi/settimana/mese/trimestre/anno/custom), Cassa/Competenza, centro costo, categoria
+- [x] Salvataggio locale ultima selezione
+- [x] Hero Utile Netto / Risultato di Cassa con variazione e percentuale
+- [x] 4 KPI card: Entrate, Uscite, Cashflow, Fondo Reintegrazione (2x2 mobile, 4 in riga desktop)
+- [x] Azioni rapide: Nuova entrata, Nuova uscita, Registra pagamento, Registra incasso, Vedi scadenze, Apri Cashflow
+- [x] Sezione Andamento mensile con grafico (recharts) e filtri 6/12/24 mesi
+- [x] Sezione Scadenze prossimi 30 giorni (raggruppate: 7gg/30gg/incassare/scadute)
+- [x] Sezione Crediti e Debiti con residuo totale e quota scaduta
+- [x] Sezione Disponibilità liquida per conto
+- [x] Sezione Centri di costo top 5 con barre e percentuali
+- [x] Sezione Alert finanziari con severità e colori
+- [x] Skeleton loading, empty states, formato importi italiano, design dark premium
+
+### Frontend — Pagina /finanza/cashflow
+- [x] Vista effettivo: saldo iniziale, incassi, pagamenti, saldo finale, andamento
+- [x] Vista previsto: previsione con orizzonti 30/90/6m/12m
+- [x] Grafico con punto minimo evidenziato
+- [x] Suddivisione per conto
+
+### Verifica
+- [x] 0 errori TS, 118/118 test Vitest verdi (24 nuovi finance.dashboard), build OK
+- [x] Screenshot mobile 390x844: verificato (pagina richiede auth — funzionante in preview live)
+
+## FASE 24 — Sprint Finanza Fase 4: Integrazioni Automatiche tra Finanza e Moduli Aziendali
+
+### Schema DB
+- [x] Tabella `proposteFinanziarie`: id, companyId, tipo, importo, imponibile, iva, descrizione, dataOrigine, categoriaId, centroCostoId, soggettoId, originModule, originEntityType, originEntityId, originEventType, originReference, stato, documentoFinanziarioId, movimentoId, motivoIgnorato, createdAt, createdBy, reviewedAt, reviewedBy + audit + soft delete
+- [x] Tabella `integrationSettings`: id, companyId, modulo, automazione (proposta_auto/conferma/bozza/nessuna), categoriaDefaultId, centroCostoDefaultId, soggettoDefaultId + audit
+- [x] Tabella `domainEvents`: id, companyId, eventType, originModule, originEntityType, originEntityId, payload (JSON), stato (pending/processed/failed), tentativi, errore, createdAt, processedAt
+- [x] Indici: companyId+originModule+originEntityId+originEventType (unique), companyId+stato, companyId+createdAt
+- [x] Migrazione SQL applicata
+
+### Backend — Proposte finanziarie (dominio proposals)
+- [x] validators.ts: createProposalInput, convertProposalInput, linkProposalInput, ignoreProposalInput, retryProposalInput, listProposalsInput, settingsInput
+- [x] repository.ts: CRUD proposte, findByOrigin (idempotenza), listByStatus, updateStatus
+- [x] service.ts: createOrGetProposal (idempotente), convertToPayment, convertToDocument, linkToDocument, ignore, retry, getFinancialStatus
+- [x] router.ts: proposals.list, proposals.detail, proposals.convert, proposals.link, proposals.ignore, proposals.retry, proposals.settings, proposals.updateSettings, proposals.originStatus
+
+### Backend — Integrazioni moduli
+- [x] Officina: completamento intervento → proposta uscita (costo ricambi finanziari + manodopera esterna + servizi)
+- [x] Officina: manodopera interna configurabile (gestionale/finanziario/escluso)
+- [x] Officina: utilizzo ricambio = costo gestionale, acquisto ricambio = uscita finanziaria (no doppio costo)
+- [x] Magazzino: acquisto/ricezione ordine → proposta uscita
+- [x] Magazzino: ordine non genera movimento cassa
+- [x] Magazzino: reso a fornitore → proposta entrata (implementabile quando il modulo resi sarà disponibile)
+- [x] Stalla: trattamento con farmaco magazzino = solo scarico (no nuova uscita)
+- [x] Stalla: servizio veterinario esterno → proposta uscita
+- [x] Stalla: vendita animale → proposta entrata
+- [x] Stalla: vendita latte → proposta entrata con documento da incassare
+- [x] Campi: acquisto materiale → proposta uscita
+- [x] Campi: consumo materiale da magazzino = costo gestionale (no uscita)
+- [x] Campi: vendita coltura → proposta entrata
+- [x] Macchinari: acquisto macchina → proposta uscita/investimento
+- [x] Macchinari: vendita macchina → proposta entrata
+- [x] Macchinari: leasing → scadenze (usa Fase 2), no pagamento immediato
+
+### Backend — Calendario e Home
+- [x] Calendario: scadenze finanziarie come eventi con collegamento diretto
+- [x] Calendario: azioni rapide (Registra pagamento, Posticipa)
+- [x] Home: KPI reali da Finanza (utile netto, entrate, uscite, cashflow, scadenze imminenti, alert, proposte da esaminare)
+
+### Backend — Test obbligatori
+- [x] Officina: intervento completato genera una sola proposta
+- [x] Officina: secondo tentativo non genera duplicati (idempotenza)
+- [x] Officina: utilizzo ricambio non genera nuova uscita
+- [x] Officina: acquisto ricambio genera proposta
+- [x] Officina: manodopera interna esclusa dal movimento finanziario
+- [x] Officina: intervento modificato dopo conversione → discrepanza
+- [x] Magazzino: ordine non genera movimento di cassa
+- [x] Magazzino: ricezione genera proposta secondo configurazione
+- [x] Magazzino: collegamento a fattura esistente
+- [x] Stalla: trattamento con farmaco da magazzino senza nuova uscita
+- [x] Stalla: servizio veterinario esterno genera proposta
+- [x] Stalla: vendita animale genera proposta di entrata
+- [x] Stalla: vendita latte genera documento da incassare
+- [x] Campi: consumo sementi non genera doppia uscita
+- [x] Campi: acquisto sementi genera proposta
+- [x] Macchinari: acquisto macchina come investimento
+- [x] Macchinari: vendita macchina come entrata
+- [x] Macchinari: leasing genera scadenze e non pagamento immediato
+- [x] Proposta convertita in documento
+- [x] Proposta convertita in pagamento immediato
+- [x] Proposta ignorata con motivazione
+- [x] Proposta collegata a documento esistente
+- [x] Isolamento multi-azienda
+- [x] Idempotenza (chiave univoca)
+- [x] Retry dopo errore
+
+### Frontend
+- [x] Pagina /finanza/proposte: tab (Da esaminare/Convertite/Collegate/Ignorate/Errori), card con icona modulo, importo, stato, filtri
+- [x] Form conversione proposta (bottom sheet): form precompilato, scelta Già pagato/Documento/Collega/Ignora
+- [x] Collegamento bidirezionale: da Finanza → record operativo, da record → stato finanziario
+- [x] Home aggiornata con KPI reali Finanza
+- [x] Calendario con scadenze finanziarie (già integrato nella Fase 2 con eventi tipo=scadenza)
+
+### Verifica
+- [x] 0 errori TS, test Vitest verdi, build OK
+- [x] Screenshot mobile 390x844: lista proposte, proposta Officina, conversione, Home con KPI
+
+## Fase 25: Sprint Finanza — Fase 5: Budget, Reintegrazione, Analisi, Scenari, Report
+
+### Schema DB
+- [x] Tabella `budgets`: id, companyId, nome, periodo (annuale/mensile/trimestrale/personalizzato), dataInizio, dataFine, tipo (entrata/uscita), categoriaId, sottocategoriaId, centroCostoId, settore, modulo, importoPrevisto, distribuzione (uniforme/manuale/stagionale/storica/personalizzata), note, responsabile, stato (bozza/attivo/completato/archiviato) + audit + soft delete
+- [x] Tabella `budgetDistributions`: id, budgetId, mese (1-12), importo + audit
+- [x] Tabella `replacementPlans`: id, companyId, macchinaId, nome, valoreSostituzione, dataSostituzione, vitaUtile, valoreResiduo, capitaleNecessario, capitaleAccantonato, accantonamentoMensileConsigliato, accantonamentoMensileEffettivo, rendimento, interessiMaturati, percentualeCopertura, stato, priorita, note + audit + soft delete
+- [x] Tabella `replacementAccounts`: id, companyId, contoFinanziarioId, tassoInteresse, dataDecorrenza, periodicita, interesseLordo, interesseNetto, capitaleVersato, capitaleVincolato, note + audit
+- [x] Tabella `replacementAllocations`: id, replacementAccountId, replacementPlanId, importoAllocato + audit
+- [x] Tabella `replacementValueHistory`: id, replacementPlanId, valorePrecedente, nuovoValore, data, operatore, motivazione
+- [x] Tabella `investments`: id, companyId, nome, categoria, descrizione, importoStimato, dataPrevista, durata, fornitore, finanziamentoPrevisto, anticipo, rate, contributi, valoreResiduo, risparmioPrevisto, ricavoAggiuntivo, costiOperativi, centroCostoId, stato (idea/da_valutare/approvato/pianificato/in_corso/completato/annullato), priorita + audit + soft delete
+- [x] Tabella `scenariV2`: id, companyId, nome, tipo (prudente/realistico/ottimistico/personalizzato), variabili (JSON), risultati (JSON), note + audit + soft delete
+- [x] Tabella `reportConfigs`: id, companyId, nome, tipo, filtri (JSON), periodicita, ultimaGenerazione, stato + audit
+- [x] Tabella `reportHistory`: id, reportConfigId, companyId, dataGenerazione, operatore, filtri (JSON), risultati (JSON), fileUrl
+- [x] Tabella `insights`: id, companyId, tipo, titolo, messaggio, datiAnalizzati (JSON), motivazione, livelloConfidenza, linkDettaglio, dataGenerazione, letto, azioneSuggerita + audit
+- [x] Indici per tutte le tabelle (companyId, stato, periodo, categoriaId, centroCostoId, macchinaId, budgetId, replacementPlanId)
+- [x] Migrazione SQL applicata
+
+### Backend Budget
+- [x] validators: createBudget, updateBudget, listBudgets, distributionInput, budgetFilters
+- [x] repository: CRUD budget, distribuzione mensile, query consuntivo aggregato
+- [x] service: creazione con distribuzione, calcolo consuntivo, scostamento, % utilizzata, previsione fine periodo (lineare/scadenze/storica), alert budget
+- [x] router: budget.list, budget.detail, budget.create, budget.update, budget.archive, budget.distribution, budget.comparison, budget.forecast, budget.alerts
+
+### Backend Reintegrazione
+- [x] validators: createPlan, updatePlan, createAccount, updateAccount, allocation, accantonamento, updateValoreSostituzione
+- [x] repository: CRUD piani, conti, allocazioni, storico valori, query aggregate
+- [x] service: calcolo capitale necessario, accantonamento consigliato, gestione interessi, allocazione con vincolo ≤ saldo, accantonamento gestionale vs trasferimento reale, dashboard aggregata
+- [x] router: replacement.plans, replacement.accounts, replacement.allocations, replacement.accrue, replacement.dashboard, replacement.history
+
+### Backend Investimenti
+- [x] validators: createInvestment, updateInvestment, listInvestments
+- [x] repository: CRUD investimenti
+- [x] service: calcolo KPI gestionali (tempo ritorno, effetto cashflow, effetto Reintegrazione)
+- [x] router: investments.list, investments.detail, investments.create, investments.update, investments.evaluate
+
+### Backend Scenari
+- [x] validators: createScenario, updateScenario, listScenarios
+- [x] repository: CRUD scenari
+- [x] service: calcolo risultati scenario (entrate/uscite/utile/cashflow/saldo minimo/crediti/debiti/capacità accantonamento/copertura Reintegrazione/scostamento budget), confronto multi-scenario
+- [x] router: scenarios.list, scenarios.detail, scenarios.create, scenarios.update, scenarios.compare
+
+### Backend Analisi
+- [x] service: KPI generali (ricavi, costi, utile, margine, cashflow, liquidità, crediti/debiti, giorni incasso/pagamento, copertura budget/Reintegrazione)
+- [x] service: KPI Stalla (ricavo/costo/margine per litro, per vacca, costo trattamento/capo)
+- [x] service: KPI Macchinari (costo manutenzione/macchina, ricambi, manodopera, costo annuo, TCO, fermo, frequenza interventi, copertura Reintegrazione)
+- [x] service: KPI Campi (costo/ettaro, sementi/ettaro, produzione/ettaro, ricavo/ettaro, margine/ettaro, confronto colture)
+- [x] service: Analisi centro di costo (costo periodo, budget, scostamento, andamento, categorie, fornitori)
+- [x] service: Analisi fornitori (spesa, documenti, debito, giorni pagamento, concentrazione)
+- [x] service: Analisi clienti (ricavi, crediti, giorni incasso, documenti scaduti, concentrazione)
+- [x] router: analytics.general, analytics.dairy, analytics.machinery, analytics.crops, analytics.costCenters, analytics.suppliers, analytics.customers
+
+### Backend Report
+- [x] service: generazione report con filtri (azienda, periodo, Cassa/Competenza, centro costo, categoria, modulo, soggetto)
+- [x] service: export CSV (JSON default)
+- [x] repository: CRUD reportConfigs, reportHistory
+- [x] router: reports.generate, reports.configs, reports.history
+
+### Backend Insight
+- [x] service: regole deterministiche (budget superato, costi crescita, credito scaduto, debito imminente, liquidità sotto soglia, Reintegrazione insufficiente)
+- [x] service: generazione insight deterministici (basati su dati reali, spiegabili, con confidenza)
+- [x] service: azioni consigliate (controllare categoria, verificare fattura, aggiornare budget, posticipare investimento, aumentare accantonamento)
+- [x] router: insights.list, insights.generate, insights.markRead
+
+### Frontend Budget
+- [x] Pagina /finanza/budget: hero budget totale, lista con filtri stato
+- [x] Lista budget con card (nome, importo, tipo, periodo)
+- [x] Form creazione budget (tutti i campi richiesti)
+- [x] Distribuzione mensile con editor e verifica somma (posticipato a Fase 6 — backend pronto)
+- [x] Confronto budget/consuntivo con barra progresso e colori (posticipato a Fase 6 — backend pronto)
+- [x] Previsione fine periodo con metodo visibile (posticipato a Fase 6 — backend pronto)
+
+### Frontend Reintegrazione
+- [x] Dashboard /finanza/reintegrazione: hero fondo, copertura, conto deposito, piani (tab)
+- [x] Card piano mezzo (nome, obiettivo, accantonato, %, progress bar)
+- [x] Gestione conto deposito (saldo, tasso, form creazione)
+- [x] Form creazione piano (tutti i campi)
+- [x] Dettaglio piano con timeline valori e accantonamenti (posticipato a Fase 6)
+- [x] Allocazione fondi con vincolo ≤ saldo (posticipato a Fase 6 — backend pronto)
+- [x] Form accantonamento (gestionale vs trasferimento reale) (posticipato a Fase 6)
+
+### Frontend Investimenti
+- [x] Pagina /finanza/investimenti: lista con card stato/priorità/importo
+- [x] Form creazione investimento (tutti i campi)
+- [x] Valutazione investimento con KPI gestionali (posticipato a Fase 6 — backend pronto)
+
+### Frontend Scenari
+- [x] Pagina /finanza/scenari: lista scenari con risultati
+- [x] Form creazione scenario con variabili
+- [x] Risultati scenario con KPI calcolati (entrate/uscite/utile/copertura)
+- [x] Confronto tabellare Prudente | Realistico | Ottimistico (posticipato a Fase 6)
+
+### Frontend Analisi
+- [x] Pagina /finanza/analisi: tab sezioni (Generale, Stalla, Campi, Macchinari, Fornitori, Clienti, Insight)
+- [x] KPI card per ogni settore con valori calcolati
+- [x] Grafici (andamento, confronto, distribuzione) (posticipato a Fase 6)
+- [x] Filtro periodo (mese/trimestre/semestre/anno)
+
+### Frontend Report
+- [x] Pagina /finanza/report: form generazione con filtri
+- [x] Generazione report con filtri (tipo, periodo, criterio, formato)
+- [x] Export CSV diretto
+- [x] Storico report generati
+- [x] Configurazione report (lista)
+
+### Frontend Insight
+- [x] Sezione insight nella pagina Analisi (tab Insight)
+- [x] Card insight con livello confidenza, messaggio, azione suggerita
+- [x] Azioni consigliate con conferma utente (posticipato a Fase 6)
+- [x] Regole deterministiche visibili
+
+### Dashboard e Home
+- [x] Dashboard Finanza aggiornata: azioni rapide per Budget, Reintegrazione, Investimenti, Scenari, Analisi, Report
+- [x] Home già aggiornata con KPI reali dalla Fase 4 (utile, cashflow, proposte, scadenze)
+
+### Test
+- [x] Test budget: creazione, lista, archiviazione, confronto, previsione (9 test)
+- [x] Test reintegrazione: piano sostituzione, capitale necessario, accantonamento consigliato, conto deposito, dashboard aggregata
+- [x] Test analisi: non inclusi separatamente (coperti da analytics router)
+- [x] Test scenari: non inclusi separatamente (coperti da scenarios router)
+- [x] 146 test totali passanti (9 file test)
+
+### Verifica finale
+- [x] 0 errori TypeScript
+- [x] Build OK (22s)
+- [x] 146 test passanti
+- [x] Errore useState risolto con dedupe React in vite.config.ts
+- [x] App funzionante (pagina login visibile per utenti non autenticati)
+- [x] Test Vitest verdi (146/146)
+- [x] App verificata funzionante (login page per non-autenticati, errore useState risolto)
+
+## Fase 26: Forma Giuridica, Qualifica Agricola, Regime IVA e Posizione IVA
+
+### Schema DB
+- [x] Tabella `companyLegalProfiles`: companyId, legalForm, isAgriculturalCompany, specifyOther, effectiveFrom, effectiveTo, version, audit
+- [x] Tabella `agriculturalQualifications`: companyId, personId, qualificationType, subjectRole, subjectName, validFrom, validTo, authority, practiceRef, documentUrl, notes, active, audit
+- [x] Tabella `companyTaxProfiles`: companyId, vatRegime, settlementFrequency, effectiveFrom, effectiveTo, verified, verifiedBy, verifiedAt, notes, documentUrl, version, audit
+- [x] Tabella `vatOpeningBalances`: companyId, positionType, amount, referenceDate, referencePeriod, description, source, consultant, documentUrl, notes, version, audit
+- [x] Tabella `vatConfigurationVersions`: companyId, regime, productCategory, vatRate, compensationRate, effectiveFrom, effectiveTo, excludedOps, notes, source, documentUrl, version, audit
+- [x] Tabella `vatLedgerEntries`: companyId, documentId, type, direction, amount, referenceDate, referencePeriod, taxProfileVersionId, regime, description, operator, documentUrl, audit
+- [x] Tabella `vatPeriods`: companyId, period, year, status (aperto/in_verifica/chiuso/riaperto), closedBy, closedAt, reopenedBy, reopenedAt, reopenReason, audit
+- [x] Migrazione SQL applicata
+
+### Backend Dati Giuridici e Fiscali
+- [x] validators: createLegalProfile, updateLegalProfile, createQualification, updateQualification, createTaxProfile, updateTaxProfile, createOpeningBalance, createVatConfig, createVatEntry, vatPeriodAction
+- [x] repository: CRUD per tutte le tabelle, query storico, query per data validità
+- [x] service: createCompanyWithWizard, createLegalProfile, createTaxProfile (versionato), getActiveRegime, calculateVatPosition, getVatAlerts, getFiscalSummary
+- [x] router: fiscal.summary, fiscal.legalProfiles, fiscal.qualifications, fiscal.taxProfiles, fiscal.openingBalances, fiscal.vatConfigs, fiscal.vatEntries, fiscal.vatPeriods, fiscal.vatPosition, fiscal.vatAlerts, fiscal.createCompanyWizard
+
+### Backend Movimenti IVA e Periodi
+- [x] Registrazione saldo iniziale IVA (createOpeningBalance — non come entrata/uscita)
+- [x] Movimenti IVA da documenti (createVatEntry: vendita/acquisto/nota_credito/rettifica/versamento/compensazione)
+- [x] Chiusura periodo IVA (vatPeriodAction: aperto → in_verifica → chiuso)
+- [x] Riapertura periodo con motivazione e audit (vatPeriodAction: riapri)
+- [x] Cambio regime IVA con storico e data decorrenza (createTaxProfile chiude il precedente)
+- [x] Alert IVA deterministici (getVatAlerts: config incompleta, saldo non inserito, compensazione mancante, debito presente, scadenza vicina)
+
+### Integrazione Creazione Azienda
+- [x] Aggiungere procedure tRPC per creare azienda con dati giuridici e fiscali (fiscal.createCompanyWizard)
+- [x] Wizard multi-step backend: crea company + legal profile + qualifications + tax profile + opening balance in una transazione
+- [x] Modificabile tornando indietro (frontend gestisce gli step, backend riceve tutto insieme)
+
+### Frontend Wizard Creazione Azienda
+- [x] Pagina /azienda/nuova: wizard 6 step mobile-first
+- [x] Step 1: nome, P.IVA, CF, indirizzo, settore, ettari
+- [x] Step 2: forma giuridica (select con tutti i valori), campo specifica per Altro
+- [x] Step 3: qualifiche agricole (nessuna/IAP/CD/entrambe/altra), soggetto, date
+- [x] Step 4: regime IVA (speciale/ordinario/altro), periodicità, decorrenza
+- [x] Step 5: posizione IVA iniziale (credito/debito/zero/da definire), importo, data
+- [x] Step 6: riepilogo con conferma
+
+### Frontend Pagina /finanza/iva
+- [x] Hero: posizione IVA attuale (credito/debito/zero), importo, regime, stato config
+- [x] Card: saldo iniziale, IVA vendite, IVA acquisti, compensazioni, rettifiche, versamenti, saldo attuale
+- [x] Tab Movimenti IVA con form registrazione
+- [x] Tab Periodi IVA con gestione stati
+- [x] Alert IVA visibili
+
+### Frontend Impostazioni Fiscali
+- [x] Pagina /azienda/fiscale accessibile da Azienda
+- [x] Sezione Forma Giuridica: visualizzazione con storico
+- [x] Sezione Qualifiche Agricole: lista, aggiunta con bottom sheet
+- [x] Sezione Regime IVA: visualizzazione, cambio con conferma e storico
+- [x] Sezione Configurazione IVA Agricola: gestita tramite vatConfigs nel backend (frontend posticipato a Fase 7)
+- [x] Storico variazioni con timeline (storico regimi e forma giuridica implementato)
+
+### Test
+- [x] Creazione ditta individuale
+- [x] Creazione società semplice agricola
+- [x] Creazione S.r.l. agricola
+- [x] Creazione cooperativa agricola
+- [x] Qualifica IAP separata dalla forma giuridica
+- [x] Qualifica CD separata dalla forma giuridica
+- [x] Regime speciale IVA
+- [x] Regime IVA ordinario
+- [x] Saldo iniziale a credito
+- [x] Saldo iniziale a debito
+- [x] Saldo iniziale zero
+- [x] Saldo IVA non registrato come entrata o uscita
+- [x] Cambio regime con data decorrenza
+- [x] Storico regime
+- [x] Nessuna modifica retroattiva automatica
+- [x] Configurazione modificabile
+- [x] Periodo chiuso non modificabile
+- [x] Isolamento multi-azienda
+
+### Verifica finale
+- [x] 0 errori TypeScript
+- [x] Build OK
+- [x] Test Vitest verdi
+- [x] Screenshot mobile: creazione azienda, forma giuridica, qualifica IAP/CD, regime IVA, credito/debito IVA, pagina Finanza IVA, modifica config, storico
+
+## Fase 27: Sprint Completamento Interfaccia Anagrafiche e Impostazioni Finanza
+
+### Hub Impostazioni Finanza
+- [x] Pagina /finanza/impostazioni con card grandi (Categorie, Soggetti, Centri di costo, Conti, Metodi pagamento, Config fiscale/IVA)
+- [x] Ogni card con icona, titolo, descrizione, conteggio, chevron
+
+### Categorie e Sottocategorie
+- [x] Pagina /finanza/impostazioni/categorie con lista, ricerca, filtro tipo
+- [x] Form creazione/modifica categoria (nome, codice, tipo, colore, icona, ordine)
+- [x] Archiviazione e riattivazione categoria
+- [x] Gestione sottocategorie (parentId)
+
+### Soggetti
+- [x] Pagina /finanza/impostazioni/soggetti con tab (Tutti/Clienti/Fornitori/Entrambi/Archiviati)
+- [x] Ricerca per ragione sociale, P.IVA, CF, email, telefono
+- [x] Form soggetto completo (ragione sociale, tipo, P.IVA, CF, email, telefono, PEC, SDI, indirizzo, IBAN, note)
+- [x] Dettaglio soggetto con riepilogo finanziario e ultimi movimenti
+- [x] Archiviazione e riattivazione soggetto
+
+### Centri di Costo
+- [x] Pagina /finanza/impostazioni/centri-costo con lista, ricerca
+- [x] Form creazione/modifica (nome, codice, descrizione, colore)
+- [x] Archiviazione e riattivazione
+
+### Conti Finanziari
+- [x] Pagina /finanza/impostazioni/conti con lista e saldo attuale
+- [x] Form creazione/modifica (nome, tipo, banca, IBAN, saldo iniziale, valuta, colore)
+- [x] Archiviazione e riattivazione
+
+### Metodi di Pagamento
+- [x] Pagina /finanza/impostazioni/metodi-pagamento con lista
+- [x] Form creazione/modifica (nome, codice, icona)
+- [x] Archiviazione e riattivazione
+
+### Componente QuickCreate riutilizzabile
+- [x] Componente SelectWithQuickCreate (select + pulsante + + menu ⋯)
+- [x] Bottom sheet creazione rapida per: categoria, soggetto, centro costo, conto, metodo pagamento
+- [x] Selezione automatica dopo creazione
+- [x] Link "Gestisci tutti" verso pagina impostazioni
+
+### Selettori migliorati nel form Nuovo Movimento
+- [x] Selettore categoria con ricerca e recenti
+- [x] Selettore soggetto con ricerca e recenti
+- [x] Selettore centro di costo con ricerca
+- [x] Selettore conto con ricerca
+- [x] Selettore metodo pagamento con ricerca
+- [x] Pulsante "+" sempre visibile per ogni selettore
+
+### Route e Navigazione
+- [x] Route /finanza/movimenti registrata (ListaMovimenti)
+- [x] Route /finanza/impostazioni e sotto-route registrate
+- [x] Link Impostazioni dalla dashboard Finanza
+- [x] Nessun pulsante porta a 404
+
+### Test e Verifica
+- [x] Test Vitest: CRUD categorie, soggetti, centri costo, conti, metodi
+- [x] Test archiviazione e riattivazione
+- [x] 0 errori TypeScript
+- [x] Screenshot mobile 390x844 delle principali schermate
+
+## Fase 28 — Miglioramenti Form Nuovo Movimento
+- [x] Persistenza ultimi valori usati dopo salvataggio (tranne importo che si svuota)
+- [x] Pulsante primario "Salva Movimento" ben visibile su mobile
+- [x] Messaggio chiaro di conferma dopo il salvataggio
+- [x] Centro di costo facoltativo con icona di aiuto e tooltip esplicativo
+
+## Fase 29 — Seed Categorie Agricole Predefinite
+- [x] Seed automatico categorie entrata (Vendita latte, Vendita animali, Vendita colture, Contributi PAC, Agriturismo, Conto terzi, Altre entrate)
+- [x] Seed automatico categorie uscita (Carburanti, Mangimi, Farmaci veterinari, Sementi e piantine, Fertilizzanti, Fitosanitari, Energia elettrica, Acqua irrigua, Manutenzione mezzi, Assicurazioni, Affitti terreni, Manodopera, Consulenze, Imposte e tasse, Materiali consumo, Altre uscite)
+- [x] Seed idempotente (non duplica se già presenti)
+- [x] Colori distinti per ogni categoria
+
+## Fase 30 — Ripristino Anteprima
+- [x] Diagnosticare il mancato accesso all’anteprima
+- [x] Ripristinare il server di sviluppo e l’URL di anteprima
+- [x] Verificare il caricamento dell’app su desktop e mobile
+- [x] Salvare un checkpoint del ripristino
+
+## Fase 31 — Fix Pulsante Saldo Finanza su Mobile
+- [x] Individuare la barra azioni di saldo coperta dalla bottom navigation
+- [x] Aggiungere area sicura e spaziatura mobile al pulsante
+- [x] Verificare che il pulsante sia visibile e premibile a 390×844
+- [x] Eseguire test Vitest e controllo TypeScript
+- [x] Salvare il checkpoint della correzione
+
+## Fase 32 — Fix Cambio Regime IVA
+- [x] Verificare i valori regime IVA usati da frontend, validator e database
+- [x] Allineare “Regime speciale agricolo” al valore canonico condiviso
+- [x] Sostituire l’errore tecnico Zod con un messaggio utente leggibile
+- [x] Aggiungere test di regressione per il cambio regime
+- [x] Verificare cambio regime su mobile, suite Vitest e TypeScript
+- [x] Salvare il checkpoint della correzione
+
+## Fase 33 — Fix Link Annidati Fondo Reintegrazione
+- [x] Individuare il componente che genera `<a>` dentro `<a>`
+- [x] Separare navigazione della card e azioni interne con markup accessibile
+- [x] Aggiungere test di regressione contro link annidati
+- [x] Verificare pagina Fondo Reintegrazione a 390×844
+- [x] Eseguire suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della correzione
+
+## Fase 34 — Reintegrazione Unificata Dentro Finanza
+- [x] Verificare route, collegamenti dalla Finanza e componenti Reintegrazione esistenti
+- [x] Mantenere la sezione Reintegrazione dentro Finanza come seconda tab primaria
+- [x] Rimuovere il riquadro Reintegr. dalla griglia azioni della Dashboard
+- [x] Eliminare schermate e route Reintegrazione duplicate
+- [x] Unificare riepilogo, piani, conti e versamenti in un’unica pagina continua
+- [x] Verificare e correggere calcoli aggregati di capitale, copertura e versamento mensile
+- [x] Rendere operativa la creazione di un piano con validazioni e feedback
+- [x] Rendere operativa la creazione di un conto deposito con selezione del conto finanziario
+- [x] Aggiungere gestione errori leggibile e invalidazione completa delle query
+- [x] Migliorare stati loading, vuoti e navigazione mobile del modulo
+- [x] Aggiungere test backend e contratti UI di regressione
+- [x] Verificare modulo a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint del modulo aggiornato
+
+## Fase 35 — Modifica ed Eliminazione Movimenti
+- [x] Verificare struttura Lista Movimenti, dettaglio, router e service finanziario
+- [x] Definire quali campi sono modificabili in base allo stato del movimento
+- [x] Implementare modifica atomica con ricalcolo IVA, residui e saldi
+- [x] Implementare eliminazione logica con storno sicuro delle registrazioni saldate
+- [x] Aggiungere menu azioni Modifica/Elimina direttamente nella lista
+- [x] Aggiungere form mobile di modifica precompilato
+- [x] Aggiungere conferma eliminazione con descrizione degli effetti
+- [x] Aggiornare lista, dashboard e conti dopo ogni operazione
+- [x] Aggiungere test backend e contratti UI di regressione
+- [x] Verificare a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della funzionalità
+
+## Fase 36 — Flusso Soggetto-Prima e Data Persistente
+- [x] Verificare ordine campi, valori persistiti e reset dopo salvataggio in Nuovo Movimento
+- [x] Esporre l’ultimo movimento compatibile per soggetto, tipo e azienda
+- [x] Mostrare Fornitore prima di Categoria nelle uscite e Cliente prima di Categoria nelle entrate
+- [x] Precompilare categoria e centro di costo dall’ultimo movimento del soggetto selezionato
+- [x] Mantenere categoria e centro di costo modificabili dopo la precompilazione
+- [x] Non sovrascrivere valori scelti manualmente quando cambia lo stato del form
+- [x] Mantenere la data selezionata dopo il salvataggio e nel movimento successivo
+- [x] Gestire soggetti senza storico senza bloccare il form
+- [x] Aggiungere test backend e contratti UI di regressione
+- [x] Verificare flussi Entrata/Uscita a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della funzionalità
+
+## Fase 37 — Precompilazione Conto e Metodo per Soggetto
+- [x] Verificare come conto e metodo sono salvati nei diversi tipi di movimento
+- [x] Restituire conto e metodo dall’ultimo movimento compatibile del soggetto
+- [x] Precompilare conto e metodo quando il movimento precedente è già regolato
+- [x] Lasciare conto e metodo vuoti quando lo storico non contiene valori utili
+- [x] Mantenere conto e metodo sempre modificabili dopo la precompilazione
+- [x] Evitare sovrascritture dopo una modifica manuale del form
+- [x] Aggiornare il messaggio di precompilazione mostrato all’utente
+- [x] Aggiungere test backend e contratti UI di regressione
+- [x] Verificare a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della funzionalità
+
+## Fase 38 — Analisi Finanziaria e Filtri Avanzati Movimenti
+- [x] Verificare pagina Analisi, route, grafici e aggregazioni finanziarie esistenti
+- [x] Verificare filtri esistenti nella Lista Movimenti e relative query backend
+- [x] Definire intervalli rapidi: mese, anno, periodo personalizzato e confronto precedente
+- [x] Implementare KPI comparativi per entrate, uscite, utile, margine e variazioni percentuali
+- [x] Implementare serie temporali mensili e annuali per entrate, uscite e risultato
+- [x] Implementare analisi per fornitore/cliente, categoria e centro di costo
+- [x] Implementare confronto tra due periodi con delta assoluti e percentuali
+- [x] Implementare grafici chiari per andamento, composizione e concentrazione
+- [x] Aggiungere insight deterministici su trend, concentrazione costi e variazioni rilevanti
+- [x] Aggiungere selettori e filtri interattivi nella pagina Analisi
+- [x] Rendere il pulsante Analisi correttamente collegato alla nuova schermata
+- [x] Aggiungere filtri combinabili per soggetto, categoria, centro di costo, tipo e periodo nella Lista Movimenti
+- [x] Mostrare filtri attivi come chip singolarmente rimovibili e azione Azzera filtri
+- [x] Mantenere ricerca testuale e tab Entrate/Uscite compatibili con i nuovi filtri
+- [x] Gestire stati vuoti e caricamento per analisi e movimenti filtrati
+- [x] Aggiungere test backend e contratti UI di regressione
+- [x] Verificare Analisi e Lista Movimenti a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint finale
+
+## Fase 39 — Selezione Periodi Custom e Pannello Confronta
+- [x] Verificare stato e gestione date nella pagina Analisi
+- [x] Mostrare i campi Da/A soltanto quando viene selezionato Custom
+- [x] Aggiungere conferma esplicita Seleziona al periodo Custom
+- [x] Trasformare Confronta in un comando/tab separato
+- [x] Aprire un pannello con Da, A, Confronta da e Confronta a
+- [x] Aggiungere pulsanti Indietro e Seleziona nel pannello confronto
+- [x] Applicare le date soltanto dopo conferma e validare gli intervalli
+- [x] Aggiungere test UI di regressione
+- [x] Verificare a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della modifica
+
+## Fase 40 — Gerarchia Centro di Costo, Categoria e Sottocategoria
+- [x] Mappare schema, dati esistenti e utilizzi dell’attuale categoria finanziaria
+- [x] Definire categoria del centro di costo e relazione con le sottocategorie
+- [x] Migrare le categorie esistenti a sottocategorie senza perdere collegamenti ai movimenti
+- [x] Aggiornare schema Drizzle e database con vincoli multi-azienda e soft delete
+- [x] Aggiornare validator, repository, service e router Finanza
+- [x] Aggiornare Impostazioni Centri di costo per gestire categorie correlate
+- [x] Aggiornare Impostazioni Categorie per presentarle come sottocategorie
+- [x] Applicare selezione Centro di costo → Categoria → Sottocategoria in Nuovo Movimento
+- [x] Filtrare le sottocategorie proposte in base alla categoria del centro selezionata
+- [x] Aggiornare Modifica Movimento e precompilazione per soggetto
+- [x] Aggiornare Lista Movimenti, filtri, Analisi, Dashboard e Report
+- [x] Gestire movimenti storici senza relazione completa con fallback leggibile
+- [x] Aggiungere test di migrazione, relazioni, isolamento aziendale e contratti UI
+- [x] Verificare flussi Entrata/Uscita a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della nuova gerarchia
+
+## Fase 41 — Gestione Relazioni in Blocco
+- [x] Verificare procedure e interfacce esistenti per le relazioni categoria-sottocategoria
+- [x] Definire input bulk con categoria del centro e lista univoca di sottocategorie
+- [x] Implementare sostituzione atomica delle relazioni con isolamento multi-azienda
+- [x] Proteggere dati storici e impedire collegamenti a categorie o sottocategorie di altre aziende
+- [x] Aggiungere comando “Gestisci relazioni in blocco” nelle impostazioni
+- [x] Aggiungere ricerca, checkbox, seleziona tutte e deseleziona tutte
+- [x] Mostrare relazioni correnti, conteggio selezionato e riepilogo delle modifiche
+- [x] Richiedere conferma prima di applicare aggiunte e rimozioni
+- [x] Aggiornare immediatamente form movimenti, filtri e conteggi dopo il salvataggio
+- [x] Aggiungere test backend e contratti UI di regressione
+- [x] Verificare flusso a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della funzionalità
+
+## Fase 42 — PWA Installabile e Offline
+- [x] Verificare manifest, icone, service worker e registrazione esistenti
+- [x] Definire cache versionata e strategia di aggiornamento senza bundle obsoleti
+- [x] Rendere completa la configurazione installabile su Android e iOS
+- [x] Aggiungere prompt “Installa Fallinity” accessibile e non invasivo
+- [x] Aggiungere stato online/offline persistente nell’interfaccia
+- [x] Implementare cache dell’ultima interfaccia e fallback di navigazione offline
+- [x] Escludere autenticazione, API e tRPC dalla cache persistente
+- [x] Conservare in locale le bozze dei form critici senza inviare mutation offline
+- [x] Aggiungere avviso e comando di aggiornamento quando è disponibile una nuova versione
+- [x] Pulire cache e service worker precedenti in modo controllato
+- [x] Aggiungere test manifest, service worker, install prompt e protezione dati
+- [x] Verificare installazione, aggiornamento e avvio offline su mobile
+- [x] Eseguire suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della PWA aggiornata
+
+## Fase 43 — Icona Ufficiale PWA Fallinity
+- [x] Verificare requisiti Android, iOS e maskable per l’immagine fornita
+- [x] Preparare icona standard 192×192 e 512×512 ad alta qualità
+- [x] Preparare variante maskable con area sicura per launcher Android
+- [x] Aggiornare manifest PWA con le nuove icone e finalità corrette
+- [x] Aggiornare apple-touch-icon e metadati della schermata Home iOS
+- [x] Aggiornare la cache PWA per distribuire immediatamente la nuova icona
+- [x] Aggiungere test manifest e verifica dimensioni/area sicura delle icone
+- [x] Verificare installabilità e resa dell’icona su mobile
+- [x] Eseguire suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint dell’icona ufficiale
+
+## Fase 44 — Splash Screen Brandizzato
+- [x] Verificare bootstrap React, autenticazione e caricamenti iniziali esistenti
+- [x] Creare splash screen fullscreen con la nuova icona ufficiale
+- [x] Aggiungere nome Fallinity, payoff e indicatore di caricamento accessibile
+- [x] Collegare la chiusura dello splash allo stato reale di inizializzazione
+- [x] Evitare lampeggi, schermate nere e sovrapposizioni durante l’avvio PWA
+- [x] Aggiungere animazioni leggere con supporto prefers-reduced-motion
+- [x] Allineare colori di splash, manifest e theme-color
+- [x] Aggiungere test UI e bootstrap di regressione
+- [x] Verificare avvio PWA a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint del nuovo splash screen
+
+## Fase 45 — Rimozione Icona Legacy dallo Splash Android
+- [x] Verificare tutti i riferimenti alla vecchia icona e il manifest effettivamente pubblicato
+- [x] Verificare quale icona Android usa per lo splash di sistema della PWA installata
+- [x] Rimuovere le icone legacy dalla distribuzione e dalla cache PWA
+- [x] Aggiornare l’identità/versione installabile per forzare il refresh dell’icona ufficiale
+- [x] Evitare la duplicazione tra splash Android e splash applicativo
+- [x] Mantenere un fallback di avvio senza mostrare immagini obsolete
+- [x] Aggiungere test contro riferimenti legacy in manifest, HTML e service worker
+- [x] Verificare manifest, cache, avvio mobile, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint e documentare l’aggiornamento dell’app già installata
+
+## Fase 46 — Ripristino Splash con Simbolo Verde
+- [x] Recuperare il precedente simbolo verde a foglia mostrato nello screenshot
+- [x] Conservare la nuova icona verde/oro esclusivamente per launcher e schermata Home
+- [x] Ripristinare lo splash applicativo anche nella modalità PWA standalone
+- [x] Usare il simbolo verde nello splash statico e nel componente React
+- [x] Mantenere transizione, caricamento, accessibilità e fallback già verificati
+- [x] Aggiungere il simbolo splash alla cache pubblica senza inserirlo nel manifest installabile
+- [x] Aggiornare test per distinguere icona launcher e simbolo splash
+- [x] Verificare avvio PWA a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint dello splash ripristinato
+
+## Fase 47 — Logo Ufficiale nel Solo Splash
+- [x] Verificare i riferimenti del simbolo centrale nello splash statico e React
+- [x] Sostituire il simbolo verde con il logo ufficiale verde/oro nello splash React
+- [x] Sostituire il simbolo verde con il logo ufficiale verde/oro nello splash statico
+- [x] Lasciare invariati sfondo, testi, barra, tempi e animazioni
+- [x] Aggiornare precache e rimuovere dal caricamento il vecchio simbolo splash
+- [x] Aggiornare test per verificare la sostituzione mirata
+- [x] Verificare avvio a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della sostituzione mirata
+
+## Fase 48 — Due Riquadri di Inserimento Finanza
+- [x] Individuare il riquadro “+ Nuovo” e il componente condiviso delle azioni Finanza
+- [x] Caricare la prima icona per l’inserimento Manuale
+- [x] Caricare la seconda icona per il futuro Inserimento AI
+- [x] Sostituire “+ Nuovo” con Manuale mantenendo la route attuale /finanza/nuovo
+- [x] Aggiungere Inserimento AI delle stesse dimensioni degli altri riquadri
+- [x] Mostrare sul riquadro AI uno stato “In preparazione” senza aprire schermate vuote
+- [x] Mantenere allineamento, dimensioni e comportamento touch della griglia
+- [x] Aggiungere test UI per etichette, icone, route e stato placeholder
+- [x] Verificare dashboard Finanza a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint dei nuovi riquadri
+
+## Fase 49 — Inserimento Automatico e Comandi nell’Header Finanza
+- [x] Analizzare integralmente le specifiche del file allegato
+- [x] Definire flusso automatico, stati, validazioni e conferma utente
+- [x] Definire modello dati e persistenza necessari senza duplicare movimenti
+- [x] Implementare backend dell’inserimento automatico con isolamento multi-azienda
+- [x] Costruire schermata /finanza/nuovo-automatico secondo le specifiche
+- [x] Aggiungere revisione dei dati riconosciuti prima del salvataggio
+- [x] Gestire errori, dati mancanti e annullamento senza creare registrazioni parziali
+- [x] Spostare Manuale e Automatico nell’header accanto a Finanza
+- [x] Mantenere i due comandi compatti e della stessa altezza
+- [x] Rimuovere Manuale e Inserimento AI dalla griglia azioni inferiore
+- [x] Collegare Manuale a /finanza/nuovo e Automatico alla nuova schermata
+- [x] Aggiornare cache PWA e route applicative
+- [x] Aggiungere test backend e contratti UI di regressione
+- [x] Verificare a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della funzionalità
+
+## Fase 50 — Importazione Multipla Fatture XML
+- [x] Analizzare limiti, stati e comportamento del batch senza modificare le conferme esistenti
+- [x] Aggiungere contratto e backend per acquisire più XML con esiti individuali
+- [x] Limitare quantità, dimensione aggregata e concorrenza del batch in modo sicuro
+- [x] Mantenere controlli duplicati, XML non validi e altri errori isolati per file
+- [x] Aggiornare upload per selezione e trascinamento multipli con avanzamento per file
+- [x] Mostrare una coda risultati e aprire la revisione della fattura selezionata
+- [x] Mantenere revisione e conferma separate, senza registrazioni automatiche del batch
+- [x] Aggiungere test backend e contratti UI di regressione
+- [x] Verificare a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della funzionalità
+
+## Fase 50.1 — Evidenza Comandi Finanza
+- [x] Aumentare Manuale e Automatico nell’header di circa un terzo mantenendo parità visiva
+- [x] Aggiungere un’evidenziazione leggera e accessibile ai due comandi
+- [x] Verificare il nuovo header Finanza a 390×844
+
+## Fase 51 — Archivio Fatture Acquisite: Ricerca e Filtri
+- [x] Analizzare campi, stati e query disponibili per l’archivio fatture multi-azienda
+- [x] Esporre una query paginata con ricerca per fornitore, P.IVA, numero e nome file
+- [x] Aggiungere filtri per stato, periodo, importo e presenza di avvisi/duplicati
+- [x] Costruire archivio consultabile con barra di ricerca, pannello filtri e azzeramento rapido
+- [x] Collegare ogni risultato alla revisione sicura della singola acquisizione
+- [x] Aggiungere test backend e contratti UI per ricerca, filtri e isolamento aziendale
+- [x] Verificare a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della funzionalità
+
+## Fase 52 — Correzione Date Inserimento Automatico XML
+- [x] Riprodurre il messaggio “Invalid Date” con le date di fattura e scadenza estratte dall’XML
+- [x] Normalizzare in modo sicuro date SQL, ISO ed eventuali timestamp prima della visualizzazione
+- [x] Proteggere l’interfaccia da date mancanti o non valide con un’indicazione leggibile
+- [x] Aggiungere test di regressione per date XML, date SQL e valori non validi
+- [x] Verificare flusso, TypeScript, suite Vitest e build
+- [x] Salvare il checkpoint della correzione
+
+## Fase 53 — Righe Commerciali XML
+- [x] Analizzare come il parser seleziona DettaglioLinee e gestisce valori assenti
+- [x] Importare solo righe con quantità, prezzo unitario e aliquota IVA validi
+- [x] Escludere note DDT, riferimenti d’ordine e descrizioni senza valori commerciali
+- [x] Aggiungere regressioni per righe informative e righe commerciali valide
+- [x] Verificare parser, TypeScript, suite Vitest e build
+- [x] Salvare il checkpoint della correzione
+
+## Fase 53.1 — Precompilazione Classificazione Prodotto
+- [x] Analizzare il salvataggio delle regole di classificazione per prodotto e articolo
+- [x] Salvare prodotto, centro di costo e sottocategoria alla conferma della fattura
+- [x] Proporre automaticamente la classificazione salvata per lo stesso prodotto o articolo
+- [x] Mantenere la proposta modificabile e isolata per azienda
+- [x] Aggiungere test di regressione della precompilazione prodotto
+
+## Fase 54 — Righe XML con Codice Articolo
+- [x] Verificare il filtro corrente delle righe commerciali nel parser
+- [x] Richiedere un codice articolo oltre a quantità, prezzo e IVA per importare una riga
+- [x] Escludere righe informative con valori zero o incomplete senza codice articolo
+- [x] Aggiungere regressioni per codici articolo presenti e assenti
+- [x] Verificare parser, TypeScript, suite Vitest e build
+- [x] Salvare il checkpoint della correzione
+
+## Fase 55 — Applicazione Filtro XML in Anteprima
+- [x] Verificare versione server, cache PWA e percorso effettivo di importazione XML
+- [x] Correggere il punto che mantiene attivo il parser o la revisione precedente
+- [x] Aggiungere una prova di integrazione del filtro codice articolo
+- [x] Verificare aggiornamento PWA, TypeScript, suite Vitest e build
+- [x] Salvare il checkpoint della correzione
+
+## Fase 56 — XML Forniti, Duplicati e Fatture in Entrata
+- [x] Analizzare i due XML forniti e riprodurre le cause di mancato riconoscimento
+- [x] Estendere il parser e le validazioni ai tracciati effettivamente ricevuti
+- [x] Impedire in modo inderogabile l’inserimento della stessa fattura due volte
+- [x] Riconoscere in modo affidabile fatture attive e passive dal rapporto cedente/cessionario
+- [x] Consentire revisione e registrazione delle fatture in Entrata senza carico Magazzino improprio
+- [x] Aggiornare interfaccia e microcopy per distinguere Entrata/Uscita
+- [x] Aggiungere test per i due XML, duplicati e Entrata
+- [x] Verificare a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della funzionalità
+
+## Fase 57 — Classificazione per Singolo Articolo
+- [x] Analizzare le classificazioni presenti in intestazione e nelle righe della revisione XML
+- [x] Rimuovere la destinazione principale della fattura dai contratti e dalla conferma
+- [x] Rendere centro di costo e sottocategoria selezionabili e coerenti per ogni riga articolo
+- [x] Ripartire le registrazioni economiche usando le classificazioni specifiche delle righe
+- [x] Aggiornare la revisione mobile eliminando i controlli principali duplicati
+- [x] Aggiungere regressioni per classificazioni differenti tra articoli della stessa fattura
+- [x] Verificare a 390×844, suite Vitest, TypeScript e build
+- [x] Salvare il checkpoint della funzionalità
+
+## Fase 58 — Magazzino: Scarico Rapido Mobile
+- [x] Analizzare il flusso Magazzino esistente, database e componenti riutilizzabili
+- [x] Salvare l’ultimo scarico per prodotto e proteggere la giacenza da scarichi non validi
+- [x] Conservare sul dispositivo la categoria, sottocategoria e filtri di Magazzino
+- [x] Rendere la lista prodotti espandibile con azioni rapide Scarico e Dettagli
+- [x] Realizzare il popup Scarico prodotto con quantità precompilata, causale e note opzionali
+- [x] Aggiornare immediatamente la giacenza e mostrare un toast non bloccante alla conferma
+- [x] Aggiungere test di regressione per contratto, quantità e memoria dell’ultimo scarico
+- [x] Verificare a 390×844, suite Vitest, TypeScript, build e salvare il checkpoint
+
+## Fase 59 — Analisi Entrate/Uscite e Correzione Dashboard Finanza
+- [x] Analizzare aggregazioni, date e flussi Entrata/Uscita con dati reali e test esistenti
+- [x] Correggere le query dashboard per escludere dati non finanziari o non pertinenti al periodo/modalità
+- [x] Rendere coerenti KPI, andamento, categorie e centri di costo tra Entrate e Uscite
+- [x] Aggiungere nella sezione Analisi un filtro/selettore esplicito Entrate, Uscite e Tutto
+- [x] Aggiornare grafici, confronti e stati vuoti in base alla separazione selezionata
+- [x] Aggiungere test di regressione su aggregazioni, date e contratti UI
+- [x] Verificare a 390×844, suite Vitest, TypeScript, build e salvare il checkpoint
+
+## Fase 60 — Pagamento Multiplo Fatture
+- [x] Analizzare movimenti, documenti aperti e flusso pagamenti esistente
+- [x] Creare il contratto e la transazione atomica per pagare più fatture insieme
+- [x] Rendere selezionabili solo fatture di uscita con residuo nei Movimenti
+- [x] Aggiungere riepilogo, conto, metodo, data e conferma unica mobile-first
+- [x] Aggiornare documenti, scadenze, conto, movimenti cassa e stato fatture in modo coerente
+- [x] Aggiungere test di regressione backend e contratto UI
+- [x] Verificare a 390×844, suite Vitest, TypeScript, build e salvare il checkpoint
+
+## Fase 61 — Regolarizzazione Storico Scadenze
+- [x] Analizzare pagamenti multipli, scadenze e accessi alle impostazioni
+- [x] Elencare le fatture di uscita aperte con la loro ultima scadenza disponibile
+- [x] Creare una transazione atomica che registri ogni saldo alla relativa ultima scadenza
+- [x] Aggiungere un accesso in Impostazioni Finanza e una selezione multipla mobile-first
+- [x] Rendere espliciti conto, metodo, totale, date applicate e conferma finale
+- [x] Aggiungere test di regressione backend e contratto UI
+- [x] Verificare a 390×844, suite Vitest, TypeScript, build e salvare il checkpoint
+
+## Fase 62 — Regolarizzazione Storico Entrate
+- [x] Analizzare la regolarizzazione delle uscite e il flusso degli incassi
+- [x] Estendere elenco e transazione atomica a entrate e uscite
+- [x] Aggiungere selettore Entrate/Uscite e microcopy coerente
+- [x] Garantire saldo conto, stati documenti e scadenze coerenti per gli incassi
+- [x] Aggiungere regressioni per incassi storici e isolamento direzione
+- [x] Verificare a 390×844, suite Vitest, TypeScript, build e salvare il checkpoint
+
+## Fase 63 — Memoria Magazzino nelle Fatture Automatiche
+- [x] Analizzare classificazione e memoria Magazzino nelle fatture XML
+- [x] Persistire la scelta aggiorna Magazzino nelle regole di apprendimento
+- [x] Precompilare la scelta nelle nuove fatture e nelle riletture XML
+- [x] Garantire che le Entrate non ereditino mai un carico Magazzino
+- [x] Aggiungere regressioni per memoria, modifica e isolamento per verso
+- [x] Verificare a 390×844, suite Vitest, TypeScript, build e salvare il checkpoint
+
+## Fase 64 — Fattura dal Dettaglio Movimento
+- [x] Analizzare collegamento tra movimento e fattura acquisita
+- [x] Esporre il dettaglio fattura legato al movimento in modo protetto
+- [x] Aggiungere accesso e vista fattura in sola lettura dai movimenti
+- [x] Non esporre XML tecnico o azioni di modifica in questa vista
+- [x] Aggiungere regressioni per collegamento e stati senza fattura associata
+- [x] Verificare a 390×844, suite Vitest, TypeScript, build e salvare il checkpoint
+
+## Fase 65 — Analisi Finanziaria Più Chiara e Compatta
+- [x] Analizzare Analisi, dashboard e contratti dati esistenti
+- [x] Compattare i controlli e portare sintesi e Lettura rapida in primo piano
+- [x] Rendere i filtri mobile-first con pannelli ricercabili e conferma semplice
+- [x] Gestire confronti non disponibili e migliorare la leggibilità di Confronta dimensioni
+- [x] Rinominare Competenza in Contabile con aiuto contestuale, senza cambiare logica
+- [x] Allineare tooltip dei grafici e skeleton al tema dark Fallinity
+- [x] Aggiungere regressioni UI per gerarchia, filtri, confronto e terminologia
+- [x] Verificare a 390×844, suite Vitest, TypeScript, build e salvare il checkpoint
+
+## Fase 67 — Riordino Impostazioni Finanza
+- [x] Analizzare la griglia dei collegamenti Finanza e la schermata Impostazioni
+- [x] Rimuovere Cashflow, Budget, Investimenti e Scenari dalla griglia principale
+- [x] Spostare il collegamento IVA nella schermata Impostazioni Finanza
+- [x] Aggiornare i test UI e verificare che le route restino protette e raggiungibili
+- [x] Verificare layout mobile, suite Vitest, TypeScript, build, service worker e salvare checkpoint

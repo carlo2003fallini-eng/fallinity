@@ -5,6 +5,10 @@ const dashboardSource = readFileSync(
   new URL("../client/src/pages/Finanza.tsx", import.meta.url),
   "utf8",
 );
+const settingsSource = readFileSync(
+  new URL("../client/src/pages/finanza/Impostazioni.tsx", import.meta.url),
+  "utf8",
+);
 
 describe("Dashboard Finanza — contratto dati", () => {
   it("formatta tutti gli importi ricevuti dal backend come centesimi", () => {
@@ -33,5 +37,15 @@ describe("Dashboard Finanza — contratto dati", () => {
     expect(dashboardSource).toContain("DashboardChartTooltip");
     expect(dashboardSource).toContain("oklch(0.11 0.01 145 / .96)");
     expect(dashboardSource).toContain('font-semibold">{fmt(Number(item.value ?? 0))}');
+  });
+
+  it("mantiene la dashboard essenziale e sposta IVA nelle impostazioni", () => {
+    expect(dashboardSource).not.toContain('label="Cashflow"');
+    expect(dashboardSource).not.toContain('label="Budget"');
+    expect(dashboardSource).not.toContain('label="Investim."');
+    expect(dashboardSource).not.toContain('label="Scenari"');
+    expect(dashboardSource).toContain('label="Impostaz."');
+    expect(settingsSource).toContain('title: "IVA"');
+    expect(settingsSource).toContain('path: "/finanza/iva"');
   });
 });
