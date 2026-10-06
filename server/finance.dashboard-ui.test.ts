@@ -39,11 +39,12 @@ describe("Dashboard Finanza — contratto dati", () => {
     expect(dashboardSource).toContain('font-semibold">{fmt(Number(item.value ?? 0))}');
   });
 
-  it("mantiene la dashboard essenziale e sposta IVA nelle impostazioni", () => {
+  it("mantiene la dashboard essenziale e rende IVA disponibile solo nelle impostazioni", () => {
     expect(dashboardSource).not.toContain('label="Cashflow"');
     expect(dashboardSource).not.toContain('label="Budget"');
     expect(dashboardSource).not.toContain('label="Investim."');
     expect(dashboardSource).not.toContain('label="Scenari"');
+    expect(dashboardSource).not.toContain('label="IVA"');
     expect(dashboardSource).toContain('label="Impostaz."');
     expect(settingsSource).toContain('title: "IVA"');
     expect(settingsSource).toContain('path: "/finanza/iva"');

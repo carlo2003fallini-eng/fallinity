@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import {
   ArrowDownRight, ArrowUpRight, TrendingUp, TrendingDown,
   Wallet, CreditCard, AlertTriangle, Bell, ChevronRight, BarChart3,
-  Calendar, FileText, RefreshCw, Landmark, Banknote, CircleDollarSign, ClipboardList, Settings2, Receipt, HelpCircle,
+  Calendar, FileText, RefreshCw, Landmark, Banknote, CircleDollarSign, ClipboardList, Settings2, HelpCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -439,7 +439,6 @@ export default function Finanza({ initialTab = "dashboard" }: { initialTab?: "da
         <ActionButton icon={ClipboardList} label="Proposte" onClick={() => setLocation("/finanza/proposte")} color="oklch(0.65 0.15 280)" />
         <ActionButton icon={BarChart3} label="Analisi" onClick={() => setLocation("/finanza/analisi")} color="oklch(0.65 0.12 200)" />
         <ActionButton icon={FileText} label="Report" onClick={() => setLocation("/finanza/report")} color="oklch(0.55 0.1 180)" />
-        <ActionButton icon={Receipt} label="IVA" onClick={() => setLocation("/finanza/iva")} color="oklch(0.6 0.15 30)" />
         <ActionButton icon={Settings2} label="Impostaz." onClick={() => setLocation("/finanza/impostazioni")} color="oklch(0.5 0.08 240)" />
       </div>
     </div>
