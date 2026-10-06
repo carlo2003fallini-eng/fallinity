@@ -187,6 +187,7 @@ export const listMovimentiInput = z.object({
   search: z.string().optional(),
   dataInizio: z.string().optional(),
   dataFine: z.string().optional(),
+  scaduti: z.boolean().optional(),
   limit: z.number().int().min(1).max(200).default(50),
   offset: z.number().int().min(0).default(0),
 }).optional();

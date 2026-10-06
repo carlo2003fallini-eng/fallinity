@@ -24,7 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, Loader2, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { AlertTriangle, Banknote, Loader2, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 type Movimento = {
@@ -33,6 +33,7 @@ type Movimento = {
   stato: string;
   totale: number;
   totalePagato?: number | null;
+  residuo?: number | null;
   descrizione?: string | null;
   codiceInterno?: string | null;
 };
@@ -77,17 +78,21 @@ const dateInput = (value: unknown) => {
 
 export function MovimentoActions({ movimento }: { movimento: Movimento }) {
   const [editOpen, setEditOpen] = useState(false);
+  const [pagamentoOpen, setPagamentoOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [form, setForm] = useState<EditForm>(EMPTY_FORM);
+  const [pagamento, setPagamento] = useState({ contoId: "", metodoId: "__none__", data: new Date().toISOString().slice(0, 10), note: "" });
   const utils = trpc.useUtils();
 
   const detailQuery = trpc.finanza.movimenti.detail.useQuery(
     { id: movimento.id },
-    { enabled: editOpen },
+    { enabled: editOpen || pagamentoOpen },
   );
   const costCentersQuery = trpc.finanza.centriCosto.list.useQuery(undefined, { enabled: editOpen });
   const subjectsQuery = trpc.finanza.soggetti.list.useQuery(undefined, { enabled: editOpen });
+  const contiQuery = trpc.finanza.conti.list.useQuery(undefined, { enabled: pagamentoOpen });
+  const metodiQuery = trpc.finanza.metodi.list.useQuery(undefined, { enabled: pagamentoOpen });
   const selectedCenterId = form.centroCostoId === "__none__" ? undefined : form.centroCostoId;
   const categoriesQuery = trpc.finanza.categorie.list.useQuery(
     { tipo: form.tipo, centroCostoId: selectedCenterId },
@@ -139,6 +144,33 @@ export function MovimentoActions({ movimento }: { movimento: Movimento }) {
     },
     onError: (error) => toast.error(getUserErrorMessage(error)),
   });
+
+  const registraPagamento = trpc.finanza.pagamenti.registra.useMutation({
+    onSuccess: async () => {
+      await utils.finanza.invalidate();
+      toast.success(movimento.tipo === "entrata" ? "Entrata segnata come incassata" : "Uscita segnata come pagata");
+      setPagamentoOpen(false);
+    },
+    onError: (error) => toast.error(getUserErrorMessage(error)),
+  });
+
+  const segnaRegolato = () => {
+    const dettaglio = detailQuery.data;
+    const scadenza = dettaglio?.scadenze?.find((item: any) => Number(item.residuo) > 0 && !["pagata", "incassata", "annullata"].includes(item.stato));
+    const residuo = Number(dettaglio?.residuo ?? movimento.residuo ?? movimento.totale);
+    if (!scadenza) return toast.error("Non è disponibile una scadenza ancora aperta");
+    if (!pagamento.contoId) return toast.error("Seleziona il conto da utilizzare");
+    if (!pagamento.data) return toast.error("Inserisci la data di regolazione");
+    registraPagamento.mutate({
+      documentoId: movimento.id,
+      scadenzaId: scadenza.id,
+      contoId: pagamento.contoId,
+      metodoId: pagamento.metodoId === "__none__" ? undefined : pagamento.metodoId,
+      importo: residuo,
+      data: pagamento.data,
+      note: pagamento.note.trim() || undefined,
+    });
+  };
 
   const submitUpdate = () => {
     if (!detail) return;
@@ -199,6 +231,11 @@ export function MovimentoActions({ movimento }: { movimento: Movimento }) {
           <DropdownMenuItem onSelect={() => setEditOpen(true)}>
             <Pencil className="mr-2 size-4" /> Modifica
           </DropdownMenuItem>
+          {movimento.stato === "scaduto" && Number(movimento.residuo ?? movimento.totale) > 0 && (
+            <DropdownMenuItem onSelect={() => setPagamentoOpen(true)}>
+              <Banknote className="mr-2 size-4 text-emerald-500" /> {movimento.tipo === "entrata" ? "Segna come incassato" : "Segna come pagato"}
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => setDeleteOpen(true)}>
             <Trash2 className="mr-2 size-4" /> Elimina
@@ -283,6 +320,41 @@ export function MovimentoActions({ movimento }: { movimento: Movimento }) {
               </Button>
             </div>
           )}
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={pagamentoOpen} onOpenChange={setPagamentoOpen}>
+        <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto rounded-t-2xl pb-8">
+          <SheetHeader>
+            <SheetTitle>{movimento.tipo === "entrata" ? "Segna entrata come incassata" : "Segna uscita come pagata"}</SheetTitle>
+          </SheetHeader>
+          <div className="mt-5 space-y-4">
+            <div className="rounded-xl border border-amber-400/25 bg-amber-400/10 p-3 text-sm">
+              <p className="text-xs text-muted-foreground">Residuo da regolare</p>
+              <p className="mt-1 text-xl font-bold text-amber-200">{new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(Number(detail?.residuo ?? movimento.residuo ?? movimento.totale) / 100)}</p>
+              <p className="mt-1 text-xs text-muted-foreground">La scadenza scaduta verrà chiusa e il saldo del conto sarà aggiornato.</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Conto *</Label>
+              <Select value={pagamento.contoId} onValueChange={(contoId) => setPagamento((form) => ({ ...form, contoId }))}>
+                <SelectTrigger><SelectValue placeholder="Seleziona il conto" /></SelectTrigger>
+                <SelectContent>{(contiQuery.data ?? []).filter((conto: any) => conto.attivo !== false).map((conto: any) => <SelectItem key={conto.id} value={conto.id}>{conto.nome}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Metodo di pagamento</Label>
+              <Select value={pagamento.metodoId} onValueChange={(metodoId) => setPagamento((form) => ({ ...form, metodoId }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="__none__">Non specificato</SelectItem>{(metodiQuery.data ?? []).filter((metodo: any) => metodo.attivo !== false).map((metodo: any) => <SelectItem key={metodo.id} value={metodo.id}>{metodo.nome}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <Field label="Data regolazione *"><Input type="date" value={pagamento.data} onChange={(event) => setPagamento((form) => ({ ...form, data: event.target.value }))} /></Field>
+            <Field label="Nota"><Textarea rows={2} value={pagamento.note} onChange={(event) => setPagamento((form) => ({ ...form, note: event.target.value }))} placeholder="Facoltativa" /></Field>
+            <Button className="h-12 w-full" disabled={registraPagamento.isPending || !pagamento.contoId || !pagamento.data} onClick={segnaRegolato}>
+              {registraPagamento.isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Banknote className="mr-2 size-4" />}
+              Conferma {movimento.tipo === "entrata" ? "incasso" : "pagamento"}
+            </Button>
+          </div>
         </SheetContent>
       </Sheet>
 

@@ -34,4 +34,11 @@ describe("Lista Movimenti — azioni modifica ed elimina", () => {
   it("non annida il menu azioni nel pulsante che apre il dettaglio", () => {
     expect(listSource).not.toMatch(/<button[^>]*>[\s\S]*<MovimentoActions movimento=\{m\}[\s\S]*<\/button>/);
   });
+
+  it("espone una vista separata per gli scaduti e l’azione di regolarizzazione", () => {
+    expect(listSource).toContain('value="scaduti"');
+    expect(listSource).toContain("scaduti: tab === \"scaduti\"");
+    expect(actionsSource).toContain("Segna come pagato");
+    expect(actionsSource).toContain("Segna come incassato");
+  });
 });

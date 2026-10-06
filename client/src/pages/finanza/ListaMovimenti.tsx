@@ -50,7 +50,7 @@ const statoLabel: Record<string, string> = {
   bozza: "Bozza",
 };
 
-type TabFilter = "tutti" | "entrate" | "uscite" | "da_regolare";
+type TabFilter = "tutti" | "entrate" | "uscite" | "da_regolare" | "scaduti";
 const STATI_PAGABILI = ["registrato", "parzialmente_regolato", "scaduto"] as const;
 
 const oggi = () => new Date().toISOString().slice(0, 10);
@@ -92,6 +92,7 @@ export default function ListaMovimenti() {
   const queryInput = useMemo(() => ({
     tipo: tab === "da_regolare" ? "uscita" : tipoFilter,
     stati: tab === "da_regolare" ? [...STATI_PAGABILI] : undefined,
+    scaduti: tab === "scaduti",
     search: search || undefined,
     soggettoId: soggettoId === "all" ? undefined : soggettoId,
     categoriaId: categoriaId === "all" ? undefined : categoriaId,
@@ -220,11 +221,12 @@ export default function ListaMovimenti() {
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabFilter)}>
-        <TabsList className="w-full grid grid-cols-4">
+        <TabsList className="w-full grid grid-cols-5">
           <TabsTrigger value="tutti">Tutti</TabsTrigger>
           <TabsTrigger value="entrate">Entrate</TabsTrigger>
           <TabsTrigger value="uscite">Uscite</TabsTrigger>
           <TabsTrigger value="da_regolare">Scadenze</TabsTrigger>
+          <TabsTrigger value="scaduti">Scaduti</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -409,6 +411,7 @@ export default function ListaMovimenti() {
                           {statoIcon[m.stato]}
                           <span className="text-xs text-muted-foreground">{statoLabel[m.stato] || m.stato}</span>
                           <span className="text-xs text-muted-foreground">• {fmtDate(m.dataDocumento)}</span>
+                          {tab === "scaduti" && m.scadenzaData && <span className="text-xs font-medium text-amber-300">• scad. {fmtDate(m.scadenzaData)}</span>}
                         </div>
                         {selezionabile && <p className="mt-1 text-xs font-medium text-amber-300">Da pagare: {fmtCents(residuo)}</p>}
                       </div>

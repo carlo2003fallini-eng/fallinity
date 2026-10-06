@@ -402,7 +402,7 @@ export const financeRepository = {
   async listDocumenti(companyId: string, filters?: {
     tipo?: string; stato?: string; stati?: string[]; categoriaId?: string; categoriaCentroId?: string; centroCostoId?: string;
     contoId?: string; soggettoId?: string; search?: string;
-    dataInizio?: string; dataFine?: string; limit?: number; offset?: number;
+    dataInizio?: string; dataFine?: string; scaduti?: boolean; limit?: number; offset?: number;
   }) {
     const db = await getDb();
     if (!db) return [];
@@ -426,6 +426,15 @@ export const financeRepository = {
     }
     if (filters?.dataInizio) conds.push(sql`dataDocumento >= ${filters.dataInizio}`);
     if (filters?.dataFine) conds.push(sql`dataDocumento <= ${filters.dataFine}`);
+    if (filters?.scaduti) conds.push(sql`EXISTS (
+      SELECT 1 FROM scadenzeFinanziarie sf
+      WHERE sf.documentoId = ${documentiFinanziari.id}
+        AND sf.companyId = ${companyId}
+        AND sf.deletedAt IS NULL
+        AND sf.residuo > 0
+        AND sf.dataScadenza < CURDATE()
+        AND sf.stato NOT IN ('pagata', 'incassata', 'annullata')
+    )`);
     const limit = filters?.limit ?? 50;
     const offset = filters?.offset ?? 0;
     return db.select({
@@ -436,6 +445,14 @@ export const financeRepository = {
       centroCostoNome: centriDiCosto.nome,
       categoriaCentroNome: categorieCentriCosto.nome,
       soggettoNome: sql<string | null>`COALESCE(${soggetti.nomeBreve}, ${soggetti.ragioneSociale})`,
+      scadenzaData: sql<string | null>`(
+        SELECT MAX(sf.dataScadenza) FROM scadenzeFinanziarie sf
+        WHERE sf.documentoId = ${documentiFinanziari.id}
+          AND sf.companyId = ${companyId}
+          AND sf.deletedAt IS NULL
+          AND sf.residuo > 0
+          AND sf.stato NOT IN ('pagata', 'incassata', 'annullata')
+      )`,
     })
       .from(documentiFinanziari)
       .leftJoin(categorieFinanziarie, and(
