@@ -9,6 +9,10 @@ const settingsSource = readFileSync(
   new URL("../client/src/pages/finanza/Impostazioni.tsx", import.meta.url),
   "utf8",
 );
+const quickActionsSource = readFileSync(
+  new URL("../client/src/components/finance/QuickActionsGrid.tsx", import.meta.url),
+  "utf8",
+);
 
 describe("Dashboard Finanza — contratto dati", () => {
   it("formatta tutti gli importi ricevuti dal backend come centesimi", () => {
@@ -45,8 +49,17 @@ describe("Dashboard Finanza — contratto dati", () => {
     expect(dashboardSource).not.toContain('label="Investim."');
     expect(dashboardSource).not.toContain('label="Scenari"');
     expect(dashboardSource).not.toContain('label="IVA"');
-    expect(dashboardSource).toContain('label="Impostaz."');
+    expect(quickActionsSource).toContain('label: "Impostaz."');
     expect(settingsSource).toContain('title: "IVA"');
     expect(settingsSource).toContain('path: "/finanza/iva"');
+  });
+
+  it("rende riordinabili le azioni rapide su touch, mouse e tastiera", () => {
+    expect(dashboardSource).toContain("QuickActionsGrid onNavigate={setLocation}");
+    expect(quickActionsSource).toContain("onPointerMove");
+    expect(quickActionsSource).toContain("onKeyDown");
+    expect(quickActionsSource).toContain("fallinity:finance:quick-actions-order:v1");
+    expect(quickActionsSource).toContain("Ripristina");
+    expect(quickActionsSource).toContain('event.key === " "');
   });
 });
