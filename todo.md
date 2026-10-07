@@ -24,3 +24,8 @@
 - [x] Rendere accessibile il selettore azienda da Account e dall’interfaccia mobile
 - [x] Rimuovere il selettore simulato e sostituirlo con dati reali
 - [x] Aggiungere regressioni, verifica mobile, test, TypeScript, build, PWA e checkpoint
+
+## Fase 76 — Compatibilità Cambio Azienda con ID Storici
+- [x] Individuare l’errore di validazione UUID mostrato nel selettore azienda
+- [x] Accettare gli identificativi azienda storici validi senza ridurre i controlli di accesso
+- [x] Aggiungere una regressione per ID UUID e legacy, quindi verificare UI mobile, test, TypeScript, build, PWA e checkpoint

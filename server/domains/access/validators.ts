@@ -33,7 +33,9 @@ export const createCompanyInput = z.object({
   attiva: z.boolean().default(true),
 });
 
-export const enterCompanyInput = z.object({ companyId: z.string().uuid() });
+// Le aziende create nelle prime versioni possono avere ID tecnici legacy (es. comp-demo-0001),
+// mentre quelle recenti usano UUID. L’autorizzazione resta verificata lato servizio/repository.
+export const enterCompanyInput = z.object({ companyId: z.string().trim().min(1).max(64).regex(/^[a-zA-Z0-9_-]+$/) });
 export const invitationTokenInput = z.object({
   token: z.string().trim().min(32).max(72).regex(/^[a-f0-9-]+$/i),
 });
