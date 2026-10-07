@@ -1,171 +1,48 @@
-import { useAuth } from "@/_core/hooks/useAuth";
-import { trpc } from "@/lib/trpc";
-import { Building2, Bell, ChevronRight, Plus, CheckCircle2, MapPin, Users } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowLeft, Building2, CheckCircle2, ChevronRight, Loader2, Search, ShieldCheck, Users } from "lucide-react";
 import { useLocation } from "wouter";
+import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 
-const LOGO_URL = "/manus-storage/fallinity-logo_8c31d682.png";
-const GREEN = "oklch(0.72 0.22 145)";
-const GOLD = "oklch(0.78 0.15 85)";
-const SURFACE = "oklch(0.10 0.006 145)";
-const SURFACE2 = "oklch(0.13 0.007 145)";
-const BORDER = "oklch(0.18 0.008 145)";
+const GREEN = "oklch(0.65 0.18 142)";
+const GOLD = "oklch(0.72 0.15 75)";
+const PANEL = "oklch(0.11 0.009 145)";
+const BORDER = "oklch(0.2 0.012 145)";
+
+const roleLabel: Record<string, string> = {
+  company_admin: "Amministratore azienda",
+  organization_admin: "Amministratore organizzazione",
+  manager: "Responsabile",
+  operator: "Operatore",
+  consultant: "Consulente",
+  viewer: "Consultazione",
+};
 
 export default function SelezionaAzienda() {
-  const { user } = useAuth();
   const [, navigate] = useLocation();
-  const { data: aziendaData } = trpc.company.current.useQuery();
+  const utils = trpc.useUtils();
+  const { data: companies, isLoading } = trpc.access.myCompanies.useQuery();
+  const { data: current } = trpc.company.current.useQuery();
+  const [search, setSearch] = useState("");
+  const visibleCompanies = useMemo(() => {
+    const normalized = search.trim().toLowerCase();
+    return normalized ? (companies ?? []).filter((row) => row.company.name.toLowerCase().includes(normalized)) : companies ?? [];
+  }, [companies, search]);
+  const switchCompany = trpc.access.switchCompany.useMutation({
+    onSuccess: async (result) => {
+      await Promise.all([utils.company.current.invalidate(), utils.access.me.invalidate(), utils.access.myCompanies.invalidate()]);
+      toast.success(`Azienda attiva: ${result.companyName}`);
+      navigate("/");
+    },
+    onError: (error) => toast.error(error.message),
+  });
 
-  // Simula lista aziende (in produzione verrebbe da un endpoint multi-tenant)
-  const aziende = aziendaData
-    ? [
-        {
-          id: 1,
-          nome: aziendaData.name || "Azienda Agricola",
-          provincia: aziendaData.provincia || "—",
-          settore: aziendaData.settore || "Agricoltura",
-          ruolo: user?.role === "admin" ? "Amministratore" : "Operatore",
-          notifiche: 3,
-          scorciatoie: 8,
-          attiva: true,
-        },
-      ]
-    : [];
-
-  return (
-    <div className="min-h-screen flex flex-col" style={{ background: "oklch(0.07 0.006 145)" }}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: BORDER, background: SURFACE }}>
-        <div className="flex items-center gap-3">
-          <img src={LOGO_URL} alt="Fallinity" className="w-8 h-8 object-contain" />
-          <span className="font-bold text-base tracking-wide" style={{ color: "oklch(0.96 0.005 145)", fontFamily: "'Space Grotesk', sans-serif" }}>
-            FALLINITY
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: GREEN, color: "oklch(0.08 0.01 145)" }}>
-            {user?.name?.charAt(0)?.toUpperCase() || "U"}
-          </div>
-          <span className="text-sm" style={{ color: "oklch(0.70 0.01 145)" }}>{user?.name || "Utente"}</span>
-        </div>
-      </div>
-
-      {/* Contenuto */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
-        <div className="w-full max-w-lg">
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold mb-2" style={{ color: "oklch(0.96 0.005 145)", fontFamily: "'Space Grotesk', sans-serif" }}>
-              Seleziona Azienda
-            </h1>
-            <p className="text-sm" style={{ color: "oklch(0.50 0.01 145)" }}>
-              Scegli l'azienda con cui vuoi lavorare
-            </p>
-          </div>
-
-          {/* Lista aziende */}
-          <div className="space-y-3 mb-6">
-            {aziende.length === 0 ? (
-              <div className="rounded-xl p-8 text-center" style={{ background: SURFACE, border: `1px solid ${BORDER}` }}>
-                <Building2 className="w-12 h-12 mx-auto mb-3" style={{ color: "oklch(0.35 0.01 145)" }} />
-                <p className="text-sm mb-1" style={{ color: "oklch(0.65 0.01 145)" }}>Nessuna azienda configurata</p>
-                <p className="text-xs" style={{ color: "oklch(0.40 0.008 145)" }}>Configura la tua azienda dal modulo Azienda</p>
-              </div>
-            ) : (
-              aziende.map(az => (
-                <button
-                  key={az.id}
-                  onClick={() => navigate("/")}
-                  className="w-full text-left rounded-xl p-5 transition-all duration-200 group"
-                  style={{
-                    background: SURFACE2,
-                    border: `1px solid ${az.attiva ? GREEN + "60" : BORDER}`,
-                    boxShadow: az.attiva ? `0 0 20px oklch(0.72 0.22 145 / 0.08)` : "none",
-                  }}
-                >
-                  <div className="flex items-start gap-4">
-                    {/* Icona azienda */}
-                    <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0" style={{
-                      background: "oklch(0.16 0.01 145)",
-                      border: `1px solid ${BORDER}`
-                    }}>
-                      <Building2 className="w-7 h-7" style={{ color: GREEN }} />
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-base truncate" style={{ color: "oklch(0.92 0.006 145)" }}>
-                          {az.nome}
-                        </span>
-                        {az.attiva && (
-                          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold" style={{
-                            background: `${GREEN}20`, color: GREEN
-                          }}>
-                            <CheckCircle2 className="w-3 h-3" />
-                            ATTIVA
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 text-xs" style={{ color: "oklch(0.50 0.01 145)" }}>
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          {az.provincia}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Users className="w-3 h-3" />
-                          {az.ruolo}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3 mt-2">
-                        <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full" style={{
-                          background: "oklch(0.16 0.01 145)", color: "oklch(0.60 0.01 145)"
-                        }}>
-                          <Bell className="w-3 h-3" />
-                          {az.notifiche} notifiche
-                        </span>
-                        <span className="text-xs px-2 py-0.5 rounded-full" style={{
-                          background: "oklch(0.16 0.01 145)", color: "oklch(0.60 0.01 145)"
-                        }}>
-                          {az.scorciatoie} scorciatoie
-                        </span>
-                      </div>
-                    </div>
-
-                    <ChevronRight className="w-5 h-5 flex-shrink-0 transition-transform group-hover:translate-x-1" style={{ color: "oklch(0.40 0.008 145)" }} />
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
-
-          {/* Richiedi accesso */}
-          <button
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-medium transition-all duration-150"
-            style={{
-              background: "transparent",
-              border: `1px dashed ${BORDER}`,
-              color: "oklch(0.55 0.01 145)"
-            }}
-            onClick={() => alert("Funzione disponibile nella versione multi-tenant")}
-          >
-            <Plus className="w-4 h-4" />
-            Richiedi accesso a nuova azienda
-          </button>
-
-          {/* Entra direttamente se c'è un'azienda */}
-          {aziende.length > 0 && (
-            <button
-              onClick={() => navigate("/")}
-              className="w-full mt-3 py-3.5 rounded-xl text-sm font-bold transition-all duration-200"
-              style={{
-                background: `linear-gradient(135deg, ${GREEN}, oklch(0.65 0.22 145))`,
-                color: "oklch(0.08 0.01 145)",
-              }}
-            >
-              Entra in {aziende[0].nome}
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+  return <div className="mx-auto w-full max-w-md animate-fade-in-up pb-8"><header className="mb-5 flex items-center gap-3"><button onClick={() => navigate("/account")} className="rounded-xl p-2" aria-label="Torna all’account"><ArrowLeft size={20} /></button><div className="min-w-0 flex-1"><p className="fal-eyebrow" style={{ color: GOLD }}>Account Fallinity</p><h1 className="text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>Cambia azienda</h1><p className="mt-1 text-sm" style={{ color: "oklch(0.55 0.01 145)" }}>Scegli l’azienda con cui vuoi lavorare.</p></div></header>
+    <section className="mb-5 rounded-2xl border p-4" style={{ background: `${GOLD}12`, borderColor: `${GOLD}55` }}><p className="flex items-center gap-2 text-sm font-semibold" style={{ color: GOLD }}><ShieldCheck size={17} /> Accessi personali</p><p className="mt-1 text-xs" style={{ color: "oklch(0.62 0.01 145)" }}>Puoi entrare solo nelle aziende in cui possiedi un accesso attivo.</p></section>
+    {isLoading ? <div className="flex justify-center py-16"><Loader2 className="animate-spin" style={{ color: GREEN }} /></div> : <><label className="mb-3 flex items-center gap-2 rounded-xl border px-3 py-2.5" style={{ background: PANEL, borderColor: BORDER }}><Search size={17} style={{ color: "oklch(0.55 0.01 145)" }} /><input value={search} onChange={(event) => setSearch(event.target.value)} className="min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder="Cerca un’azienda" aria-label="Cerca un’azienda" /></label><div className="space-y-3">{visibleCompanies.map((row) => {
+      const active = row.company.id === current?.id;
+      const changing = switchCompany.isPending && switchCompany.variables?.companyId === row.company.id;
+      return <button key={row.company.id} disabled={active || switchCompany.isPending} onClick={() => switchCompany.mutate({ companyId: row.company.id })} className="w-full rounded-2xl border p-4 text-left transition-transform enabled:active:scale-[0.98] disabled:cursor-default" style={{ background: active ? `${GREEN}10` : PANEL, borderColor: active ? `${GREEN}88` : BORDER }}><div className="flex items-center gap-3"><span className="flex size-11 shrink-0 items-center justify-center rounded-xl" style={{ background: active ? `${GREEN}22` : `${GOLD}16`, color: active ? GREEN : GOLD }}><Building2 size={20} /></span><span className="min-w-0 flex-1"><span className="flex items-center gap-2"><span className="truncate font-semibold">{row.company.name}</span>{active && <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ background: `${GREEN}22`, color: GREEN }}>ATTIVA</span>}</span><span className="mt-1 flex items-center gap-1 text-xs" style={{ color: "oklch(0.58 0.01 145)" }}><Users size={13} /> {roleLabel[row.membership.roleCode] ?? row.membership.roleCode}</span></span>{changing ? <Loader2 className="animate-spin" size={18} style={{ color: GREEN }} /> : active ? <CheckCircle2 size={19} style={{ color: GREEN }} /> : <ChevronRight size={19} style={{ color: "oklch(0.45 0.01 145)" }} />}</div></button>;
+    })}{!companies?.length && <section className="rounded-2xl border p-8 text-center" style={{ background: PANEL, borderColor: BORDER }}><Building2 className="mx-auto mb-3" size={34} style={{ color: "oklch(0.45 0.01 145)" }} /><p className="font-semibold">Nessuna azienda disponibile</p><p className="mt-1 text-sm" style={{ color: "oklch(0.55 0.01 145)" }}>Chiedi a un amministratore di inviarti un accesso.</p></section>}{Boolean(companies?.length && !visibleCompanies.length) && <section className="rounded-2xl border p-7 text-center" style={{ background: PANEL, borderColor: BORDER }}><p className="font-semibold">Nessuna corrispondenza</p><p className="mt-1 text-sm" style={{ color: "oklch(0.55 0.01 145)" }}>Modifica la ricerca per trovare un’altra azienda.</p></section>}</div></>}
+  </div>;
 }

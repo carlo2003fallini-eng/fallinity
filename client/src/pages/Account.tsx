@@ -23,6 +23,7 @@ export default function Account() {
   const { user, logout } = useAuth();
   const { data: access } = trpc.access.me.useQuery();
   const { data: company } = trpc.company.current.useQuery();
+  const { data: companies } = trpc.access.myCompanies.useQuery();
   const initial = user?.name?.trim().charAt(0).toUpperCase() || "U";
 
   return <div className="mx-auto w-full max-w-md animate-fade-in-up pb-6">
@@ -33,7 +34,7 @@ export default function Account() {
 
     <div className="space-y-3">
       <AccountRow icon={UserRound} title="Profilo" subtitle="Nome, email e identità account" onClick={() => navigate("/account/impostazioni")} />
-      <AccountRow icon={Building2} title="Azienda collegata" subtitle={company?.name || "Azienda non disponibile"} accent={GOLD} onClick={() => navigate("/azienda")} />
+      <AccountRow icon={Building2} title={companies && companies.length > 1 ? "Cambia azienda" : "Azienda collegata"} subtitle={companies && companies.length > 1 ? `${company?.name || "Azienda"} · ${companies.length} aziende disponibili` : company?.name || "Azienda non disponibile"} accent={GOLD} onClick={() => navigate("/seleziona-azienda")} />
       {access?.isCompanyAdmin && <AccountRow icon={ShieldCheck} title="Utenti e accessi" subtitle="Inviti, ruoli e permessi della tua azienda" accent={GOLD} onClick={() => navigate("/account/utenti")} />}
       {access?.isSuperAdmin && <AccountRow icon={Building2} title="Super Admin Fallinity" subtitle="Aziende, assistenza e configurazione piattaforma" accent="oklch(0.62 0.15 240)" onClick={() => navigate("/super-admin")} />}
       <AccountRow icon={Settings} title="Impostazioni" subtitle="Preferenze dell’applicazione" onClick={() => navigate("/account/impostazioni")} />

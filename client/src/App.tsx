@@ -56,6 +56,7 @@ function Router() {
         <Switch>
         <Route path="/" component={Home} />
         <Route path="/azienda" component={Azienda} />
+        <Route path="/seleziona-azienda" component={SelezionaAzienda} />
         <Route path="/azienda/nuova" component={NuovaAzienda} />
         <Route path="/azienda/fiscale" component={ImpostazioniFiscali} />
         <Route path="/account" component={Account} />

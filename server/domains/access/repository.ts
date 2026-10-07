@@ -184,6 +184,22 @@ export const accessRepository = {
       .orderBy(asc(companies.name));
   },
 
+  async hasActiveMembership(userId: number, companyId: string) {
+    const db = await getDb();
+    if (!db) return false;
+    const [membership] = await db.select({ id: companyMemberships.id }).from(companyMemberships)
+      .innerJoin(companies, eq(companyMemberships.companyId, companies.id))
+      .where(and(
+        eq(companyMemberships.userId, userId),
+        eq(companyMemberships.companyId, companyId),
+        eq(companyMemberships.attiva, true),
+        eq(companies.attiva, true),
+        isNull(companyMemberships.deletedAt),
+        isNull(companies.deletedAt),
+      )).limit(1);
+    return Boolean(membership);
+  },
+
   async listAllCompanies() {
     const db = await getDb();
     if (!db) return [];

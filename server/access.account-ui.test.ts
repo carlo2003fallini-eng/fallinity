@@ -47,4 +47,13 @@ describe("UI Account mobile-first", () => {
     expect(page).toContain("Modalità Super Admin");
     expect(page).toContain("Salva azienda");
   });
+
+  it("rende il cambio azienda disponibile dall’account", () => {
+    const account = read("client/src/pages/Account.tsx");
+    const selector = read("client/src/pages/SelezionaAzienda.tsx");
+    expect(account).toContain("Cambia azienda");
+    expect(selector).toContain("Cambia azienda");
+    expect(selector).toContain("Azienda attiva:");
+    expect(selector).toContain("Accessi personali");
+  });
 });

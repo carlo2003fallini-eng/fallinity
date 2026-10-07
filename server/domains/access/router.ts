@@ -37,4 +37,7 @@ export const accessRouter = router({
     const actor = await getActor(ctx);
     return accessService.enterCompany(actor, ctx.user!, input.companyId);
   }),
+  switchCompany: protectedProcedure.input(enterCompanyInput).mutation(({ ctx, input }) => {
+    return accessService.switchCompany(ctx.user!, input.companyId);
+  }),
 });

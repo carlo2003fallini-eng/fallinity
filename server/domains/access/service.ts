@@ -109,4 +109,16 @@ export const accessService = {
     await repo.logSuperAdminAccess(user.uuid, companyId);
     return { success: true as const, companyId };
   },
+
+  async switchCompany(user: { id: number; uuid: string; openId: string; platformRole?: string | null }, companyId: string) {
+    const company = await repo.getActiveCompany(companyId);
+    if (!company) throw new TRPCError({ code: "NOT_FOUND", message: "Azienda non trovata o non più attiva." });
+    const superAdmin = isSuperAdmin(user);
+    if (!superAdmin && !(await repo.hasActiveMembership(user.id, companyId))) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Non hai un accesso attivo a questa azienda." });
+    }
+    await repo.setActiveCompany(user.id, companyId);
+    if (superAdmin) await repo.logSuperAdminAccess(user.uuid, companyId);
+    return { success: true as const, companyId, companyName: company.name };
+  },
 };
