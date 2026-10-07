@@ -1422,3 +1422,12 @@
 - [x] Memorizzare l’ordine locale in modo sicuro e aggiungere ripristino predefinito
 - [x] Aggiungere test di regressione per ordine, persistenza e accessibilità
 - [x] Verificare layout mobile, suite Vitest, TypeScript, build, service worker e checkpoint
+
+## Fase 70 — Home Azienda Essenziale e Personalizzabile
+- [x] Analizzare home Azienda, route delle quattro aree e vincoli mobile-first
+- [x] Ridurre la home alle sole card Stalla, Magazzino, Officina e Campi
+- [x] Creare griglia 2×2 minimale senza KPI, anagrafiche o contenuti secondari
+- [x] Implementare pressione prolungata e drag and drop touch/mouse senza controlli aggiuntivi
+- [x] Salvare l’ordine per utente sul dispositivo e ripristinarlo all’apertura
+- [x] Aggiungere regressioni su contenuti rimossi, navigazione, ordine e accessibilità
+- [x] Verificare layout 390×844, suite Vitest, TypeScript, build, service worker e checkpoint
