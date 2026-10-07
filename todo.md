@@ -42,3 +42,8 @@
 - [x] Consentire al Super Admin di rinominare, archiviare o eliminare logicamente un’azienda non attiva
 - [x] Richiedere una conferma esplicita prima di archiviazione o eliminazione e proteggere l’azienda attiva
 - [x] Aggiungere regressioni, verifica mobile, test, TypeScript, build, PWA e checkpoint
+
+## Fase 79 — Archiviazione Aziende di Test
+- [x] Individuare le aziende di test ancora attive e preservare l’azienda corrente
+- [x] Richiedere conferma dell’elenco esatto prima dell’archiviazione globale
+- [x] Archiviare le sole aziende confermate con audit e verificare che non siano più apribili
