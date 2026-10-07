@@ -1439,3 +1439,14 @@
 - [x] Integrare la griglia con sincronizzazione database e fallback offline locale
 - [x] Aggiungere regressioni di isolamento utente/azienda, validazione e UI
 - [x] Verificare migrazione, mobile 390×844, suite Vitest, TypeScript, build, PWA e checkpoint
+
+## Fase 72 — Account, Accessi, Multi-Azienda e Super Admin
+- [x] Analizzare identità, membership, navigazione, multi-tenancy e vincoli del progetto
+- [x] Definire catalogo estendibile di moduli e schema auditato per inviti, permessi e accessi Super Admin
+- [x] Applicare migrazione additiva e rafforzare la risoluzione dell’azienda attiva per membership
+- [x] Implementare API protette per Account, utenti, permessi, inviti, aziende e Super Admin
+- [x] Collegare inviti email alla prima autenticazione dell’utente invitato
+- [x] Creare pagina Account, Utenti e accessi, matrice permessi e pannello Super Admin mobile-first
+- [x] Filtrare navigazione e route client in base alle autorizzazioni senza ridisegnare i moduli operativi
+- [x] Aggiungere test di isolamento, autorizzazioni, inviti, audit e UI
+- [x] Verificare DB, mobile, suite Vitest, TypeScript, build, PWA e checkpoint

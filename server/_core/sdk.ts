@@ -301,6 +301,8 @@ class SDKServer {
       throw ForbiddenError("User not found");
     }
 
+    await db.activatePendingInvitationsForUser(user);
+
     await db.upsertUser({
       openId: user.openId,
       lastSignedIn: signedInAt,

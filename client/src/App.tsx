@@ -42,6 +42,10 @@ import ImpostazioniCentriCosto from "./pages/finanza/ImpostazioniCentriCosto";
 import ImpostazioniConti from "./pages/finanza/ImpostazioniConti";
 import ImpostazioniMetodi from "./pages/finanza/ImpostazioniMetodi";
 import RegolarizzaScadenzeStoriche from "./pages/finanza/RegolarizzaScadenzeStoriche";
+import Account from "./pages/Account";
+import ImpostazioniAccount from "./pages/ImpostazioniAccount";
+import UtentiAccessi from "./pages/UtentiAccessi";
+import SuperAdmin from "./pages/SuperAdmin";
 
 function Router() {
   return (
@@ -51,6 +55,10 @@ function Router() {
         <Route path="/azienda" component={Azienda} />
         <Route path="/azienda/nuova" component={NuovaAzienda} />
         <Route path="/azienda/fiscale" component={ImpostazioniFiscali} />
+        <Route path="/account" component={Account} />
+        <Route path="/account/impostazioni" component={ImpostazioniAccount} />
+        <Route path="/account/utenti" component={UtentiAccessi} />
+        <Route path="/super-admin" component={SuperAdmin} />
         <Route path="/finanza">{() => <Finanza />}</Route>
         <Route path="/finanza/movimenti" component={ListaMovimenti} />
         <Route path="/finanza/nuovo" component={NuovoMovimento} />

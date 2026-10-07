@@ -106,6 +106,7 @@ export const companies = mysqlTable("companies", {
   ettari: decimal("ettari", { precision: 10, scale: 2 }),
   logoUrl: text("logoUrl"),
   coverUrl: text("coverUrl"),
+  attiva: boolean("attiva").default(true).notNull(),
   ...auditColumns,
 });
 export type Company = typeof companies.$inferSelect;
@@ -169,11 +170,54 @@ export const companyMemberships = mysqlTable("companyMemberships", {
   attiva: boolean("attiva").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   createdBy: varchar("createdBy", { length: 36 }),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedBy: varchar("updatedBy", { length: 36 }),
   deletedAt: timestamp("deletedAt"),
   deletedBy: varchar("deletedBy", { length: 36 }),
-});
+  version: int("version").default(1).notNull(),
+}, (table) => [
+  uniqueIndex("company_memberships_user_company_unique").on(table.userId, table.companyId),
+]);
 export type CompanyMembership = typeof companyMemberships.$inferSelect;
 export type InsertCompanyMembership = typeof companyMemberships.$inferInsert;
+
+// ─── PERMESSI PERSONALI / INVITI / AUDIT SUPER ADMIN ─────────────────────────
+export const userModulePermissions = mysqlTable("userModulePermissions", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  userId: int("userId").notNull(),
+  moduleKey: varchar("moduleKey", { length: 120 }).notNull(),
+  canView: boolean("canView").default(true).notNull(),
+  canEdit: boolean("canEdit").default(false).notNull(),
+  ...auditColumns,
+}, (table) => [
+  uniqueIndex("user_module_permissions_company_user_module_unique").on(table.companyId, table.userId, table.moduleKey),
+]);
+export type UserModulePermission = typeof userModulePermissions.$inferSelect;
+
+export const companyInvitations = mysqlTable("companyInvitations", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  email: varchar("email", { length: 320 }).notNull(),
+  roleCode: mysqlEnum("roleCode", FALLINITY_ROLES).default("operator").notNull(),
+  moduleKeys: json("moduleKeys").notNull(),
+  stato: mysqlEnum("stato", ["pending", "accepted", "revoked"]).default("pending").notNull(),
+  acceptedAt: timestamp("acceptedAt"),
+  acceptedByUuid: varchar("acceptedByUuid", { length: 36 }),
+  ...auditColumns,
+}, (table) => [
+  uniqueIndex("company_invitations_company_email_unique").on(table.companyId, table.email),
+]);
+export type CompanyInvitation = typeof companyInvitations.$inferSelect;
+
+export const superAdminAccessLogs = mysqlTable("superAdminAccessLogs", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  superAdminUuid: varchar("superAdminUuid", { length: 36 }).notNull(),
+  accessType: varchar("accessType", { length: 40 }).default("assistenza").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type SuperAdminAccessLog = typeof superAdminAccessLogs.$inferSelect;
 
 // ─── PREFERENZE HOME AZIENDA ─────────────────────────────────────────────────
 // Ordine personale delle aree operative, isolato per utente e azienda attiva.

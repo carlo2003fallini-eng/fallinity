@@ -1,10 +1,14 @@
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { CompanyAreasGrid } from "@/components/azienda/CompanyAreasGrid";
+import { trpc } from "@/lib/trpc";
+import { hasModule } from "@/lib/access";
 
 export default function Azienda() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const { data: access } = trpc.access.me.useQuery();
+  const allowedAreas = access?.isCompanyAdmin ? undefined : (["stalla", "magazzino", "officina", "campi"] as const).filter((area) => hasModule(access?.modules, `azienda.${area}` as any));
 
   return (
     <div className="mx-auto w-full max-w-md animate-fade-in-up pb-5">
@@ -19,6 +23,7 @@ export default function Azienda() {
         onNavigate={setLocation}
         userKey={user?.openId ?? "dispositivo"}
         companyKey={user?.activeCompanyId ?? "azienda"}
+        allowedAreas={allowedAreas ? [...allowedAreas] : undefined}
       />
     </div>
   );

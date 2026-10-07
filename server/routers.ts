@@ -16,6 +16,7 @@ import { reportRouter } from "./domains/report/router";
 import { aiRouter } from "./domains/ai/router";
 import { scenarioRouter } from "./domains/scenario/router";
 import { fiscalRouter } from "./domains/fiscal/router";
+import { accessRouter } from "./domains/access/router";
 
 /**
  * ──────────────────────────────────────────────────────────────────────────────
@@ -55,6 +56,7 @@ export const appRouter = router({
   ai: aiRouter,
   scenario: scenarioRouter,
   fiscal: fiscalRouter,
+  access: accessRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -1,0 +1,38 @@
+import { protectedProcedure, router } from "../../_core/trpc";
+import { getActor } from "../_core";
+import { accessService } from "./service";
+import { createCompanyInput, enterCompanyInput, inviteUserInput, updateCompanyInput, updateUserAccessInput } from "./validators";
+
+export const accessRouter = router({
+  me: protectedProcedure.query(async ({ ctx }) => {
+    const actor = await getActor(ctx);
+    const profile = await accessService.profile(actor, ctx.user!);
+    return { ...profile, user: ctx.user };
+  }),
+  companyUsers: protectedProcedure.query(async ({ ctx }) => {
+    const actor = await getActor(ctx);
+    return accessService.listUsers(actor, ctx.user!);
+  }),
+  inviteUser: protectedProcedure.input(inviteUserInput).mutation(async ({ ctx, input }) => {
+    const actor = await getActor(ctx);
+    return accessService.inviteUser(actor, ctx.user!, input);
+  }),
+  updateUser: protectedProcedure.input(updateUserAccessInput).mutation(async ({ ctx, input }) => {
+    const actor = await getActor(ctx);
+    return accessService.updateUser(actor, ctx.user!, input);
+  }),
+  myCompanies: protectedProcedure.query(async ({ ctx }) => accessService.listMyCompanies(ctx.user!.id)),
+  superAdminCompanies: protectedProcedure.query(async ({ ctx }) => accessService.listAllCompanies(ctx.user!)),
+  createCompany: protectedProcedure.input(createCompanyInput).mutation(async ({ ctx, input }) => {
+    const actor = await getActor(ctx);
+    return accessService.createCompany(actor, ctx.user!, input);
+  }),
+  updateCompany: protectedProcedure.input(updateCompanyInput).mutation(async ({ ctx, input }) => {
+    const actor = await getActor(ctx);
+    return accessService.updateCompany(actor, ctx.user!, input);
+  }),
+  enterCompany: protectedProcedure.input(enterCompanyInput).mutation(async ({ ctx, input }) => {
+    const actor = await getActor(ctx);
+    return accessService.enterCompany(actor, ctx.user!, input.companyId);
+  }),
+});

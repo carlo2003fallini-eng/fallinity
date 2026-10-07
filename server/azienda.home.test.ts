@@ -10,9 +10,11 @@ const pageSource = readFileSync(new URL("../client/src/pages/Azienda.tsx", impor
 const gridSource = readFileSync(new URL("../client/src/components/azienda/CompanyAreasGrid.tsx", import.meta.url), "utf8");
 
 describe("Home Azienda — accesso operativo essenziale", () => {
-  it("mostra esclusivamente la griglia delle quattro aree e non carica KPI o anagrafiche", () => {
+  it("mostra esclusivamente la griglia delle quattro aree, filtrata per accesso, senza KPI o anagrafiche", () => {
     expect(pageSource).toContain("CompanyAreasGrid");
-    expect(pageSource).not.toContain("trpc.");
+    expect(pageSource).toContain("trpc.access.me.useQuery");
+    expect(pageSource).not.toContain("trpc.azienda.");
+    expect(pageSource).not.toContain("trpc.dashboard.");
     expect(pageSource).not.toContain("FAL_IMAGES");
     expect(pageSource).not.toContain("Dati Latte");
     expect(pageSource).not.toContain("Dati Vitelli");

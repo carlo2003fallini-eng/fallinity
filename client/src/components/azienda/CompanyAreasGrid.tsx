@@ -55,7 +55,7 @@ function sameOrder(left: CompanyAreaId[] | null | undefined, right: CompanyAreaI
   return Boolean(left && right && left.length === right.length && left.every((id, index) => id === right[index]));
 }
 
-export function CompanyAreasGrid({ onNavigate, userKey, companyKey }: { onNavigate: (path: string) => void; userKey: string; companyKey: string }) {
+export function CompanyAreasGrid({ onNavigate, userKey, companyKey, allowedAreas }: { onNavigate: (path: string) => void; userKey: string; companyKey: string; allowedAreas?: CompanyAreaId[] }) {
   const utils = trpc.useUtils();
   const initialFallbackOrder = useMemo(() => loadFallbackOrder(userKey, companyKey), [userKey, companyKey]);
   const [order, setOrder] = useState<CompanyAreaId[]>(initialFallbackOrder);
@@ -122,8 +122,8 @@ export function CompanyAreasGrid({ onNavigate, userKey, companyKey }: { onNaviga
   }, [orderQuery.refetch, pendingOrder]);
 
   const areas = useMemo(
-    () => order.map((id) => AREAS.find((area) => area.id === id)).filter((area): area is CompanyArea => Boolean(area)),
-    [order],
+    () => order.map((id) => AREAS.find((area) => area.id === id)).filter((area): area is CompanyArea => Boolean(area)).filter((area) => !allowedAreas || allowedAreas.includes(area.id)),
+    [allowedAreas, order],
   );
 
   const persistFallback = (next: CompanyAreaId[]) => {
