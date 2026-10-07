@@ -198,6 +198,7 @@ export type UserModulePermission = typeof userModulePermissions.$inferSelect;
 export const companyInvitations = mysqlTable("companyInvitations", {
   id: uuidPk(),
   companyId: companyRef(),
+  token: varchar("token", { length: 72 }).notNull(),
   email: varchar("email", { length: 320 }).notNull(),
   roleCode: mysqlEnum("roleCode", FALLINITY_ROLES).default("operator").notNull(),
   moduleKeys: json("moduleKeys").notNull(),
@@ -207,6 +208,7 @@ export const companyInvitations = mysqlTable("companyInvitations", {
   ...auditColumns,
 }, (table) => [
   uniqueIndex("company_invitations_company_email_unique").on(table.companyId, table.email),
+  uniqueIndex("company_invitations_token_unique").on(table.token),
 ]);
 export type CompanyInvitation = typeof companyInvitations.$inferSelect;
 

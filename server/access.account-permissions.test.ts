@@ -32,6 +32,7 @@ describe("contratti account e isolamento", () => {
     expect(app).toContain('path="/account"');
     expect(app).toContain('path="/account/utenti"');
     expect(app).toContain('path="/super-admin"');
+    expect(app).toContain('path="/invito/:token"');
     expect(account).toContain("Utenti e accessi");
     expect(account).toContain("Super Admin Fallinity");
   });
@@ -55,8 +56,16 @@ describe("contratti account e isolamento", () => {
     const database = read("server/db.ts");
     expect(schema).toContain("userModulePermissions");
     expect(schema).toContain("companyInvitations");
+    expect(schema).toContain("company_invitations_token_unique");
     expect(schema).toContain("superAdminAccessLogs");
     expect(repository).toContain("logSuperAdminAccess");
+    expect(repository).toContain("const token = newId()");
+    expect(repository).toContain('type: "invited" as const, token');
+    expect(repository).toContain("acceptInvitationByToken");
+    expect(repository).toContain('status: "email_mismatch"');
+    expect(repository).toContain("acceptedByUuid === user.uuid");
+    expect(repository).toContain("getInvitationByToken");
+    expect(database).toContain("isNull(companyInvitations.token)");
     expect(database).toContain("activatePendingInvitationsForUser");
     expect(database).toContain("Nessuna azienda attiva associata");
   });

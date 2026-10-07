@@ -28,6 +28,18 @@ describe("UI Account mobile-first", () => {
     expect(page).toContain("setReviewOpen(true)");
   });
 
+  it("espone la copia del link per inviti appena creati e ancora in attesa", () => {
+    const page = read("client/src/pages/UtentiAccessi.tsx");
+    const invite = read("client/src/pages/Invito.tsx");
+    expect(page).toContain("Copia link invito");
+    expect(page).toContain("navigator.clipboard?.writeText");
+    expect(page).toContain("/invito/${token}");
+    expect(invite).toContain("Accedi con l’email invitata");
+    expect(invite).toContain("invitationPreview");
+    expect(invite).toContain("Accetta invito e apri Fallinity");
+    expect(invite).toContain("email_mismatch");
+  });
+
   it("espone creazione, modifica e accesso assistenza delle aziende", () => {
     const page = read("client/src/pages/SuperAdmin.tsx");
     expect(page).toContain("CREA AZIENDA");

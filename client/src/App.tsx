@@ -46,11 +46,14 @@ import Account from "./pages/Account";
 import ImpostazioniAccount from "./pages/ImpostazioniAccount";
 import UtentiAccessi from "./pages/UtentiAccessi";
 import SuperAdmin from "./pages/SuperAdmin";
+import Invito from "./pages/Invito";
 
 function Router() {
   return (
-    <DashboardLayout>
-      <Switch>
+    <Switch>
+      <Route path="/invito/:token" component={Invito} />
+      <DashboardLayout>
+        <Switch>
         <Route path="/" component={Home} />
         <Route path="/azienda" component={Azienda} />
         <Route path="/azienda/nuova" component={NuovaAzienda} />
@@ -92,9 +95,10 @@ function Router() {
         <Route path="/reintegrazione">{() => <Finanza initialTab="reintegrazione" />}</Route>
         <Route path="/scenario-futuro" component={ScenarioFuturo} />
         <Route path="/404" component={NotFound} />
-        <Route component={NotFound} />
-      </Switch>
-    </DashboardLayout>
+          <Route component={NotFound} />
+        </Switch>
+      </DashboardLayout>
+    </Switch>
   );
 }
 

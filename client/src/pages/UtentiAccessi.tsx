@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowLeft, Check, Eye, Mail, MailPlus, ShieldCheck, UserCog, UsersRound } from "lucide-react";
+import { ArrowLeft, Check, Copy, Eye, Mail, MailPlus, ShieldCheck, UserCog, UsersRound } from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -72,6 +72,7 @@ export default function UtentiAccessi() {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<RoleCode>("operator");
   const [modules, setModules] = useState<string[]>([]);
+  const [latestInviteToken, setLatestInviteToken] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingRole, setEditingRole] = useState<RoleCode>("operator");
   const [editingActive, setEditingActive] = useState(true);
@@ -80,6 +81,7 @@ export default function UtentiAccessi() {
   const invite = trpc.access.inviteUser.useMutation({
     onSuccess: (result) => {
       toast.success(result.type === "linked" ? "Utente collegato all’azienda" : "Invito registrato: verrà attivato al primo accesso con questa email");
+      setLatestInviteToken(result.type === "invited" ? result.token : null);
       setInviteOpen(false); setReviewOpen(false); setEmail(""); setModules([]);
       void utils.access.companyUsers.invalidate();
     },
@@ -90,6 +92,26 @@ export default function UtentiAccessi() {
   const startEdit = (user: any) => { setEditingId(user.id); setEditingRole(user.ruolo); setEditingActive(user.attivo); setEditingModules(user.moduli ?? []); };
   const submitInvite = () => invite.mutate({ email: email.trim(), roleCode: role, moduleKeys: modules as AccessModuleKey[] });
   const clearReview = () => setReviewOpen(false);
+  const invitationLink = (token: string) => new URL(`/invito/${token}`, window.location.origin).toString();
+  const copyInvitationLink = async (token: string) => {
+    const link = invitationLink(token);
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(link);
+      else {
+        const temporaryInput = document.createElement("textarea");
+        temporaryInput.value = link;
+        temporaryInput.style.position = "fixed";
+        temporaryInput.style.opacity = "0";
+        document.body.appendChild(temporaryInput);
+        temporaryInput.select();
+        document.execCommand("copy");
+        temporaryInput.remove();
+      }
+      toast.success("Link invito copiato negli appunti");
+    } catch {
+      toast.error("Impossibile copiare il link. Riprova dall’app installata o dal browser.");
+    }
+  };
 
   if (access && !access.isCompanyAdmin) return <div className="mx-auto max-w-md py-16 text-center"><ShieldCheck className="mx-auto mb-4" size={32} style={{ color: GOLD }} /><h1 className="text-xl font-bold">Accesso riservato</h1><p className="mt-2 text-sm" style={{ color: "oklch(0.55 0.01 145)" }}>Solo l’amministratore della tua azienda può gestire utenti e permessi.</p><button onClick={() => navigate("/account")} className="mt-5 rounded-xl px-4 py-3 font-semibold" style={{ background: GREEN, color: "oklch(0.08 0.01 145)" }}>Torna all’account</button></div>;
 
@@ -104,6 +126,8 @@ export default function UtentiAccessi() {
       <ModuleSelector value={modules} onChange={(next) => { setModules(next); clearReview(); }} />
       <button disabled={!email.trim()} onClick={() => setReviewOpen(true)} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl py-3 font-bold" style={{ background: GOLD, color: "oklch(0.1 0.01 145)" }}><Eye size={17} /> Rivedi invito e permessi</button>
     </section>}
+
+    {latestInviteToken && <section className="mb-5 rounded-2xl border p-4" style={{ background: `${GREEN}10`, borderColor: `${GREEN}70` }}><div className="flex gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-xl" style={{ background: `${GREEN}18`, color: GREEN }}><Copy size={18} /></span><div><p className="font-semibold">Link invito pronto</p><p className="mt-1 text-xs" style={{ color: "oklch(0.62 0.01 145)" }}>Condividilo manualmente con la persona invitata: l’accesso resta vincolato alla sua email.</p></div></div><button onClick={() => copyInvitationLink(latestInviteToken)} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold" style={{ background: GREEN, color: "oklch(0.08 0.01 145)" }}><Copy size={16} /> Copia link invito</button></section>}
 
     <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
       <DialogContent className="max-h-[86vh] max-w-md overflow-y-auto border" style={{ background: PANEL, borderColor: `${GOLD}75` }}>
@@ -120,7 +144,7 @@ export default function UtentiAccessi() {
         <button onClick={() => startEdit(user)} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold" style={{ borderColor: `${GREEN}66`, color: GREEN }}><UserCog size={16} /> Gestisci accessi</button>
         {editingId === user.id && <div className="mt-4 border-t pt-4" style={{ borderColor: BORDER }}><label className="mb-3 flex items-center justify-between text-sm"><span>Utente attivo</span><input checked={editingActive} onChange={(event) => setEditingActive(event.target.checked)} type="checkbox" className="size-4 accent-green-500" /></label><label className="mb-4 block text-xs" style={{ color: "oklch(0.6 0.01 145)" }}>Ruolo<select value={editingRole} onChange={(event) => setEditingRole(event.target.value as RoleCode)} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-3 text-sm" style={{ borderColor: BORDER }}>{ROLES.map(([value, label]) => <option className="bg-neutral-950" key={value} value={value}>{label}</option>)}</select></label><ModuleSelector value={editingModules} onChange={setEditingModules} /><button disabled={update.isPending} onClick={() => update.mutate({ userId: user.id, roleCode: editingRole, attiva: editingActive, moduleKeys: editingModules as AccessModuleKey[] })} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3 font-bold" style={{ background: GREEN, color: "oklch(0.08 0.01 145)" }}><ShieldCheck size={17} /> Salva accessi</button></div>}
       </section>)}
-      {data?.invitations.map((invite) => <section key={invite.id} className="rounded-2xl border border-dashed p-4" style={{ borderColor: BORDER }}><p className="font-semibold">{invite.email}</p><p className="mt-1 text-xs" style={{ color: GOLD }}>Invito in attesa · {invite.ruolo === "company_admin" ? "accesso amministrativo completo" : `${invite.moduli.length} accessi selezionati`}</p></section>)}
+      {data?.invitations.map((invite) => <section key={invite.id} className="rounded-2xl border border-dashed p-4" style={{ borderColor: BORDER }}><p className="font-semibold">{invite.email}</p><p className="mt-1 text-xs" style={{ color: GOLD }}>Invito in attesa · {invite.ruolo === "company_admin" ? "accesso amministrativo completo" : `${invite.moduli.length} accessi selezionati`}</p><button onClick={() => copyInvitationLink(invite.token)} className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold" style={{ borderColor: `${GREEN}66`, color: GREEN }}><Copy size={16} /> Copia link invito</button></section>)}
     </div>
   </div>;
 }

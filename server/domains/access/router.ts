@@ -1,7 +1,7 @@
-import { protectedProcedure, router } from "../../_core/trpc";
+import { protectedProcedure, publicProcedure, router } from "../../_core/trpc";
 import { getActor } from "../_core";
 import { accessService } from "./service";
-import { createCompanyInput, enterCompanyInput, inviteUserInput, updateCompanyInput, updateUserAccessInput } from "./validators";
+import { createCompanyInput, enterCompanyInput, invitationTokenInput, inviteUserInput, updateCompanyInput, updateUserAccessInput } from "./validators";
 
 export const accessRouter = router({
   me: protectedProcedure.query(async ({ ctx }) => {
@@ -17,6 +17,8 @@ export const accessRouter = router({
     const actor = await getActor(ctx);
     return accessService.inviteUser(actor, ctx.user!, input);
   }),
+  invitationPreview: publicProcedure.input(invitationTokenInput).query(({ input }) => accessService.previewInvitation(input.token)),
+  acceptInvitation: protectedProcedure.input(invitationTokenInput).mutation(({ ctx, input }) => accessService.acceptInvitation(ctx.user!, input.token)),
   updateUser: protectedProcedure.input(updateUserAccessInput).mutation(async ({ ctx, input }) => {
     const actor = await getActor(ctx);
     return accessService.updateUser(actor, ctx.user!, input);

@@ -48,7 +48,18 @@ function FEOSLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
+  const [pendingInvitationToken, setPendingInvitationToken] = useState<string | null>(() => sessionStorage.getItem("fallinity:invitation-token"));
   const { data: access, isLoading: accessLoading } = trpc.access.me.useQuery();
+  const acceptInvitation = trpc.access.acceptInvitation.useMutation({
+    onSuccess: (result) => {
+      sessionStorage.removeItem("fallinity:invitation-token");
+      setPendingInvitationToken(null);
+      if (result.status === "accepted") toast.success("Invito accettato: accesso aziendale attivato");
+      else if (result.status === "email_mismatch") toast.error("L’invito è riservato a un altro indirizzo email");
+      else toast.error("Questo invito non è più disponibile");
+    },
+    onError: () => { sessionStorage.removeItem("fallinity:invitation-token"); setPendingInvitationToken(null); toast.error("Impossibile verificare l’invito"); },
+  });
   const { data: company } = trpc.company.current.useQuery(undefined, { enabled: Boolean(access?.isSuperAdmin) });
   const modules = access?.modules ?? [];
   const directPath = useMemo(() => firstOperationalPath(modules), [modules]);
@@ -56,6 +67,9 @@ function FEOSLayout({ children }: { children: React.ReactNode }) {
 
   const navigate = (path: string) => { setLocation(path); setMoreOpen(false); };
   useEffect(() => { if (!accessLoading && !access?.isCompanyAdmin && location === "/" && fallbackOperationalPath) navigate(fallbackOperationalPath); }, [accessLoading, access?.isCompanyAdmin, fallbackOperationalPath, location]);
+  useEffect(() => {
+    if (pendingInvitationToken && user && !acceptInvitation.isPending) acceptInvitation.mutate({ token: pendingInvitationToken });
+  }, [pendingInvitationToken, user, acceptInvitation]);
 
   const canUseArea = (area?: "azienda" | "finanza") => !area || access?.isCompanyAdmin || modules.some((module) => module.startsWith(`${area}.`));
   const primaryItems = allItems.filter((item) => item.path === "/" ? Boolean(access?.isCompanyAdmin) : canUseArea(item.area));

@@ -94,7 +94,10 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-/** Collega automaticamente l'account autenticato agli inviti inviati alla sua email. */
+/**
+ * Mantiene il fallback solo per inviti legacy privi di token. Gli inviti moderni
+ * vengono accettati esclusivamente dal loro link, dopo verifica dell'email.
+ */
 export async function activatePendingInvitationsForUser(user: { id: number; uuid: string; email?: string | null; activeCompanyId?: string | null }) {
   if (!user.email) return;
   const db = await getDb();
@@ -102,6 +105,7 @@ export async function activatePendingInvitationsForUser(user: { id: number; uuid
   const email = user.email.trim().toLowerCase();
   const invitations = await db.select().from(companyInvitations).where(and(
     eq(companyInvitations.email, email),
+    isNull(companyInvitations.token),
     eq(companyInvitations.stato, "pending"),
     isNull(companyInvitations.deletedAt),
   ));

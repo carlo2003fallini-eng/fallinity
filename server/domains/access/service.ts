@@ -51,6 +51,7 @@ export const accessService = {
       })),
       invitations: data.invitations.map((invite) => ({
         id: invite.id,
+        token: invite.token,
         email: invite.email,
         ruolo: invite.roleCode,
         moduli: Array.isArray(invite.moduleKeys) ? invite.moduleKeys.filter((module): module is string => typeof module === "string") : [],
@@ -62,6 +63,16 @@ export const accessService = {
   async inviteUser(actor: ActorContext, user: { openId: string; platformRole?: string | null }, input: InviteUserInput) {
     await this.requireCompanyAdmin(actor, user);
     return repo.inviteOrLinkUser(actor, input.email, input.roleCode, input.moduleKeys);
+  },
+
+  async previewInvitation(token: string) {
+    const record = await repo.getInvitationByToken(token);
+    if (!record) return { status: "not_found" as const };
+    return { status: record.invitation.stato, companyName: record.company.name };
+  },
+
+  acceptInvitation(user: { id: number; uuid: string; email?: string | null; activeCompanyId?: string | null }, token: string) {
+    return repo.acceptInvitationByToken(user, token);
   },
 
   async updateUser(actor: ActorContext, user: { openId: string; platformRole?: string | null }, input: UpdateUserAccessInput) {

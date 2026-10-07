@@ -101,7 +101,9 @@ export const accessRepository = {
       await this.saveUserAccess(actor, existingUser.id, roleCode, true, moduleKeys);
       return { type: "linked" as const, userId: existingUser.id };
     }
+    const token = newId();
     await db.insert(companyInvitations).values(withCreate(actor, {
+      token,
       email: normalizedEmail,
       roleCode,
       moduleKeys,
@@ -110,6 +112,7 @@ export const accessRepository = {
       acceptedByUuid: null,
     }) as any).onDuplicateKeyUpdate({
       set: withUpdate(actor, {
+        token,
         roleCode,
         moduleKeys,
         stato: "pending",
@@ -119,7 +122,57 @@ export const accessRepository = {
         deletedBy: null,
       }) as any,
     });
-    return { type: "invited" as const };
+    return { type: "invited" as const, token };
+  },
+
+  async getInvitationByToken(token: string) {
+    const db = await getDb();
+    if (!db) throw new Error("DB non disponibile");
+    const [row] = await db.select({ invitation: companyInvitations, company: companies }).from(companyInvitations)
+      .innerJoin(companies, eq(companyInvitations.companyId, companies.id))
+      .where(and(
+        eq(companyInvitations.token, token),
+        isNull(companyInvitations.deletedAt),
+        eq(companies.attiva, true),
+        isNull(companies.deletedAt),
+      )).limit(1);
+    return row ?? null;
+  },
+
+  async acceptInvitationByToken(user: { id: number; uuid: string; email?: string | null; activeCompanyId?: string | null }, token: string) {
+    const db = await getDb();
+    if (!db) throw new Error("DB non disponibile");
+    const record = await this.getInvitationByToken(token);
+    if (!record) return { status: "not_found" as const };
+    const invitation = record.invitation;
+    if (invitation.stato === "revoked") return { status: "revoked" as const };
+    if (invitation.stato === "accepted") return {
+      status: invitation.acceptedByUuid === user.uuid ? "already_accepted" as const : "not_available" as const,
+      companyId: invitation.companyId,
+    };
+    if (!user.email || user.email.trim().toLowerCase() !== invitation.email) return { status: "email_mismatch" as const };
+
+    await db.transaction(async (tx) => {
+      await tx.insert(companyMemberships).values({
+        id: newId(), companyId: invitation.companyId, userId: user.id, roleCode: invitation.roleCode, attiva: true,
+        createdBy: invitation.createdBy, updatedBy: user.uuid,
+      } as any).onDuplicateKeyUpdate({
+        set: { roleCode: invitation.roleCode, attiva: true, deletedAt: null, deletedBy: null, updatedBy: user.uuid },
+      });
+      await tx.update(userModulePermissions).set({ canView: false, canEdit: false, updatedBy: user.uuid })
+        .where(and(eq(userModulePermissions.companyId, invitation.companyId), eq(userModulePermissions.userId, user.id), isNull(userModulePermissions.deletedAt)));
+      const moduleKeys = Array.isArray(invitation.moduleKeys) ? invitation.moduleKeys.filter((item): item is string => typeof item === "string") : [];
+      if (moduleKeys.length) await tx.insert(userModulePermissions).values(moduleKeys.map((moduleKey) => ({
+        id: newId(), companyId: invitation.companyId, userId: user.id, moduleKey,
+        canView: true, canEdit: invitation.roleCode !== "viewer", createdBy: user.uuid, updatedBy: user.uuid,
+      })) as any).onDuplicateKeyUpdate({
+        set: { canView: true, canEdit: invitation.roleCode !== "viewer", updatedBy: user.uuid, deletedAt: null, deletedBy: null },
+      });
+      await tx.update(companyInvitations).set({ stato: "accepted", acceptedAt: new Date(), acceptedByUuid: user.uuid, updatedBy: user.uuid })
+        .where(and(eq(companyInvitations.id, invitation.id), eq(companyInvitations.stato, "pending")));
+      if (!user.activeCompanyId) await tx.update(users).set({ activeCompanyId: invitation.companyId }).where(eq(users.id, user.id));
+    });
+    return { status: "accepted" as const, companyId: invitation.companyId };
   },
 
   async listMyCompanies(userId: number) {

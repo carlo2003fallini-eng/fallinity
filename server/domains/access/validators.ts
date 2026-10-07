@@ -34,6 +34,9 @@ export const createCompanyInput = z.object({
 });
 
 export const enterCompanyInput = z.object({ companyId: z.string().uuid() });
+export const invitationTokenInput = z.object({
+  token: z.string().trim().min(32).max(72).regex(/^[a-f0-9-]+$/i),
+});
 
 export type InviteUserInput = z.infer<typeof inviteUserInput>;
 export type UpdateUserAccessInput = z.infer<typeof updateUserAccessInput>;
