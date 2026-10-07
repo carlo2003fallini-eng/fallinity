@@ -35,3 +35,10 @@
 - [x] Salvare per utente l’elenco delle aziende nascoste senza eliminare aziende o dati
 - [x] Aggiungere nascondi/ripristina nel selettore con protezione dell’azienda attiva
 - [x] Aggiungere regressioni, verifica mobile, test, TypeScript, build, PWA e checkpoint
+
+## Fase 78 — Modifica, Archiviazione ed Eliminazione Aziende
+- [x] Sostituire l’azione personale Nascondi con Modifica e Apri sulle schede azienda
+- [x] Correggere l’errore della preferenza nascosta già visualizzato e rimuovere il flusso non più richiesto
+- [x] Consentire al Super Admin di rinominare, archiviare o eliminare logicamente un’azienda non attiva
+- [x] Richiedere una conferma esplicita prima di archiviazione o eliminazione e proteggere l’azienda attiva
+- [x] Aggiungere regressioni, verifica mobile, test, TypeScript, build, PWA e checkpoint

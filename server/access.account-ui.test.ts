@@ -55,7 +55,9 @@ describe("UI Account mobile-first", () => {
     expect(selector).toContain("Cambia azienda");
     expect(selector).toContain("Azienda attiva:");
     expect(selector).toContain("Accessi personali");
-    expect(selector).toContain("Nascondi dal mio elenco");
-    expect(selector).toContain("Ripristina nel mio elenco");
+    expect(selector).toContain("Modifica");
+    expect(selector).toContain("Apri");
+    expect(selector).toContain("Conferma archiviazione");
+    expect(selector).toContain("Conferma eliminazione");
   });
 });

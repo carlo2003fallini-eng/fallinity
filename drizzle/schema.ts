@@ -235,18 +235,6 @@ export const preferenzeHomeAzienda = mysqlTable("preferenzeHomeAzienda", {
 export type PreferenzaHomeAzienda = typeof preferenzeHomeAzienda.$inferSelect;
 export type InsertPreferenzaHomeAzienda = typeof preferenzeHomeAzienda.$inferInsert;
 
-// ─── PREFERENZE SELETTORE AZIENDA ────────────────────────────────────────────
-// Nascondimento personale, reversibile e isolato per account: non archivia né elimina l’azienda.
-export const aziendeNascosteSelettore = mysqlTable("aziendeNascosteSelettore", {
-  id: uuidPk(),
-  userId: int("userId").notNull(),
-  companyId: companyRef(),
-  ...auditColumns,
-}, (table) => [
-  uniqueIndex("aziende_nascoste_selettore_user_company_unique").on(table.userId, table.companyId),
-]);
-export type AziendaNascostaSelettore = typeof aziendeNascosteSelettore.$inferSelect;
-
 // ─── AUDIT LOG ────────────────────────────────────────────────────────────────
 export const auditLogs = mysqlTable("auditLogs", {
   id: uuidPk(),

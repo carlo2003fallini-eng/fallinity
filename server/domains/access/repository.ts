@@ -2,7 +2,6 @@ import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
   companies,
-  aziendeNascosteSelettore,
   companyInvitations,
   companyMemberships,
   superAdminAccessLogs,
@@ -179,27 +178,10 @@ export const accessRepository = {
   async listMyCompanies(userId: number) {
     const db = await getDb();
     if (!db) return [];
-    const hiddenRows = await db.select({ companyId: aziendeNascosteSelettore.companyId }).from(aziendeNascosteSelettore)
-      .where(and(eq(aziendeNascosteSelettore.userId, userId), isNull(aziendeNascosteSelettore.deletedAt)));
-    const hiddenCompanyIds = new Set(hiddenRows.map((row) => row.companyId));
-    const rows = await db.select({ company: companies, membership: companyMemberships }).from(companyMemberships)
+    return db.select({ company: companies, membership: companyMemberships }).from(companyMemberships)
       .innerJoin(companies, eq(companyMemberships.companyId, companies.id))
       .where(and(eq(companyMemberships.userId, userId), eq(companyMemberships.attiva, true), isNull(companyMemberships.deletedAt), eq(companies.attiva, true)))
       .orderBy(asc(companies.name));
-    return rows.map((row) => ({ ...row, hidden: hiddenCompanyIds.has(row.company.id) }));
-  },
-
-  async setCompanySelectorHidden(user: { id: number; uuid: string }, companyId: string, hidden: boolean) {
-    const db = await getDb();
-    if (!db) throw new Error("Database non disponibile");
-    if (hidden) {
-      await db.insert(aziendeNascosteSelettore).values({
-        id: newId(), userId: user.id, companyId, createdBy: user.uuid, updatedBy: user.uuid,
-      }).onDuplicateKeyUpdate({ set: { deletedAt: null, deletedBy: null, updatedBy: user.uuid } });
-    } else {
-      await db.update(aziendeNascosteSelettore).set({ deletedAt: new Date(), deletedBy: user.uuid, updatedBy: user.uuid })
-        .where(and(eq(aziendeNascosteSelettore.userId, user.id), eq(aziendeNascosteSelettore.companyId, companyId), isNull(aziendeNascosteSelettore.deletedAt)));
-    }
   },
 
   async hasActiveMembership(userId: number, companyId: string) {
@@ -241,6 +223,16 @@ export const accessRepository = {
     return company ?? null;
   },
 
+  async getCompany(companyId: string) {
+    const db = await getDb();
+    if (!db) return null;
+    const [company] = await db.select().from(companies).where(and(
+      eq(companies.id, companyId),
+      isNull(companies.deletedAt),
+    )).limit(1);
+    return company ?? null;
+  },
+
   async setActiveCompany(userId: number, companyId: string) {
     const db = await getDb();
     if (!db) throw new Error("DB non disponibile");
@@ -269,6 +261,22 @@ export const accessRepository = {
     await db.update(companies).set(withUpdate(actor, {
       name: input.name, email: input.email || null, settore: input.settore || null, attiva: input.attiva,
     }) as any).where(and(eq(companies.id, input.id), isNull(companies.deletedAt)));
+    return { success: true as const };
+  },
+
+  async archiveCompany(actor: ActorContext, companyId: string) {
+    const db = await getDb();
+    if (!db) throw new Error("DB non disponibile");
+    await db.update(companies).set(withUpdate(actor, { attiva: false }) as any)
+      .where(and(eq(companies.id, companyId), isNull(companies.deletedAt)));
+    return { success: true as const };
+  },
+
+  async deleteCompany(actor: ActorContext, companyId: string) {
+    const db = await getDb();
+    if (!db) throw new Error("DB non disponibile");
+    await db.update(companies).set(withUpdate(actor, { deletedAt: new Date(), deletedBy: actor.userUuid, attiva: false }) as any)
+      .where(and(eq(companies.id, companyId), isNull(companies.deletedAt)));
     return { success: true as const };
   },
 

@@ -3,7 +3,7 @@ import { ENV } from "../../_core/env";
 import { ALL_ACCESS_MODULE_KEYS, type AccessModuleKey } from "../../../shared/access";
 import type { ActorContext } from "../_core";
 import { accessRepository as repo } from "./repository";
-import type { CreateCompanyInput, InviteUserInput, SetCompanyHiddenInput, UpdateCompanyInput, UpdateUserAccessInput } from "./validators";
+import type { CreateCompanyInput, InviteUserInput, UpdateCompanyInput, UpdateUserAccessInput } from "./validators";
 
 const companyAdminRoles = new Set(["company_admin", "organization_admin"]);
 
@@ -122,14 +122,26 @@ export const accessService = {
     return { success: true as const, companyId, companyName: company.name };
   },
 
-  async setCompanyHidden(user: { id: number; uuid: string; activeCompanyId?: string | null }, input: SetCompanyHiddenInput) {
-    if (input.hidden && user.activeCompanyId === input.companyId) {
-      throw new TRPCError({ code: "BAD_REQUEST", message: "Non puoi nascondere l’azienda attualmente attiva." });
+  async requireManageableCompany(actor: ActorContext, user: { openId: string; platformRole?: string | null }, companyId: string) {
+    this.requireSuperAdmin(user);
+    if (actor.companyId === companyId) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "Apri prima un’altra azienda: l’azienda attiva non può essere archiviata o eliminata." });
     }
-    if (!(await repo.hasActiveMembership(user.id, input.companyId))) {
-      throw new TRPCError({ code: "FORBIDDEN", message: "Non hai un accesso attivo a questa azienda." });
-    }
-    await repo.setCompanySelectorHidden(user, input.companyId, input.hidden);
-    return { success: true as const, hidden: input.hidden };
+    const company = await repo.getCompany(companyId);
+    if (!company) throw new TRPCError({ code: "NOT_FOUND", message: "Azienda non trovata." });
+    return company;
+  },
+
+  async archiveCompany(actor: ActorContext, user: { openId: string; platformRole?: string | null }, companyId: string) {
+    const company = await this.requireManageableCompany(actor, user, companyId);
+    if (!company.attiva) throw new TRPCError({ code: "BAD_REQUEST", message: "L’azienda è già archiviata." });
+    await repo.archiveCompany(actor, companyId);
+    return { success: true as const, companyName: company.name };
+  },
+
+  async deleteCompany(actor: ActorContext, user: { openId: string; platformRole?: string | null }, companyId: string) {
+    const company = await this.requireManageableCompany(actor, user, companyId);
+    await repo.deleteCompany(actor, companyId);
+    return { success: true as const, companyName: company.name };
   },
 };
