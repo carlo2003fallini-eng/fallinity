@@ -12,8 +12,20 @@ describe("UI Account mobile-first", () => {
     expect(page).toContain("Invita per email");
     expect(page).toContain("Gestisci accessi");
     expect(page).toContain("ModuleSelector");
-    expect(page).toContain("Registra invito");
+    expect(page).toContain("Rivedi invito e permessi");
     expect(page).toContain("Accesso riservato");
+  });
+
+  it("richiede la revisione di destinatario, ruolo e permessi prima dell’invio", () => {
+    const page = read("client/src/pages/UtentiAccessi.tsx");
+    expect(page).toContain("Rivedi invito e permessi");
+    expect(page).toContain("Controlla l’invito");
+    expect(page).toContain("Destinatario");
+    expect(page).toContain("Ruolo assegnato");
+    expect(page).toContain("Permessi operativi");
+    expect(page).toContain("Accesso amministrativo completo");
+    expect(page).toContain("Conferma e invia invito");
+    expect(page).toContain("setReviewOpen(true)");
   });
 
   it("espone creazione, modifica e accesso assistenza delle aziende", () => {
