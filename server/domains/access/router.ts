@@ -1,7 +1,7 @@
 import { protectedProcedure, publicProcedure, router } from "../../_core/trpc";
 import { getActor } from "../_core";
 import { accessService } from "./service";
-import { createCompanyInput, enterCompanyInput, invitationTokenInput, inviteUserInput, updateCompanyInput, updateUserAccessInput } from "./validators";
+import { createCompanyInput, enterCompanyInput, invitationTokenInput, inviteUserInput, setCompanyHiddenInput, updateCompanyInput, updateUserAccessInput } from "./validators";
 
 export const accessRouter = router({
   me: protectedProcedure.query(async ({ ctx }) => {
@@ -39,5 +39,8 @@ export const accessRouter = router({
   }),
   switchCompany: protectedProcedure.input(enterCompanyInput).mutation(({ ctx, input }) => {
     return accessService.switchCompany(ctx.user!, input.companyId);
+  }),
+  setCompanyHidden: protectedProcedure.input(setCompanyHiddenInput).mutation(({ ctx, input }) => {
+    return accessService.setCompanyHidden(ctx.user!, input);
   }),
 });

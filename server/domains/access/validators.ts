@@ -36,6 +36,10 @@ export const createCompanyInput = z.object({
 // Le aziende create nelle prime versioni possono avere ID tecnici legacy (es. comp-demo-0001),
 // mentre quelle recenti usano UUID. L’autorizzazione resta verificata lato servizio/repository.
 export const enterCompanyInput = z.object({ companyId: z.string().trim().min(1).max(64).regex(/^[a-zA-Z0-9_-]+$/) });
+export const setCompanyHiddenInput = z.object({
+  companyId: z.string().trim().min(1).max(64).regex(/^[a-zA-Z0-9_-]+$/),
+  hidden: z.boolean(),
+});
 export const invitationTokenInput = z.object({
   token: z.string().trim().min(32).max(72).regex(/^[a-f0-9-]+$/i),
 });
@@ -44,3 +48,4 @@ export type InviteUserInput = z.infer<typeof inviteUserInput>;
 export type UpdateUserAccessInput = z.infer<typeof updateUserAccessInput>;
 export type UpdateCompanyInput = z.infer<typeof updateCompanyInput>;
 export type CreateCompanyInput = z.infer<typeof createCompanyInput>;
+export type SetCompanyHiddenInput = z.infer<typeof setCompanyHiddenInput>;

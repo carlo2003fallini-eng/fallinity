@@ -3,7 +3,7 @@ import { ENV } from "../../_core/env";
 import { ALL_ACCESS_MODULE_KEYS, type AccessModuleKey } from "../../../shared/access";
 import type { ActorContext } from "../_core";
 import { accessRepository as repo } from "./repository";
-import type { CreateCompanyInput, InviteUserInput, UpdateCompanyInput, UpdateUserAccessInput } from "./validators";
+import type { CreateCompanyInput, InviteUserInput, SetCompanyHiddenInput, UpdateCompanyInput, UpdateUserAccessInput } from "./validators";
 
 const companyAdminRoles = new Set(["company_admin", "organization_admin"]);
 
@@ -120,5 +120,16 @@ export const accessService = {
     await repo.setActiveCompany(user.id, companyId);
     if (superAdmin) await repo.logSuperAdminAccess(user.uuid, companyId);
     return { success: true as const, companyId, companyName: company.name };
+  },
+
+  async setCompanyHidden(user: { id: number; uuid: string; activeCompanyId?: string | null }, input: SetCompanyHiddenInput) {
+    if (input.hidden && user.activeCompanyId === input.companyId) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "Non puoi nascondere l’azienda attualmente attiva." });
+    }
+    if (!(await repo.hasActiveMembership(user.id, input.companyId))) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Non hai un accesso attivo a questa azienda." });
+    }
+    await repo.setCompanySelectorHidden(user, input.companyId, input.hidden);
+    return { success: true as const, hidden: input.hidden };
   },
 };

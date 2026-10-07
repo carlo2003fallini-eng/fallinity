@@ -40,4 +40,18 @@ describe("cambio azienda multi-utente", () => {
     expect(account).toContain('navigate("/seleziona-azienda")');
     expect(app).toContain('path="/seleziona-azienda"');
   });
+
+  it("permette di nascondere solo dal proprio elenco e ripristinare", () => {
+    const schema = read("drizzle/schema.ts");
+    const repository = read("server/domains/access/repository.ts");
+    const service = read("server/domains/access/service.ts");
+    const selector = read("client/src/pages/SelezionaAzienda.tsx");
+    expect(schema).toContain("aziendeNascosteSelettore");
+    expect(repository).toContain("setCompanySelectorHidden");
+    expect(repository).toContain("hidden: hiddenCompanyIds.has(row.company.id)");
+    expect(service).toContain("Non puoi nascondere l’azienda attualmente attiva");
+    expect(selector).toContain("Nascondi dal mio elenco");
+    expect(selector).toContain("Ripristina nel mio elenco");
+    expect(selector).toContain("Aziende nascoste");
+  });
 });

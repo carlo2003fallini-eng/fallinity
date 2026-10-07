@@ -29,3 +29,9 @@
 - [x] Individuare l’errore di validazione UUID mostrato nel selettore azienda
 - [x] Accettare gli identificativi azienda storici validi senza ridurre i controlli di accesso
 - [x] Aggiungere una regressione per ID UUID e legacy, quindi verificare UI mobile, test, TypeScript, build, PWA e checkpoint
+
+## Fase 77 — Aziende Nascoste dal Selettore Personale
+- [x] Distinguere la rimozione personale reversibile dall’archiviazione globale Super Admin
+- [x] Salvare per utente l’elenco delle aziende nascoste senza eliminare aziende o dati
+- [x] Aggiungere nascondi/ripristina nel selettore con protezione dell’azienda attiva
+- [x] Aggiungere regressioni, verifica mobile, test, TypeScript, build, PWA e checkpoint
