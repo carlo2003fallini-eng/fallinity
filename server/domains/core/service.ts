@@ -2,7 +2,17 @@ import type { ActorContext } from "../_core";
 import { coreRepository as repo } from "./repository";
 import { financeRepository } from "../finance/repository";
 import { proposalsRepository } from "../finance/proposals.repository";
-import type { CreateContattoInput } from "./validators";
+import type { CreateContattoInput, UpdateCompanyAreasOrderInput } from "./validators";
+
+const COMPANY_AREAS_DEFAULT_ORDER = ["stalla", "magazzino", "officina", "campi"] as const;
+
+function normalizzaOrdineAree(value: unknown) {
+  const ordine = Array.isArray(value)
+    ? value.filter((item): item is (typeof COMPANY_AREAS_DEFAULT_ORDER)[number] => typeof item === "string" && COMPANY_AREAS_DEFAULT_ORDER.includes(item as any))
+    : [];
+  const unico = ordine.filter((item, index) => ordine.indexOf(item) === index);
+  return [...unico, ...COMPANY_AREAS_DEFAULT_ORDER.filter((item) => !unico.includes(item))];
+}
 
 /** CORE — Service (company, contatti/azienda, dashboard) */
 export const coreService = {
@@ -30,6 +40,19 @@ export const coreService = {
 
   removeContatto(actor: ActorContext, id: string) {
     return repo.softDeleteContatto(actor, id);
+  },
+
+  async companyAreasOrder(actor: ActorContext) {
+    const preference = await repo.getCompanyAreasOrder(actor);
+    return {
+      ordine: normalizzaOrdineAree(preference?.ordine),
+      salvato: Boolean(preference),
+    };
+  },
+
+  async saveCompanyAreasOrder(actor: ActorContext, input: UpdateCompanyAreasOrderInput) {
+    await repo.saveCompanyAreasOrder(actor, input.ordine);
+    return { ordine: input.ordine, salvato: true as const };
   },
 
   /** KPI globali per la dashboard Home (con dati finanziari reali + proposte). */

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
 import { Beef, Sprout, Warehouse, Wrench, type LucideIcon } from "lucide-react";
+import { trpc } from "@/lib/trpc";
 import {
   COMPANY_AREA_DEFAULT_ORDER,
   normalizeCompanyAreaOrder,
@@ -37,49 +38,108 @@ const AREAS: CompanyArea[] = [
   { id: "campi", label: "Campi", path: "/campi", icon: Sprout, color: "oklch(0.65 0.18 142)" },
 ];
 
-function storageKeyForUser(userKey: string) {
-  return `fallinity:azienda:aree-ordine:v1:${encodeURIComponent(userKey || "dispositivo")}`;
+function fallbackStorageKey(userKey: string, companyKey: string) {
+  return `fallinity:azienda:aree-ordine:v1:${encodeURIComponent(userKey || "dispositivo")}:${encodeURIComponent(companyKey || "azienda")}`;
 }
 
-function loadOrder(storageKey: string): CompanyAreaId[] {
+function loadFallbackOrder(userKey: string, companyKey: string): CompanyAreaId[] {
   if (typeof window === "undefined") return [...COMPANY_AREA_DEFAULT_ORDER];
   try {
-    return normalizeCompanyAreaOrder(JSON.parse(window.localStorage.getItem(storageKey) ?? "[]"));
+    return normalizeCompanyAreaOrder(JSON.parse(window.localStorage.getItem(fallbackStorageKey(userKey, companyKey)) ?? "[]"));
   } catch {
     return [...COMPANY_AREA_DEFAULT_ORDER];
   }
 }
 
-export function CompanyAreasGrid({ onNavigate, userKey }: { onNavigate: (path: string) => void; userKey: string }) {
-  const storageKey = storageKeyForUser(userKey);
-  const [order, setOrder] = useState<CompanyAreaId[]>(() => loadOrder(storageKey));
+function sameOrder(left: CompanyAreaId[] | null | undefined, right: CompanyAreaId[] | null | undefined) {
+  return Boolean(left && right && left.length === right.length && left.every((id, index) => id === right[index]));
+}
+
+export function CompanyAreasGrid({ onNavigate, userKey, companyKey }: { onNavigate: (path: string) => void; userKey: string; companyKey: string }) {
+  const utils = trpc.useUtils();
+  const initialFallbackOrder = useMemo(() => loadFallbackOrder(userKey, companyKey), [userKey, companyKey]);
+  const [order, setOrder] = useState<CompanyAreaId[]>(initialFallbackOrder);
   const [draggingId, setDraggingId] = useState<CompanyAreaId | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [keyboardDraggingId, setKeyboardDraggingId] = useState<CompanyAreaId | null>(null);
   const [announcement, setAnnouncement] = useState("");
+  const [hydrated, setHydrated] = useState(false);
+  const [pendingOrder, setPendingOrder] = useState<CompanyAreaId[] | null>(null);
+  const [syncFailed, setSyncFailed] = useState(false);
   const dragRef = useRef<DragState | null>(null);
   const orderRef = useRef(order);
   const skipNextClickRef = useRef(false);
 
+  const orderQuery = trpc.azienda.ordineAree.useQuery({ scope: companyKey || undefined }, {
+    retry: false,
+    refetchOnWindowFocus: true,
+  });
+  const saveOrderMutation = trpc.azienda.salvaOrdineAree.useMutation({
+    onSuccess: (result, variables) => {
+      utils.azienda.ordineAree.setData({ scope: companyKey || undefined }, result);
+      setPendingOrder((current) => sameOrder(current, variables.ordine) ? null : current);
+      setSyncFailed(false);
+    },
+    onError: () => {
+      // Il fallback locale evita di perdere l'ordine finché non torna la connessione.
+      setSyncFailed(true);
+    },
+  });
+
   useEffect(() => {
-    const next = loadOrder(storageKey);
+    const fallback = loadFallbackOrder(userKey, companyKey);
+    orderRef.current = fallback;
+    setOrder(fallback);
+    setHydrated(false);
+    setPendingOrder(null);
+    setSyncFailed(false);
+  }, [userKey, companyKey]);
+
+  useEffect(() => {
+    if (!orderQuery.isSuccess || hydrated) return;
+    const remoteOrder = normalizeCompanyAreaOrder(orderQuery.data.ordine);
+    const fallback = loadFallbackOrder(userKey, companyKey);
+    const next = pendingOrder ?? (orderQuery.data.salvato ? remoteOrder : fallback);
     orderRef.current = next;
     setOrder(next);
-  }, [storageKey]);
+    setHydrated(true);
+    if (!orderQuery.data.salvato || pendingOrder) setPendingOrder(next);
+  }, [companyKey, hydrated, orderQuery.data, orderQuery.isSuccess, pendingOrder, userKey]);
+
+  useEffect(() => {
+    if (!hydrated || !orderQuery.isSuccess || !pendingOrder || saveOrderMutation.isPending || syncFailed) return;
+    saveOrderMutation.mutate({ ordine: pendingOrder });
+  }, [hydrated, orderQuery.isSuccess, pendingOrder, saveOrderMutation, syncFailed]);
+
+  useEffect(() => {
+    const retrySync = () => {
+      if (!pendingOrder) return;
+      setSyncFailed(false);
+      void orderQuery.refetch();
+    };
+    window.addEventListener("online", retrySync);
+    return () => window.removeEventListener("online", retrySync);
+  }, [orderQuery.refetch, pendingOrder]);
 
   const areas = useMemo(
     () => order.map((id) => AREAS.find((area) => area.id === id)).filter((area): area is CompanyArea => Boolean(area)),
     [order],
   );
 
+  const persistFallback = (next: CompanyAreaId[]) => {
+    try {
+      window.localStorage.setItem(fallbackStorageKey(userKey, companyKey), JSON.stringify(next));
+    } catch {
+      // La griglia resta utilizzabile anche in ambienti che non espongono localStorage.
+    }
+  };
+
   const persistOrder = (next: CompanyAreaId[]) => {
     orderRef.current = next;
     setOrder(next);
-    try {
-      window.localStorage.setItem(storageKey, JSON.stringify(next));
-    } catch {
-      // Il nuovo ordine resta disponibile nella sessione corrente se lo storage non è accessibile.
-    }
+    persistFallback(next);
+    setSyncFailed(false);
+    setPendingOrder(next);
   };
 
   const updateVisualOrder = (next: CompanyAreaId[]) => {
@@ -143,8 +203,7 @@ export function CompanyAreasGrid({ onNavigate, userKey }: { onNavigate: (path: s
     if (!target || target === id || target === drag.overId) return;
 
     drag.overId = target;
-    const next = reorderCompanyAreas(orderRef.current, id, target);
-    updateVisualOrder(next);
+    updateVisualOrder(reorderCompanyAreas(orderRef.current, id, target));
   };
 
   const finishDrag = (event: ReactPointerEvent<HTMLButtonElement>, id: CompanyAreaId, cancelled = false) => {
@@ -200,8 +259,7 @@ export function CompanyAreasGrid({ onNavigate, userKey }: { onNavigate: (path: s
     event.preventDefault();
     const target = orderRef.current[Math.max(0, Math.min(orderRef.current.length - 1, index + delta))];
     if (!target || target === id) return;
-    const next = reorderCompanyAreas(orderRef.current, id, target);
-    updateVisualOrder(next);
+    updateVisualOrder(reorderCompanyAreas(orderRef.current, id, target));
     setAnnouncement(`${area?.label ?? "Area"} spostata.`);
   };
 

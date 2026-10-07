@@ -1,7 +1,7 @@
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { getDb } from "../../db";
-import { companies, contatti } from "../../../drizzle/schema";
-import { withCreate, softDeletePayload, type ActorContext } from "../_core";
+import { companies, contatti, preferenzeHomeAzienda } from "../../../drizzle/schema";
+import { withCreate, withUpdate, softDeletePayload, type ActorContext } from "../_core";
 
 /** CORE — Repository (company, contatti, conteggi operativi cross-dominio) */
 export const coreRepository = {
@@ -39,6 +39,32 @@ export const coreRepository = {
     await db.update(contatti).set(softDeletePayload(actor) as any)
       .where(and(eq(contatti.id, id), eq(contatti.companyId, actor.companyId)));
     return { success: true };
+  },
+
+  async getCompanyAreasOrder(actor: ActorContext) {
+    const db = await getDb();
+    if (!db) return null;
+    const [preference] = await db.select().from(preferenzeHomeAzienda).where(and(
+      eq(preferenzeHomeAzienda.companyId, actor.companyId),
+      eq(preferenzeHomeAzienda.userUuid, actor.userUuid),
+      isNull(preferenzeHomeAzienda.deletedAt),
+    )).limit(1);
+    return preference ?? null;
+  },
+
+  async saveCompanyAreasOrder(actor: ActorContext, ordine: string[]) {
+    const db = await getDb();
+    if (!db) throw new Error("DB non disponibile");
+    await db.insert(preferenzeHomeAzienda).values(withCreate(actor, {
+      userUuid: actor.userUuid,
+      ordine,
+    }) as any).onDuplicateKeyUpdate({
+      set: {
+        ...withUpdate(actor, { ordine, deletedAt: null, deletedBy: null }) as any,
+        version: sql`${preferenzeHomeAzienda.version} + 1`,
+      },
+    });
+    return { success: true as const };
   },
 
   /** Conteggio generico multi-tenant su una tabella operativa. */

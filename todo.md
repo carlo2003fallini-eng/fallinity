@@ -1431,3 +1431,11 @@
 - [x] Salvare l’ordine per utente sul dispositivo e ripristinarlo all’apertura
 - [x] Aggiungere regressioni su contenuti rimossi, navigazione, ordine e accessibilità
 - [x] Verificare layout 390×844, suite Vitest, TypeScript, build, service worker e checkpoint
+
+## Fase 71 — Sincronizzazione Ordine Aree Azienda
+- [x] Analizzare preferenze esistenti, identità utente e vincoli multi-azienda
+- [x] Aggiungere persistenza additiva e auditata dell’ordine per utente e azienda
+- [x] Esporre procedure protette per leggere e aggiornare l’ordine
+- [x] Integrare la griglia con sincronizzazione database e fallback offline locale
+- [x] Aggiungere regressioni di isolamento utente/azienda, validazione e UI
+- [x] Verificare migrazione, mobile 390×844, suite Vitest, TypeScript, build, PWA e checkpoint

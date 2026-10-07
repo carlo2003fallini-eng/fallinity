@@ -175,6 +175,20 @@ export const companyMemberships = mysqlTable("companyMemberships", {
 export type CompanyMembership = typeof companyMemberships.$inferSelect;
 export type InsertCompanyMembership = typeof companyMemberships.$inferInsert;
 
+// ─── PREFERENZE HOME AZIENDA ─────────────────────────────────────────────────
+// Ordine personale delle aree operative, isolato per utente e azienda attiva.
+export const preferenzeHomeAzienda = mysqlTable("preferenzeHomeAzienda", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  userUuid: varchar("userUuid", { length: 36 }).notNull(),
+  ordine: json("ordine").notNull(),
+  ...auditColumns,
+}, (table) => [
+  uniqueIndex("preferenze_home_azienda_company_user_unique").on(table.companyId, table.userUuid),
+]);
+export type PreferenzaHomeAzienda = typeof preferenzeHomeAzienda.$inferSelect;
+export type InsertPreferenzaHomeAzienda = typeof preferenzeHomeAzienda.$inferInsert;
+
 // ─── AUDIT LOG ────────────────────────────────────────────────────────────────
 export const auditLogs = mysqlTable("auditLogs", {
   id: uuidPk(),

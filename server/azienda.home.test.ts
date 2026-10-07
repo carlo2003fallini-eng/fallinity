@@ -38,6 +38,7 @@ describe("Home Azienda — accesso operativo essenziale", () => {
     expect(gridSource).toContain("fallinity:azienda:aree-ordine:v1:");
     expect(gridSource).toContain("persistOrder(orderRef.current)");
     expect(gridSource).toContain("transform: isDragging");
+    expect(gridSource).toContain("trpc.azienda.salvaOrdineAree.useMutation");
   });
 });
 

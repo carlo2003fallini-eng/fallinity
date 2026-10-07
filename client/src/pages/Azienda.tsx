@@ -15,7 +15,11 @@ export default function Azienda() {
         </h1>
       </header>
 
-      <CompanyAreasGrid onNavigate={setLocation} userKey={user?.openId ?? "dispositivo"} />
+      <CompanyAreasGrid
+        onNavigate={setLocation}
+        userKey={user?.openId ?? "dispositivo"}
+        companyKey={user?.activeCompanyId ?? "azienda"}
+      />
     </div>
   );
 }

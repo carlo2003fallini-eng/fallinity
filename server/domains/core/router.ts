@@ -1,7 +1,7 @@
 import { protectedProcedure, router } from "../../_core/trpc";
 import { getActor } from "../_core";
 import { coreService } from "./service";
-import { listContattiInput, createContattoInput, deleteContattoInput } from "./validators";
+import { listContattiInput, createContattoInput, deleteContattoInput, companyAreasOrderScopeInput, updateCompanyAreasOrderInput } from "./validators";
 
 /** COMPANY — azienda attiva */
 export const companyRouter = router({
@@ -28,6 +28,14 @@ export const aziendaRouter = router({
   delete: protectedProcedure.input(deleteContattoInput).mutation(async ({ ctx, input }) => {
     const actor = await getActor(ctx);
     return coreService.removeContatto(actor, input.id);
+  }),
+  ordineAree: protectedProcedure.input(companyAreasOrderScopeInput).query(async ({ ctx }) => {
+    const actor = await getActor(ctx);
+    return coreService.companyAreasOrder(actor);
+  }),
+  salvaOrdineAree: protectedProcedure.input(updateCompanyAreasOrderInput).mutation(async ({ ctx, input }) => {
+    const actor = await getActor(ctx);
+    return coreService.saveCompanyAreasOrder(actor, input);
   }),
 });
 
