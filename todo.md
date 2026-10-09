@@ -47,3 +47,9 @@
 - [x] Individuare le aziende di test ancora attive e preservare l’azienda corrente
 - [x] Richiedere conferma dell’elenco esatto prima dell’archiviazione globale
 - [x] Archiviare le sole aziende confermate con audit e verificare che non siano più apribili
+
+## Fase 80 — Schede Azienda Illustrate e Ridimensionate
+- [x] Analizzare dimensioni, composizione e simboli richiesti nel riferimento mobile
+- [x] Creare quattro sfondi agricoli coerenti per Stalla, Magazzino, Officina e Campi
+- [x] Ridimensionare la griglia 2×2 e aggiornare le icone Stalla e Magazzino
+- [x] Verificare contrasto, riordino touch, accessibilità, mobile, test, build e PWA

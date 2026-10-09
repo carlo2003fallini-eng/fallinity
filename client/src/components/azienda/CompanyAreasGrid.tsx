@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
-import { Beef, Sprout, Warehouse, Wrench, type LucideIcon } from "lucide-react";
+import { LibraryBig, Sprout, Wrench, type LucideIcon } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import {
   COMPANY_AREA_DEFAULT_ORDER,
@@ -16,8 +16,10 @@ type CompanyArea = {
   id: CompanyAreaId;
   label: string;
   path: string;
-  icon: LucideIcon;
+  icon?: LucideIcon;
+  iconImage?: string;
   color: string;
+  backgroundImage: string;
 };
 
 type DragState = {
@@ -32,10 +34,10 @@ type DragState = {
 };
 
 const AREAS: CompanyArea[] = [
-  { id: "stalla", label: "Stalla", path: "/stalla", icon: Beef, color: "oklch(0.65 0.18 142)" },
-  { id: "magazzino", label: "Magazzino", path: "/magazzino", icon: Warehouse, color: "oklch(0.72 0.15 75)" },
-  { id: "officina", label: "Officina", path: "/officina", icon: Wrench, color: "oklch(0.6 0.15 220)" },
-  { id: "campi", label: "Campi", path: "/campi", icon: Sprout, color: "oklch(0.65 0.18 142)" },
+  { id: "stalla", label: "Stalla", path: "/stalla", iconImage: "/manus-storage/icona-stalla-512_96f07299.png", color: "oklch(0.65 0.18 142)", backgroundImage: "/manus-storage/stalla_7e6a9572.jpg" },
+  { id: "magazzino", label: "Magazzino", path: "/magazzino", icon: LibraryBig, color: "oklch(0.72 0.15 75)", backgroundImage: "/manus-storage/magazzino_61218d07.jpg" },
+  { id: "officina", label: "Officina", path: "/officina", icon: Wrench, color: "oklch(0.6 0.15 220)", backgroundImage: "/manus-storage/officina_312bc211.jpg" },
+  { id: "campi", label: "Campi", path: "/campi", icon: Sprout, color: "oklch(0.65 0.18 142)", backgroundImage: "/manus-storage/campi_ec82f668.jpg" },
 ];
 
 function fallbackStorageKey(userKey: string, companyKey: string) {
@@ -290,9 +292,12 @@ export function CompanyAreasGrid({ onNavigate, userKey, companyKey, allowedAreas
                 onKeyDown={(event) => handleKeyDown(event, area.id)}
                 aria-label={`${area.label}. Tieni premuto e trascina per riordinare.`}
                 aria-pressed={isKeyboardDragging}
-                className={`relative flex min-h-36 w-full select-none flex-col items-center justify-center gap-3 rounded-2xl border transition-[transform,box-shadow,opacity,border-color] duration-200 active:scale-[0.98] ${isDragging ? "z-20 opacity-95" : ""}`}
+                className={`relative flex min-h-[180px] w-full select-none flex-col items-center justify-start gap-2 overflow-hidden rounded-2xl border px-3 pt-7 text-center transition-[transform,box-shadow,opacity,border-color] duration-200 active:scale-[0.98] ${isDragging ? "z-20 opacity-95" : ""}`}
                 style={{
-                  background: "linear-gradient(145deg, oklch(0.14 0.018 145), oklch(0.10 0.006 145))",
+                  minHeight: "11.25rem",
+                  backgroundImage: `linear-gradient(180deg, oklch(0.055 0.01 145 / .90) 0%, oklch(0.055 0.01 145 / .72) 42%, oklch(0.055 0.01 145 / .30) 100%), url(${area.backgroundImage})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
                   borderColor: isDragging || isKeyboardDragging ? `${area.color}aa` : "oklch(0.20 0.015 145)",
                   boxShadow: isDragging ? `0 20px 36px ${area.color}30, 0 8px 18px oklch(0.03 0.01 145 / .6)` : "0 8px 20px oklch(0.03 0.01 145 / .22)",
                   transform: isDragging ? `translate3d(${dragOffset.x}px, ${dragOffset.y}px, 0) scale(1.04)` : undefined,
@@ -300,10 +305,14 @@ export function CompanyAreasGrid({ onNavigate, userKey, companyKey, allowedAreas
                   touchAction: "none",
                 }}
               >
-                <span className="flex size-12 items-center justify-center rounded-2xl" style={{ background: `${area.color}15`, color: area.color }}>
-                  <Icon size={25} strokeWidth={1.8} />
+                <span className="flex size-12 items-center justify-center rounded-2xl border backdrop-blur-sm" style={{ background: "oklch(0.07 0.01 145 / .62)", borderColor: `${area.color}55`, color: area.color }}>
+                  {area.iconImage ? (
+                    <img src={area.iconImage} alt="" aria-hidden="true" className="size-10 object-contain" />
+                  ) : Icon ? (
+                    <Icon size={26} strokeWidth={1.85} />
+                  ) : null}
                 </span>
-                <span className="text-base font-semibold" style={{ color: "oklch(0.9 0.01 145)", fontFamily: "var(--font-display)" }}>{area.label}</span>
+                <span className="text-lg font-semibold tracking-tight" style={{ color: "oklch(0.96 0.004 145)", fontFamily: "var(--font-display)", textShadow: "0 2px 12px oklch(0.02 0.005 145 / .95)" }}>{area.label}</span>
               </button>
             </div>
           );

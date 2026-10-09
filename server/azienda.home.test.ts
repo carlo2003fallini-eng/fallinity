@@ -34,6 +34,21 @@ describe("Home Azienda — accesso operativo essenziale", () => {
     expect(gridSource).not.toContain("Ripristina");
   });
 
+  it("usa schede alte illustrate e simboli coerenti con stalla e scaffale", () => {
+    expect(gridSource).toContain("min-h-[180px]");
+    expect(gridSource).toContain('minHeight: "11.25rem"');
+    expect(gridSource).toContain("backgroundImage: `linear-gradient(180deg");
+    expect(gridSource).toContain('/manus-storage/stalla_7e6a9572.jpg');
+    expect(gridSource).toContain('/manus-storage/magazzino_61218d07.jpg');
+    expect(gridSource).toContain('/manus-storage/officina_312bc211.jpg');
+    expect(gridSource).toContain('/manus-storage/campi_ec82f668.jpg');
+    expect(gridSource).toContain('id: "stalla", label: "Stalla", path: "/stalla", iconImage: "/manus-storage/icona-stalla-512_96f07299.png"');
+    expect(gridSource).toContain('id: "magazzino", label: "Magazzino", path: "/magazzino", icon: LibraryBig');
+    expect(gridSource).toContain('<img src={area.iconImage} alt="" aria-hidden="true"');
+    expect(gridSource).not.toContain("Beef");
+    expect(gridSource).not.toContain("Warehouse");
+  });
+
   it("attiva il trascinamento soltanto dopo una pressione prolungata e salva per utente", () => {
     expect(gridSource).toContain("const LONG_PRESS_MS = 320");
     expect(gridSource).toContain("window.setTimeout(() => activateDrag(id), LONG_PRESS_MS)");
