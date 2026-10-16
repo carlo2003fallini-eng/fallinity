@@ -17,6 +17,7 @@ import Calendario from "./pages/Calendario";
 import Report from "./pages/Report";
 import AI from "./pages/AI";
 import Stalla from "./pages/Stalla";
+import StallaSection from "./pages/stalla/StallaSection";
 import ScenarioFuturo from "./pages/ScenarioFuturo";
 import NuovoMovimento from "./pages/finanza/NuovoMovimento";
 import NuovoMovimentoAutomatico from "./pages/finanza/NuovoMovimentoAutomatico";
@@ -92,6 +93,7 @@ function Router() {
         <Route path="/calendario" component={Calendario} />
         <Route path="/report" component={Report} />
         <Route path="/ai" component={AI} />
+        <Route path="/stalla/:sectionId">{({ sectionId }) => <StallaSection sectionId={sectionId} />}</Route>
         <Route path="/stalla" component={Stalla} />
         <Route path="/reintegrazione">{() => <Finanza initialTab="reintegrazione" />}</Route>
         <Route path="/scenario-futuro" component={ScenarioFuturo} />

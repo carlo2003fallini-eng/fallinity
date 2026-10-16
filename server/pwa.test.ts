@@ -94,6 +94,13 @@ describe("Fallinity PWA — cache e aggiornamenti", () => {
     expect(serviceWorker).toContain("CACHE_URLS");
   });
 
+  it("precarica soltanto gli sfondi pubblici e non sensibili dell’hub Stalla", () => {
+    expect(serviceWorker).toContain("fase-81-hub-stalla-illustrato");
+    for (const asset of ["dati-latte_4397cbdd.jpg", "riproduzione_f9519393.jpg", "vitelli_6ad392af.jpg", "gruppi_d0c23dac.jpg", "sanita_d6a481e8.jpg", "alimentazione_aeaf1205.jpg"]) {
+      expect(serviceWorker).toContain(asset);
+    }
+  });
+
   it("richiede conferma prima di attivare una nuova versione", () => {
     expect(serviceWorker).toContain("SKIP_WAITING");
     expect(pwaController).toContain("Aggiornamento disponibile");

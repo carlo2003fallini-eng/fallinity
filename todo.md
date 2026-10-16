@@ -53,3 +53,10 @@
 - [x] Creare quattro sfondi agricoli coerenti per Stalla, Magazzino, Officina e Campi
 - [x] Ridimensionare la griglia 2×2 e aggiornare le icone Stalla e Magazzino
 - [x] Verificare contrasto, riordino touch, accessibilità, mobile, test, build e PWA
+
+## Fase 81 — Hub Stalla Illustrato
+- [x] Analizzare la pagina Stalla esistente, le funzioni già disponibili e il riferimento grafico Azienda
+- [x] Creare sei fotografie luminose e coerenti per Dati latte, Riproduzione, Vitelli, Gruppi, Sanità e Alimentazione
+- [x] Sostituire l’home Stalla con una griglia 2×3 dark premium e sei card accessibili con icone dedicate
+- [x] Predisporre le sezioni interne con navigazione iconica, riusando Gruppi/Animali/Salute senza dati fittizi
+- [ ] Salvare il checkpoint dopo verifica di route, leggibilità mobile, test, build e PWA
