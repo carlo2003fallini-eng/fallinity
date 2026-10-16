@@ -21,6 +21,14 @@ describe("Hub Stalla — griglia illustrata", () => {
     expect(STALLA_AREAS.every((area) => area.tabs.length > 0)).toBe(true);
   });
 
+  it("presenta l’area latte con il nome più ampio Dati stalla, senza cambiare il percorso operativo", () => {
+    expect(STALLA_AREAS.find((area) => area.id === "dati-latte")).toMatchObject({
+      id: "dati-latte",
+      title: "Dati stalla",
+      backgroundImage: "/manus-storage/dati-latte_4397cbdd.jpg",
+    });
+  });
+
   it("mantiene una griglia 2×3 di card alte, accessibili e fotografiche", () => {
     expect(stallaSource).toContain('className="grid grid-cols-2 gap-3"');
     expect(stallaSource).toContain("min-h-[180px]");

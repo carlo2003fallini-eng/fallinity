@@ -44,7 +44,7 @@ export type StallaArea = {
 export const STALLA_AREAS: StallaArea[] = [
   {
     id: "dati-latte",
-    title: "Dati latte",
+    title: "Dati stalla",
     eyebrow: "Produzione e qualità",
     description: "Raccogli produzione, parametri qualitativi e analisi del latte in un unico punto.",
     icon: Milk,
