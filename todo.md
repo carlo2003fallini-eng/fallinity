@@ -59,4 +59,4 @@
 - [x] Creare sei fotografie luminose e coerenti per Dati latte, Riproduzione, Vitelli, Gruppi, Sanità e Alimentazione
 - [x] Sostituire l’home Stalla con una griglia 2×3 dark premium e sei card accessibili con icone dedicate
 - [x] Predisporre le sezioni interne con navigazione iconica, riusando Gruppi/Animali/Salute senza dati fittizi
-- [ ] Salvare il checkpoint dopo verifica di route, leggibilità mobile, test, build e PWA
+- [x] Salvare il checkpoint dopo verifica di route, leggibilità mobile, test, build e PWA
