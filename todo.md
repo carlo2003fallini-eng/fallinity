@@ -5,4 +5,4 @@
 - [x] Aumentare esclusivamente i titoli delle card del 10%, senza alterare la griglia
 - [x] Aggiornare regressioni e cache PWA; verificare mobile, test, TypeScript e build
 - [x] Definire una base esplicita e una regressione per l’aumento del 10% dei titoli
-- [ ] Salvare il checkpoint del contrasto aggiornato
+- [x] Salvare il checkpoint del contrasto aggiornato
