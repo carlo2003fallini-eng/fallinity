@@ -4,4 +4,4 @@
 - [x] Rendere più luminosi i simboli e spostarli nella fascia alta centrale delle card
 - [x] Aumentare del 25% le scritte visibili sulle card, mantenendo contrasto e accessibilità
 - [x] Aggiornare regressioni e cache PWA; verificare mobile, test, TypeScript e build
-- [ ] Salvare il checkpoint della leggibilità aggiornata
+- [x] Salvare il checkpoint della leggibilità aggiornata
