@@ -29,10 +29,14 @@ describe("Hub Stalla — griglia illustrata", () => {
     });
   });
 
-  it("mantiene una griglia 2×3 di card alte, accessibili e fotografiche", () => {
+  it("mantiene una griglia 2×3 di card fotografiche compatte, accessibili e riconoscibili", () => {
     expect(stallaSource).toContain('className="grid grid-cols-2 gap-3"');
-    expect(stallaSource).toContain("min-h-[180px]");
+    expect(stallaSource).toContain("aspect-[1.1/1]");
     expect(stallaSource).toContain("backgroundImage: `linear-gradient(180deg");
+    expect(stallaSource).toContain("top-[46%]");
+    expect(stallaSource).toContain("size-14");
+    expect(stallaSource).toContain("bottom-3 text-xl font-bold");
+    expect(stallaSource).toContain("backdrop-blur-md");
     expect(stallaSource).toContain("focus-visible:ring-2 focus-visible:ring-primary");
     expect(stallaSource).toContain("Apri {area.title}");
   });

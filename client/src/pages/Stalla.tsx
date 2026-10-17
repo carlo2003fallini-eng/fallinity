@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
 import { STALLA_AREAS } from "@/lib/stallaAreas";
 
@@ -34,26 +34,25 @@ export default function Stalla() {
               key={area.id}
               type="button"
               onClick={() => setLocation(`/stalla/${area.id}`)}
-              className="group relative flex min-h-[180px] w-full flex-col items-center justify-start gap-2 overflow-hidden rounded-2xl border px-3 pt-7 text-center transition-[transform,box-shadow,border-color] duration-200 active:scale-[0.98] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="group relative aspect-[1.1/1] w-full overflow-hidden rounded-[1.35rem] border text-center transition-[transform,box-shadow,border-color] duration-200 active:scale-[0.98] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               style={{
-                backgroundImage: `linear-gradient(180deg, oklch(0.055 0.01 145 / .42) 0%, oklch(0.055 0.01 145 / .46) 44%, oklch(0.055 0.01 145 / .66) 100%), url(${area.backgroundImage})`,
+                backgroundImage: `linear-gradient(180deg, oklch(0.055 0.01 145 / .12) 0%, oklch(0.055 0.01 145 / .18) 42%, oklch(0.025 0.006 145 / .82) 100%), url(${area.backgroundImage})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
                 borderColor: "oklch(0.24 0.02 145)",
-                boxShadow: "0 8px 20px oklch(0.03 0.01 145 / .26)",
+                boxShadow: "0 10px 24px oklch(0.03 0.01 145 / .30)",
               }}
             >
               <span
-                className="flex size-12 items-center justify-center rounded-2xl border backdrop-blur-sm"
-                style={{ background: "oklch(0.07 0.01 145 / .61)", borderColor: `${area.color}77`, color: area.color }}
+                className="absolute left-1/2 top-[46%] flex size-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[1.2rem] border backdrop-blur-md"
+                style={{ background: "oklch(0.035 0.007 145 / .86)", borderColor: `${area.color}66`, color: area.color, boxShadow: "0 8px 22px oklch(0.02 0.005 145 / .46)" }}
               >
-                <Icon size={26} strokeWidth={1.85} aria-hidden="true" />
+                <Icon size={30} strokeWidth={1.9} aria-hidden="true" />
               </span>
-              <span className="text-lg font-semibold tracking-tight" style={{ color: TEXT_BRIGHT, fontFamily: "var(--font-display)", textShadow: "0 2px 12px oklch(0.02 0.005 145 / .95)" }}>
+              <span className="absolute inset-x-2 bottom-3 text-xl font-bold tracking-tight" style={{ color: TEXT_BRIGHT, fontFamily: "var(--font-display)", textShadow: "0 3px 14px oklch(0.02 0.005 145 / .98)" }}>
                 {area.title}
               </span>
               <span className="sr-only">Apri {area.title}</span>
-              <ChevronRight className="absolute bottom-3 right-3 size-4 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100" style={{ color: TEXT_BRIGHT }} aria-hidden="true" />
             </button>
           );
         })}
