@@ -29,11 +29,15 @@ describe("Hub Stalla — griglia illustrata", () => {
     });
   });
 
-  it("mantiene una griglia 2×3 con le card fotografiche e i simboli del riferimento, più scuri e accessibili", () => {
+  it("mantiene una griglia 2×3 con logo alto luminoso e titolo aumentato del 25%", () => {
     expect(stallaSource).toContain('className="grid grid-cols-2 gap-3"');
     expect(stallaSource).toContain("aspect-[1.5/1]");
-    expect(stallaSource).toContain("backgroundImage: `linear-gradient(180deg");
-    expect(stallaSource).toContain("oklch(0.02 0.005 145 / .35)");
+    expect(stallaSource).toContain("backgroundImage: `radial-gradient(ellipse");
+    expect(stallaSource).toContain("top-[28%]");
+    expect(stallaSource).toContain("size-[3.75rem]");
+    expect(stallaSource).toContain("size={36}");
+    expect(stallaSource).toContain("text-[1.5625rem]");
+    expect(stallaSource).toContain("0 0 24px ${area.color}77");
     expect(stallaSource).toContain("focus-visible:ring-2 focus-visible:ring-primary");
     expect(stallaSource).toContain("Apri {area.title}");
   });
