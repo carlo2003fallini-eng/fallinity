@@ -1,7 +1,7 @@
 
-## Fase 85 — Leggibilità Loghi e Titoli delle Card Stalla
-- [x] Analizzare contrasto, posizionamento e scala delle card dal riferimento
-- [x] Rendere più luminosi i simboli e spostarli nella fascia alta centrale delle card
-- [x] Aumentare del 25% le scritte visibili sulle card, mantenendo contrasto e accessibilità
+## Fase 84 — Card Stalla con Riferimento Utente Scurito
+- [x] Analizzare il riferimento e identificare le sei card da riutilizzare
+- [x] Estrarre e ottimizzare sei sfondi originali dal riferimento, applicando un trattamento più scuro
+- [x] Sostituire le card Stalla con gli sfondi e i simboli forniti, preservando navigazione e accessibilità
 - [x] Aggiornare regressioni e cache PWA; verificare mobile, test, TypeScript e build
-- [x] Salvare il checkpoint della leggibilità aggiornata
+- [x] Salvare il checkpoint delle card Stalla dal riferimento
