@@ -1,7 +1,7 @@
 
-## Fase 83 — Card Stalla in Stile Fotografico Compatto
-- [x] Interpretare il riferimento e mappare le sei aree Stalla esistenti
-- [x] Ridisegnare le card 2×3 con fotografia, medaglione icona centrale e titolo in sovrimpressione
-- [x] Preservare navigazione, dati, immagini esistenti, accessibilità e stile Fallinity
+## Fase 84 — Card Stalla con Riferimento Utente Scurito
+- [x] Analizzare il riferimento e identificare le sei card da riutilizzare
+- [x] Estrarre e ottimizzare sei sfondi originali dal riferimento, applicando un trattamento più scuro
+- [x] Sostituire le card Stalla con gli sfondi e i simboli forniti, preservando navigazione e accessibilità
 - [x] Aggiornare regressioni e cache PWA; verificare mobile, test, TypeScript e build
-- [x] Salvare il checkpoint delle card Stalla rinnovate
+- [ ] Salvare il checkpoint delle card Stalla dal riferimento

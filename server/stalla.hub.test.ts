@@ -25,30 +25,27 @@ describe("Hub Stalla — griglia illustrata", () => {
     expect(STALLA_AREAS.find((area) => area.id === "dati-latte")).toMatchObject({
       id: "dati-latte",
       title: "Dati stalla",
-      backgroundImage: "/manus-storage/dati-latte_4397cbdd.jpg",
+      backgroundImage: "/manus-storage/dati-stalla_2ce93fdf.jpg",
     });
   });
 
-  it("mantiene una griglia 2×3 di card fotografiche compatte, accessibili e riconoscibili", () => {
+  it("mantiene una griglia 2×3 con le card fotografiche e i simboli del riferimento, più scuri e accessibili", () => {
     expect(stallaSource).toContain('className="grid grid-cols-2 gap-3"');
-    expect(stallaSource).toContain("aspect-[1.1/1]");
+    expect(stallaSource).toContain("aspect-[1.5/1]");
     expect(stallaSource).toContain("backgroundImage: `linear-gradient(180deg");
-    expect(stallaSource).toContain("top-[46%]");
-    expect(stallaSource).toContain("size-14");
-    expect(stallaSource).toContain("bottom-3 text-xl font-bold");
-    expect(stallaSource).toContain("backdrop-blur-md");
+    expect(stallaSource).toContain("oklch(0.02 0.005 145 / .35)");
     expect(stallaSource).toContain("focus-visible:ring-2 focus-visible:ring-primary");
     expect(stallaSource).toContain("Apri {area.title}");
   });
 
-  it("usa sei sfondi archiviati, luminosi e distinti", () => {
+  it("usa i sei sfondi distinti forniti dall’utente con trattamento scurito", () => {
     expect(STALLA_AREAS.map((area) => area.backgroundImage)).toEqual([
-      "/manus-storage/dati-latte_4397cbdd.jpg",
-      "/manus-storage/riproduzione_f9519393.jpg",
-      "/manus-storage/vitelli_6ad392af.jpg",
-      "/manus-storage/gruppi_d0c23dac.jpg",
-      "/manus-storage/sanita_d6a481e8.jpg",
-      "/manus-storage/alimentazione_aeaf1205.jpg",
+      "/manus-storage/dati-stalla_2ce93fdf.jpg",
+      "/manus-storage/riproduzione_b0303e90.jpg",
+      "/manus-storage/vitelli_31e8ae12.jpg",
+      "/manus-storage/gruppi_10fe41ef.jpg",
+      "/manus-storage/sanita_266962fc.jpg",
+      "/manus-storage/alimentazione_ae1c4a7e.jpg",
     ]);
   });
 });
