@@ -1,7 +1,7 @@
 // Fallinity FEOS — Service Worker minimale
 // Fallinity PWA: viene memorizzata soltanto la shell dell'app.
 // API, autenticazione e file utente restano sempre network-only.
-const buildVersion = new URL(self.location.href).searchParams.get("v") || "fase-84-card-stalla-riferimento-scurito";
+const buildVersion = new URL(self.location.href).searchParams.get("v") || "fase-85-card-stalla-contrasto-luminoso";
 const safeVersion = buildVersion.replace(/[^a-zA-Z0-9_-]/g, "-");
 const SHELL_CACHE = `fallinity-shell-${safeVersion}`;
 const RUNTIME_CACHE = `fallinity-runtime-${safeVersion}`;
@@ -15,12 +15,12 @@ const APP_SHELL = [
   "/manus-storage/fallinity-apple-touch-icon_95fb98f5.png",
   "/manus-storage/finance-manual-entry_50e37e4c.png",
   "/manus-storage/finance-ai-entry_833a1992.png",
-  "/manus-storage/dati-latte_4397cbdd.jpg",
-  "/manus-storage/riproduzione_f9519393.jpg",
-  "/manus-storage/vitelli_6ad392af.jpg",
-  "/manus-storage/gruppi_d0c23dac.jpg",
-  "/manus-storage/sanita_d6a481e8.jpg",
-  "/manus-storage/alimentazione_aeaf1205.jpg",
+  "/manus-storage/dati-stalla_2ce93fdf.jpg",
+  "/manus-storage/riproduzione_b0303e90.jpg",
+  "/manus-storage/vitelli_31e8ae12.jpg",
+  "/manus-storage/gruppi_10fe41ef.jpg",
+  "/manus-storage/sanita_266962fc.jpg",
+  "/manus-storage/alimentazione_ae1c4a7e.jpg",
 ];
 const PUBLIC_BRAND_ASSETS = new Set([
   "/manus-storage/fallinity-logo_8c31d682.png",
@@ -30,12 +30,12 @@ const PUBLIC_BRAND_ASSETS = new Set([
   "/manus-storage/fallinity-apple-touch-icon_95fb98f5.png",
   "/manus-storage/finance-manual-entry_50e37e4c.png",
   "/manus-storage/finance-ai-entry_833a1992.png",
-  "/manus-storage/dati-latte_4397cbdd.jpg",
-  "/manus-storage/riproduzione_f9519393.jpg",
-  "/manus-storage/vitelli_6ad392af.jpg",
-  "/manus-storage/gruppi_d0c23dac.jpg",
-  "/manus-storage/sanita_d6a481e8.jpg",
-  "/manus-storage/alimentazione_aeaf1205.jpg",
+  "/manus-storage/dati-stalla_2ce93fdf.jpg",
+  "/manus-storage/riproduzione_b0303e90.jpg",
+  "/manus-storage/vitelli_31e8ae12.jpg",
+  "/manus-storage/gruppi_10fe41ef.jpg",
+  "/manus-storage/sanita_266962fc.jpg",
+  "/manus-storage/alimentazione_ae1c4a7e.jpg",
 ]);
 
 const OFFLINE_HTML = `<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0a0f0a"><title>Fallinity offline</title><style>body{margin:0;background:#070b07;color:#f3f5f3;font:16px system-ui;min-height:100vh;display:grid;place-items:center}.box{max-width:28rem;padding:2rem;text-align:center}h1{font-size:1.4rem}p{color:#a4aca4;line-height:1.5}button{border:0;border-radius:12px;background:#4ade80;color:#071108;font-weight:700;padding:.8rem 1.2rem}</style></head><body><main class="box"><h1>Fallinity è offline</h1><p>L'interfaccia non è ancora disponibile su questo dispositivo. Riconnettiti almeno una volta per scaricare l'ultima versione.</p><button onclick="location.reload()">Riprova</button></main></body></html>`;

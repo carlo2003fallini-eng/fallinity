@@ -95,8 +95,8 @@ describe("Fallinity PWA — cache e aggiornamenti", () => {
   });
 
   it("precarica soltanto gli sfondi pubblici e non sensibili dell’hub Stalla", () => {
-    expect(serviceWorker).toContain("fase-84-card-stalla-riferimento-scurito");
-    for (const asset of ["dati-latte_4397cbdd.jpg", "riproduzione_f9519393.jpg", "vitelli_6ad392af.jpg", "gruppi_d0c23dac.jpg", "sanita_d6a481e8.jpg", "alimentazione_aeaf1205.jpg"]) {
+    expect(serviceWorker).toContain("fase-85-card-stalla-contrasto-luminoso");
+    for (const asset of ["dati-stalla_2ce93fdf.jpg", "riproduzione_b0303e90.jpg", "vitelli_31e8ae12.jpg", "gruppi_10fe41ef.jpg", "sanita_266962fc.jpg", "alimentazione_ae1c4a7e.jpg"]) {
       expect(serviceWorker).toContain(asset);
     }
   });

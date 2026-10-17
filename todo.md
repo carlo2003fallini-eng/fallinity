@@ -1,7 +1,8 @@
 
-## Fase 84 — Card Stalla con Riferimento Utente Scurito
-- [x] Analizzare il riferimento e identificare le sei card da riutilizzare
-- [x] Estrarre e ottimizzare sei sfondi originali dal riferimento, applicando un trattamento più scuro
-- [x] Sostituire le card Stalla con gli sfondi e i simboli forniti, preservando navigazione e accessibilità
+## Fase 85 — Contrasto e Testi delle Card Stalla
+- [x] Analizzare il contrasto della versione ripristinata
+- [x] Rendere più luminosi i simboli e i titoli sovrapposti alle card
+- [x] Aumentare esclusivamente i titoli delle card del 10%, senza alterare la griglia
 - [x] Aggiornare regressioni e cache PWA; verificare mobile, test, TypeScript e build
-- [x] Salvare il checkpoint delle card Stalla dal riferimento
+- [x] Definire una base esplicita e una regressione per l’aumento del 10% dei titoli
+- [ ] Salvare il checkpoint del contrasto aggiornato
