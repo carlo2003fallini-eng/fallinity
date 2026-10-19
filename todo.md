@@ -13,4 +13,4 @@
 - [x] Rigenerare sei sfondi fotografici semanticamente coerenti con le rispettive aree della Stalla
 - [x] Caricare, collegare e precaricare in PWA i nuovi sfondi pubblici
 - [x] Aggiornare regressioni e verificare mobile, test, TypeScript, build e PWA
-- [ ] Salvare il checkpoint del ridisegno Stalla
+- [x] Salvare il checkpoint del ridisegno Stalla
