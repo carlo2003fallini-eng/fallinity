@@ -39,6 +39,7 @@ export type StallaArea = {
   color: string;
   backgroundImage: string;
   backgroundPosition: string;
+  visualDescription?: string;
   tabs: StallaTab[];
 };
 
@@ -50,8 +51,9 @@ export const STALLA_AREAS: StallaArea[] = [
     description: "Raccogli produzione, parametri qualitativi e analisi del latte in un unico punto.",
     icon: Milk,
     color: "oklch(0.72 0.18 185)",
-    backgroundImage: "/manus-storage/dati-stalla_1a2d7071.jpg",
-    backgroundPosition: "30% center",
+    backgroundImage: "/manus-storage/dati-stalla-dashboard_e7198686.jpg",
+    backgroundPosition: "center",
+    visualDescription: "Mucca da latte a sinistra e computer con grafici di produzione sulla destra.",
     tabs: [
       { id: "produzione", label: "Produzione", icon: Milk },
       { id: "qualita", label: "Qualità", icon: TestTube2 },

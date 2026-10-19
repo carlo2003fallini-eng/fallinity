@@ -25,7 +25,9 @@ describe("Hub Stalla — griglia illustrata", () => {
     expect(STALLA_AREAS.find((area) => area.id === "dati-latte")).toMatchObject({
       id: "dati-latte",
       title: "Dati stalla",
-      backgroundImage: "/manus-storage/dati-stalla_1a2d7071.jpg",
+      backgroundImage: "/manus-storage/dati-stalla-dashboard_e7198686.jpg",
+      backgroundPosition: "center",
+      visualDescription: "Mucca da latte a sinistra e computer con grafici di produzione sulla destra.",
     });
   });
 
@@ -39,12 +41,12 @@ describe("Hub Stalla — griglia illustrata", () => {
     expect(stallaSource).toContain("backgroundPosition: area.backgroundPosition");
     expect(stallaSource).toContain("oklch(0.055 0.01 145 / .90)");
     expect(stallaSource).toContain("focus-visible:ring-2 focus-visible:ring-primary");
-    expect(stallaSource).toContain("aria-label={`Apri ${area.title}`}");
+    expect(stallaSource).toContain("area.visualDescription ? `Apri ${area.title}. ${area.visualDescription}`");
   });
 
   it("usa sei sfondi distinti e semanticamente coerenti con le sezioni della Stalla", () => {
     expect(STALLA_AREAS.map((area) => area.backgroundImage)).toEqual([
-      "/manus-storage/dati-stalla_1a2d7071.jpg",
+      "/manus-storage/dati-stalla-dashboard_e7198686.jpg",
       "/manus-storage/riproduzione_e5015a4c.jpg",
       "/manus-storage/vitelli_fb9a167e.jpg",
       "/manus-storage/gruppi_81c45d0c.jpg",

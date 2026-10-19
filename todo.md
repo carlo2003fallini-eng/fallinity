@@ -14,3 +14,14 @@
 - [x] Caricare, collegare e precaricare in PWA i nuovi sfondi pubblici
 - [x] Aggiornare regressioni e verificare mobile, test, TypeScript, build e PWA
 - [x] Salvare il checkpoint del ridisegno Stalla
+
+## Fase 87 — Sfondo Dati Stalla con Dashboard
+- [x] Analizzare l’asset Dati stalla corrente e la sua composizione nella card
+- [x] Inserire esclusivamente un computer con grafici decorativi sul lato destro dello sfondo
+- [x] Ottimizzare, caricare e collegare il solo nuovo sfondo; aggiornare la cache PWA
+- [x] Aggiornare la regressione e verificare mobile, test, TypeScript, build e PWA
+- [x] Verificare visivamente il monitor sul lato destro e la conservazione della scena originale
+- [x] Confermare dall’output ispezionabile il monitor con grafici a destra, la mucca a sinistra e la resa nella card mobile
+- [x] Rieseguire i controlli di asset, PWA e regressioni dopo la conferma visiva
+- [x] Esporre e testare una descrizione accessibile della composizione finale Dati stalla
+- [ ] Salvare il checkpoint della dashboard Dati stalla

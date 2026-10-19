@@ -1,7 +1,7 @@
 // Fallinity FEOS — Service Worker minimale
 // Fallinity PWA: viene memorizzata soltanto la shell dell'app.
 // API, autenticazione e file utente restano sempre network-only.
-const buildVersion = new URL(self.location.href).searchParams.get("v") || "fase-86-card-stalla-stile-azienda";
+const buildVersion = new URL(self.location.href).searchParams.get("v") || "fase-87-dati-stalla-dashboard";
 const safeVersion = buildVersion.replace(/[^a-zA-Z0-9_-]/g, "-");
 const SHELL_CACHE = `fallinity-shell-${safeVersion}`;
 const RUNTIME_CACHE = `fallinity-runtime-${safeVersion}`;
@@ -15,7 +15,7 @@ const APP_SHELL = [
   "/manus-storage/fallinity-apple-touch-icon_95fb98f5.png",
   "/manus-storage/finance-manual-entry_50e37e4c.png",
   "/manus-storage/finance-ai-entry_833a1992.png",
-  "/manus-storage/dati-stalla_1a2d7071.jpg",
+  "/manus-storage/dati-stalla-dashboard_e7198686.jpg",
   "/manus-storage/riproduzione_e5015a4c.jpg",
   "/manus-storage/vitelli_fb9a167e.jpg",
   "/manus-storage/gruppi_81c45d0c.jpg",
@@ -30,7 +30,7 @@ const PUBLIC_BRAND_ASSETS = new Set([
   "/manus-storage/fallinity-apple-touch-icon_95fb98f5.png",
   "/manus-storage/finance-manual-entry_50e37e4c.png",
   "/manus-storage/finance-ai-entry_833a1992.png",
-  "/manus-storage/dati-stalla_1a2d7071.jpg",
+  "/manus-storage/dati-stalla-dashboard_e7198686.jpg",
   "/manus-storage/riproduzione_e5015a4c.jpg",
   "/manus-storage/vitelli_fb9a167e.jpg",
   "/manus-storage/gruppi_81c45d0c.jpg",

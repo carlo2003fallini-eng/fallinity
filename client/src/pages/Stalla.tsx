@@ -34,7 +34,7 @@ export default function Stalla() {
               key={area.id}
               type="button"
               onClick={() => setLocation(`/stalla/${area.id}`)}
-              aria-label={`Apri ${area.title}`}
+              aria-label={area.visualDescription ? `Apri ${area.title}. ${area.visualDescription}` : `Apri ${area.title}`}
               className="group relative flex min-h-[180px] w-full select-none flex-col items-center justify-start gap-2 overflow-hidden rounded-2xl border px-3 pt-7 text-center transition-[transform,box-shadow,border-color] duration-200 active:scale-[0.98] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               style={{
                 minHeight: "11.25rem",
