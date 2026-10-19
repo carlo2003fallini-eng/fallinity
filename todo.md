@@ -24,4 +24,4 @@
 - [x] Confermare dall’output ispezionabile il monitor con grafici a destra, la mucca a sinistra e la resa nella card mobile
 - [x] Rieseguire i controlli di asset, PWA e regressioni dopo la conferma visiva
 - [x] Esporre e testare una descrizione accessibile della composizione finale Dati stalla
-- [ ] Salvare il checkpoint della dashboard Dati stalla
+- [x] Salvare il checkpoint della dashboard Dati stalla
