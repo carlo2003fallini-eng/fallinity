@@ -25,35 +25,33 @@ describe("Hub Stalla — griglia illustrata", () => {
     expect(STALLA_AREAS.find((area) => area.id === "dati-latte")).toMatchObject({
       id: "dati-latte",
       title: "Dati stalla",
-      backgroundImage: "/manus-storage/dati-stalla_2ce93fdf.jpg",
+      backgroundImage: "/manus-storage/dati-stalla_1a2d7071.jpg",
     });
   });
 
-  it("mantiene una griglia 2×3 con simboli luminosi e titoli aumentati del 10%", () => {
+  it("usa le stesse dimensioni, tipografia, icone e contrasto della griglia Azienda", () => {
     expect(stallaSource).toContain('className="grid grid-cols-2 gap-3"');
-    expect(stallaSource).toContain("aspect-[1.5/1]");
-    expect(stallaSource).toContain("backgroundImage: `radial-gradient(ellipse");
-    expect(stallaSource).toContain("top-[29%]");
-    expect(stallaSource).toContain("size-[3.4rem]");
-    expect(stallaSource).toContain("size={32}");
-    expect(stallaSource).toContain("const CARD_TITLE_BASE_REM = 1.25");
-    expect(stallaSource).toContain("const CARD_TITLE_SCALE = 1.1");
-    expect(stallaSource).toContain("const CARD_TITLE_REM = CARD_TITLE_BASE_REM * CARD_TITLE_SCALE");
-    expect(stallaSource).toContain("fontSize: `${CARD_TITLE_REM}rem`");
-    expect(stallaSource).toContain("0 0 22px ${area.color}88");
+    expect(stallaSource).toContain("min-h-[180px]");
+    expect(stallaSource).toContain('minHeight: "11.25rem"');
+    expect(stallaSource).toContain("size-12");
+    expect(stallaSource).toContain("<Icon size={26} strokeWidth={1.85} />");
+    expect(stallaSource).toContain("text-lg font-semibold tracking-tight");
+    expect(stallaSource).toContain("backgroundPosition: area.backgroundPosition");
+    expect(stallaSource).toContain("oklch(0.055 0.01 145 / .90)");
     expect(stallaSource).toContain("focus-visible:ring-2 focus-visible:ring-primary");
-    expect(stallaSource).toContain("Apri {area.title}");
+    expect(stallaSource).toContain("aria-label={`Apri ${area.title}`}");
   });
 
-  it("usa i sei sfondi distinti forniti dall’utente con trattamento scurito", () => {
+  it("usa sei sfondi distinti e semanticamente coerenti con le sezioni della Stalla", () => {
     expect(STALLA_AREAS.map((area) => area.backgroundImage)).toEqual([
-      "/manus-storage/dati-stalla_2ce93fdf.jpg",
-      "/manus-storage/riproduzione_b0303e90.jpg",
-      "/manus-storage/vitelli_31e8ae12.jpg",
-      "/manus-storage/gruppi_10fe41ef.jpg",
-      "/manus-storage/sanita_266962fc.jpg",
-      "/manus-storage/alimentazione_ae1c4a7e.jpg",
+      "/manus-storage/dati-stalla_1a2d7071.jpg",
+      "/manus-storage/riproduzione_e5015a4c.jpg",
+      "/manus-storage/vitelli_fb9a167e.jpg",
+      "/manus-storage/gruppi_81c45d0c.jpg",
+      "/manus-storage/sanita_9ab86209.jpg",
+      "/manus-storage/alimentazione_71b16042.jpg",
     ]);
+    expect(STALLA_AREAS.every((area) => Boolean(area.backgroundPosition))).toBe(true);
   });
 });
 

@@ -3,9 +3,6 @@ import { useLocation } from "wouter";
 import { STALLA_AREAS } from "@/lib/stallaAreas";
 
 const TEXT_BRIGHT = "oklch(0.96 0.004 145)";
-const CARD_TITLE_BASE_REM = 1.25;
-const CARD_TITLE_SCALE = 1.1;
-const CARD_TITLE_REM = CARD_TITLE_BASE_REM * CARD_TITLE_SCALE;
 
 export default function Stalla() {
   const [, setLocation] = useLocation();
@@ -37,26 +34,27 @@ export default function Stalla() {
               key={area.id}
               type="button"
               onClick={() => setLocation(`/stalla/${area.id}`)}
-              className="group relative aspect-[1.5/1] w-full overflow-hidden rounded-[1.35rem] border text-center transition-[transform,box-shadow,border-color] duration-200 active:scale-[0.98] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              aria-label={`Apri ${area.title}`}
+              className="group relative flex min-h-[180px] w-full select-none flex-col items-center justify-start gap-2 overflow-hidden rounded-2xl border px-3 pt-7 text-center transition-[transform,box-shadow,border-color] duration-200 active:scale-[0.98] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               style={{
-                backgroundImage: `radial-gradient(ellipse 42% 42% at 50% 58%, oklch(0.015 0.003 145 / .68) 0%, transparent 72%), linear-gradient(180deg, oklch(0.02 0.005 145 / .14) 0%, oklch(0.02 0.005 145 / .16) 46%, oklch(0.02 0.005 145 / .48) 100%), url(${area.backgroundImage})`,
+                minHeight: "11.25rem",
+                backgroundImage: `linear-gradient(180deg, oklch(0.055 0.01 145 / .90) 0%, oklch(0.055 0.01 145 / .72) 42%, oklch(0.055 0.01 145 / .30) 100%), url(${area.backgroundImage})`,
                 backgroundSize: "cover",
-                backgroundPosition: "center",
+                backgroundPosition: area.backgroundPosition,
                 borderColor: "oklch(0.24 0.02 145)",
-                boxShadow: "0 10px 24px oklch(0.03 0.01 145 / .30)",
+                boxShadow: "0 8px 20px oklch(0.03 0.01 145 / .22)",
               }}
             >
               <span
                 aria-hidden="true"
-                className="absolute left-1/2 top-[29%] flex size-[3.4rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[1.1rem] border backdrop-blur-md"
-                style={{ background: "oklch(0.025 0.004 145 / .86)", borderColor: `${area.color}cc`, color: area.color, boxShadow: `0 0 22px ${area.color}88, 0 8px 18px oklch(0.01 0.003 145 / .72)` }}
+                className="flex size-12 items-center justify-center rounded-2xl border backdrop-blur-sm"
+                style={{ background: "oklch(0.07 0.01 145 / .62)", borderColor: `${area.color}55`, color: area.color }}
               >
-                <Icon size={32} strokeWidth={2.35} />
+                <Icon size={26} strokeWidth={1.85} />
               </span>
-              <span className="absolute inset-x-1 bottom-2 font-bold leading-tight tracking-tight" style={{ color: TEXT_BRIGHT, fontFamily: "var(--font-display)", fontSize: `${CARD_TITLE_REM}rem`, textShadow: "0 3px 14px oklch(0.01 0.003 145 / .98)" }}>
+              <span className="text-lg font-semibold tracking-tight" style={{ color: TEXT_BRIGHT, fontFamily: "var(--font-display)", textShadow: "0 2px 12px oklch(0.02 0.005 145 / .95)" }}>
                 {area.title}
               </span>
-              <span className="sr-only">Apri {area.title}</span>
             </button>
           );
         })}

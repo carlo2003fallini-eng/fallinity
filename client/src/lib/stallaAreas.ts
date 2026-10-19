@@ -38,6 +38,7 @@ export type StallaArea = {
   icon: LucideIcon;
   color: string;
   backgroundImage: string;
+  backgroundPosition: string;
   tabs: StallaTab[];
 };
 
@@ -49,7 +50,8 @@ export const STALLA_AREAS: StallaArea[] = [
     description: "Raccogli produzione, parametri qualitativi e analisi del latte in un unico punto.",
     icon: Milk,
     color: "oklch(0.72 0.18 185)",
-    backgroundImage: "/manus-storage/dati-stalla_2ce93fdf.jpg",
+    backgroundImage: "/manus-storage/dati-stalla_1a2d7071.jpg",
+    backgroundPosition: "30% center",
     tabs: [
       { id: "produzione", label: "Produzione", icon: Milk },
       { id: "qualita", label: "Qualità", icon: TestTube2 },
@@ -65,7 +67,8 @@ export const STALLA_AREAS: StallaArea[] = [
     description: "Segui fecondazioni, diagnosi, trattamenti e prossime scadenze riproduttive.",
     icon: HeartPulse,
     color: "oklch(0.68 0.18 315)",
-    backgroundImage: "/manus-storage/riproduzione_b0303e90.jpg",
+    backgroundImage: "/manus-storage/riproduzione_e5015a4c.jpg",
+    backgroundPosition: "70% center",
     tabs: [
       { id: "animali", label: "Animali", icon: Beef },
       { id: "gravidanze", label: "Gravidanze", icon: HeartPulse },
@@ -82,7 +85,8 @@ export const STALLA_AREAS: StallaArea[] = [
     description: "Consulta le schede dei vitelli e organizza crescita, svezzamento e stato sanitario.",
     icon: Beef,
     color: "oklch(0.74 0.17 80)",
-    backgroundImage: "/manus-storage/vitelli_31e8ae12.jpg",
+    backgroundImage: "/manus-storage/vitelli_fb9a167e.jpg",
+    backgroundPosition: "30% center",
     tabs: [
       { id: "elenco", label: "Elenco", icon: Beef },
       { id: "crescita", label: "Crescita", icon: TrendingUp },
@@ -98,7 +102,8 @@ export const STALLA_AREAS: StallaArea[] = [
     description: "Organizza la mandria, confronta i gruppi e consulta la genetica senza duplicare le schede animali.",
     icon: UsersRound,
     color: "oklch(0.67 0.18 145)",
-    backgroundImage: "/manus-storage/gruppi_10fe41ef.jpg",
+    backgroundImage: "/manus-storage/gruppi_81c45d0c.jpg",
+    backgroundPosition: "center",
     tabs: [
       { id: "gruppi", label: "Gruppi", icon: UsersRound },
       { id: "animali", label: "Animali", icon: Beef },
@@ -113,7 +118,8 @@ export const STALLA_AREAS: StallaArea[] = [
     description: "Monitora le segnalazioni, i trattamenti e la salute della mandria.",
     icon: Stethoscope,
     color: "oklch(0.67 0.2 28)",
-    backgroundImage: "/manus-storage/sanita_266962fc.jpg",
+    backgroundImage: "/manus-storage/sanita_9ab86209.jpg",
+    backgroundPosition: "70% center",
     tabs: [
       { id: "casi", label: "Casi aperti", icon: Stethoscope },
       { id: "mastiti", label: "Mastiti", icon: HeartPulse },
@@ -130,7 +136,8 @@ export const STALLA_AREAS: StallaArea[] = [
     description: "Gestisci razioni, ingredienti, consumi e costi alimentari per gruppo.",
     icon: Wheat,
     color: "oklch(0.7 0.16 118)",
-    backgroundImage: "/manus-storage/alimentazione_ae1c4a7e.jpg",
+    backgroundImage: "/manus-storage/alimentazione_71b16042.jpg",
+    backgroundPosition: "70% center",
     tabs: [
       { id: "razioni", label: "Razioni", icon: Wheat },
       { id: "gruppi", label: "Per gruppo", icon: UsersRound },
