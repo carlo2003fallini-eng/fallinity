@@ -25,3 +25,9 @@
 - [x] Rieseguire i controlli di asset, PWA e regressioni dopo la conferma visiva
 - [x] Esporre e testare una descrizione accessibile della composizione finale Dati stalla
 - [x] Salvare il checkpoint della dashboard Dati stalla
+
+## Fase 88 — Header Stalla Compatto
+- [x] Individuare i soli testi introduttivi da rimuovere
+- [x] Rimuovere eyebrow e descrizione della mandria, mantenendo navigazione, titolo e card
+- [x] Aggiornare regressioni e cache PWA; verificare mobile, test, TypeScript, build e PWA
+- [ ] Salvare il checkpoint dell’header Stalla compatto

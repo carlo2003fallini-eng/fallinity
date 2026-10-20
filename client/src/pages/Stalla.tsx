@@ -19,11 +19,7 @@ export default function Stalla() {
           <ArrowLeft size={17} aria-hidden="true" />
           Azienda
         </button>
-        <p className="text-[11px] font-bold uppercase tracking-[0.22em]" style={{ color: "oklch(0.78 0.15 85)" }}>Gestione zootecnica</p>
         <h1 className="mt-1 text-3xl font-bold tracking-tight" style={{ color: TEXT_BRIGHT, fontFamily: "var(--font-display)" }}>Stalla</h1>
-        <p className="mt-2 max-w-lg text-sm leading-relaxed" style={{ color: "oklch(0.60 0.01 145)" }}>
-          I dati della mandria, organizzati per lavorare in modo semplice e veloce.
-        </p>
       </header>
 
       <section className="grid grid-cols-2 gap-3" aria-label="Aree operative della Stalla">

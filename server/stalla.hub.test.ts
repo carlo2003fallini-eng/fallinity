@@ -55,6 +55,13 @@ describe("Hub Stalla — griglia illustrata", () => {
     ]);
     expect(STALLA_AREAS.every((area) => Boolean(area.backgroundPosition))).toBe(true);
   });
+
+  it("mantiene l’header Stalla essenziale, senza testi introduttivi superflui", () => {
+    expect(stallaSource).toContain(">Stalla</h1>");
+    expect(stallaSource).toMatch(/Azienda\s*<\/button>/);
+    expect(stallaSource).not.toContain("Gestione zootecnica");
+    expect(stallaSource).not.toContain("I dati della mandria, organizzati per lavorare in modo semplice e veloce.");
+  });
 });
 
 describe("Hub Stalla — sezioni interne", () => {
