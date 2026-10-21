@@ -45,4 +45,4 @@
 - [x] Rendere immediato il trascinamento con mouse e mantenere la pressione prolungata su touch
 - [x] Esporre un indicatore visivo e un’istruzione di riordino accessibile sulle card Azienda
 - [x] Aggiornare regressioni e cache PWA; verificare mobile, test, TypeScript e build
-- [ ] Salvare il checkpoint del drag and drop Azienda
+- [x] Salvare il checkpoint del drag and drop Azienda
