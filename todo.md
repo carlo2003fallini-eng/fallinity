@@ -53,4 +53,4 @@
 - [x] Inserire un solo accesso orizzontale “Tutti gli animali” sotto ricerca e Nuovo
 - [x] Creare l’anagrafica completa della mandria con ricerca per matricola/numero aziendale e filtri gruppo/stato
 - [x] Aggiungere route, regressioni e cache PWA; verificare mobile, test, TypeScript e build
-- [ ] Salvare il checkpoint dell’anagrafica animali
+- [x] Salvare il checkpoint dell’anagrafica animali
