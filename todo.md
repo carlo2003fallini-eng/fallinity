@@ -31,3 +31,11 @@
 - [x] Rimuovere eyebrow e descrizione della mandria, mantenendo navigazione, titolo e card
 - [x] Aggiornare regressioni e cache PWA; verificare mobile, test, TypeScript, build e PWA
 - [x] Salvare il checkpoint dell’header Stalla compatto
+
+## Fase 89 — Pagina Gruppi Stalla Mobile
+- [x] Analizzare il riferimento e il flusso Gruppi esistente
+- [x] Ridisegnare l’elenco Gruppi con header compatto, ricerca, filtri, legenda e azione Nuovo
+- [x] Visualizzare gruppi reali in card fotografiche a due colonne con stato, consistenza e avvisi
+- [x] Preservare dettaglio, creazione, modifica, archiviazione e contratti tRPC esistenti
+- [x] Aggiungere regressioni e cache PWA; verificare mobile, test, TypeScript e build
+- [ ] Salvare il checkpoint della pagina Gruppi

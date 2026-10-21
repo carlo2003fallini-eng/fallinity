@@ -73,7 +73,7 @@ describe("Hub Stalla — sezioni interne", () => {
   it("fornisce tab iconici e riusa i dati esistenti senza inventare valori", () => {
     expect(sectionSource).toContain("aria-label={`Sezioni ${area.title}`}");
     expect(sectionSource).toContain("<Icon size={16}");
-    expect(sectionSource).toContain("<GruppiTab />");
+    expect(sectionSource).toContain('<GruppiTab onBack={() => setLocation("/stalla")} />');
     expect(sectionSource).toContain("<AnimaliTab />");
     expect(sectionSource).toContain("trpc.stalla.stats.useQuery");
     expect(sectionSource).toContain("trpc.stalla.zoppie.useQuery");

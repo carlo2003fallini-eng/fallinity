@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { Plus, Users, ChevronRight, ArrowLeft, Search, X, ArrowRightLeft, CheckSquare, Square } from "lucide-react";
+import { Plus, Users, ChevronRight, ArrowLeft, Search, X, ArrowRightLeft, CheckSquare, Square, Filter, BarChart3, Beef, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
@@ -13,7 +13,27 @@ const MODALITA_OPTIONS = [
   { value: "suggerimento", label: "Solo suggerimento" },
 ];
 
-export default function GruppiTab() {
+const GROUP_BACKGROUND: Record<string, string> = {
+  lattazione: "/manus-storage/dati-stalla-dashboard_e7198686.jpg",
+  asciutta: "/manus-storage/gruppi_81c45d0c.jpg",
+  rimonta: "/manus-storage/gruppi_81c45d0c.jpg",
+  infermeria: "/manus-storage/sanita_9ab86209.jpg",
+  vitelli: "/manus-storage/vitelli_fb9a167e.jpg",
+  manze: "/manus-storage/alimentazione_71b16042.jpg",
+  pre_parto: "/manus-storage/riproduzione_e5015a4c.jpg",
+  post_parto: "/manus-storage/riproduzione_e5015a4c.jpg",
+  personalizzato: "/manus-storage/gruppi_81c45d0c.jpg",
+};
+
+function statoGruppo(tipologia: string) {
+  if (tipologia === "lattazione") return "Produttivo";
+  if (["asciutta", "pre_parto", "post_parto"].includes(tipologia)) return "Fisiologico";
+  if (["vitelli", "manze", "rimonta"].includes(tipologia)) return "Giovani";
+  if (tipologia === "infermeria") return "Sanitario";
+  return "Personalizzato";
+}
+
+export default function GruppiTab({ onBack }: { onBack?: () => void }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -31,6 +51,9 @@ export default function GruppiTab() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkSpostaSheet, setBulkSpostaSheet] = useState(false);
   const [bulkGruppoId, setBulkGruppoId] = useState("");
+  const [filtriAperti, setFiltriAperti] = useState(false);
+  const [legendaAperta, setLegendaAperta] = useState(false);
+  const [tipologiaFiltro, setTipologiaFiltro] = useState<string | null>(null);
 
   const { data: gruppiList = [], refetch } = trpc.stalla.gruppi.list.useQuery(undefined);
   const { data: detailData, refetch: refetchDetail } = trpc.stalla.gruppi.detail.useQuery({ id: selectedId! }, { enabled: !!selectedId });
@@ -69,9 +92,13 @@ export default function GruppiTab() {
     else setSelectedIds(new Set(detailData.membri.map((a: any) => a.id)));
   }
 
-  const filtered = filtro
-    ? gruppiList.filter((g: any) => g.nome.toLowerCase().includes(filtro.toLowerCase()) || g.codice?.toLowerCase().includes(filtro.toLowerCase()))
-    : gruppiList;
+  const filtered = useMemo(() => gruppiList.filter((g: any) => {
+    const matchesQuery = !filtro || g.nome.toLowerCase().includes(filtro.toLowerCase()) || g.codice?.toLowerCase().includes(filtro.toLowerCase());
+    const matchesTipologia = !tipologiaFiltro || g.tipologia === tipologiaFiltro;
+    return matchesQuery && matchesTipologia;
+  }), [gruppiList, filtro, tipologiaFiltro]);
+
+  const totaleAnimali = useMemo(() => gruppiList.reduce((totale: number, gruppo: any) => totale + Number(gruppo.nAnimali ?? 0), 0), [gruppiList]);
 
   // ── Dettaglio gruppo ──
   if (selectedId && detailData) {
@@ -265,63 +292,91 @@ export default function GruppiTab() {
   // ── Lista gruppi ──
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
-      <div className="flex items-center gap-3">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "oklch(0.45 0.01 145)" }} />
-          <input
-            className="w-full pl-9 pr-3 py-2.5 rounded-lg text-sm outline-none"
-            style={{ background: SURFACE, border: `1px solid ${BORDER}`, color: "oklch(0.88 0.006 145)" }}
-            placeholder="Cerca gruppo..."
-            value={filtro}
-            onChange={e => setFiltro(e.target.value)}
-          />
-          {filtro && <button onClick={() => setFiltro("")} className="absolute right-3 top-1/2 -translate-y-1/2"><X className="w-3.5 h-3.5" style={{ color: "oklch(0.45 0.01 145)" }} /></button>}
+      <header className="space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            {onBack && (
+              <button type="button" onClick={onBack} className="mb-1 inline-flex min-h-9 items-center gap-1.5 rounded-lg px-1 text-sm font-semibold transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" style={{ color: GREEN }}>
+                <ArrowLeft size={17} aria-hidden="true" /> Stalla
+              </button>
+            )}
+            <h1 className="text-3xl font-bold tracking-tight" style={{ color: "oklch(0.96 0.005 145)", fontFamily: "var(--font-display)" }}>Gruppi</h1>
+            <p className="mt-1 flex items-center gap-2 text-sm" style={{ color: "oklch(0.62 0.01 145)" }}>
+              <span>{gruppiList.length} grupp{gruppiList.length === 1 ? "o" : "i"}</span><span aria-hidden="true">·</span><span>{totaleAnimali}</span><Beef size={17} aria-label="animali" />
+            </p>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <button type="button" onClick={() => setFiltriAperti(value => !value)} aria-pressed={filtriAperti} className="flex min-h-[4.25rem] min-w-[4.25rem] flex-col items-center justify-center rounded-xl border px-2 text-xs font-medium transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" style={{ background: filtriAperti ? `${GREEN}12` : SURFACE, borderColor: filtriAperti ? `${GREEN}88` : BORDER, color: filtriAperti ? GREEN : "oklch(0.80 0.006 145)" }}>
+              <Filter size={21} aria-hidden="true" /><span className="mt-1">Filtri</span>
+            </button>
+            <button type="button" onClick={() => setLegendaAperta(value => !value)} aria-pressed={legendaAperta} className="flex min-h-[4.25rem] min-w-[4.25rem] flex-col items-center justify-center rounded-xl border px-2 text-xs font-medium transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" style={{ background: legendaAperta ? `${GREEN}12` : SURFACE, borderColor: legendaAperta ? `${GREEN}88` : BORDER, color: legendaAperta ? GREEN : "oklch(0.80 0.006 145)" }}>
+              <BarChart3 size={21} aria-hidden="true" /><span className="mt-1">Legenda</span>
+            </button>
+          </div>
         </div>
-        <Button onClick={() => { resetForm(); setSheetOpen(true); }} style={{ background: GREEN, color: "oklch(0.08 0.01 145)" }}>
-          <Plus className="w-4 h-4 mr-1" /> Nuovo
-        </Button>
-      </div>
 
-      {/* Grid card gruppi */}
+        {filtriAperti && (
+          <section className="rounded-xl border p-3" aria-label="Filtri gruppi" style={{ background: SURFACE, borderColor: BORDER }}>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => setTipologiaFiltro(null)} className="rounded-full border px-3 py-1.5 text-xs font-semibold" style={{ borderColor: !tipologiaFiltro ? GREEN : BORDER, background: !tipologiaFiltro ? `${GREEN}18` : "transparent", color: !tipologiaFiltro ? GREEN : "oklch(0.67 0.01 145)" }}>Tutti</button>
+              {Array.from(new Set(gruppiList.map((gruppo: any) => gruppo.tipologia))).map((tipologia: string) => {
+                const tipo = TIPOLOGIA_GRUPPO[tipologia] ?? TIPOLOGIA_GRUPPO.personalizzato;
+                const selected = tipologiaFiltro === tipologia;
+                return <button key={tipologia} type="button" onClick={() => setTipologiaFiltro(selected ? null : tipologia)} className="rounded-full border px-3 py-1.5 text-xs font-semibold" style={{ borderColor: selected ? tipo.color : BORDER, background: selected ? `${tipo.color}18` : "transparent", color: selected ? tipo.color : "oklch(0.67 0.01 145)" }}>{tipo.label}</button>;
+              })}
+            </div>
+          </section>
+        )}
+
+        {legendaAperta && (
+          <section className="grid grid-cols-2 gap-2 rounded-xl border p-3 text-xs" aria-label="Legenda stati gruppi" style={{ background: SURFACE, borderColor: BORDER }}>
+            {[[GREEN, "Produttivo"], [GOLD, "Fisiologico"], [BLUE, "Giovani"], [RED, "Sanitario"]].map(([color, label]) => <span key={label} className="inline-flex items-center gap-2" style={{ color: "oklch(0.72 0.01 145)" }}><i className="size-2 rounded-full" style={{ background: color }} />{label}</span>)}
+          </section>
+        )}
+
+        <div className="flex gap-3">
+          <div className="relative min-w-0 flex-1">
+            <Search className="absolute left-4 top-1/2 size-5 -translate-y-1/2" style={{ color: "oklch(0.56 0.01 145)" }} aria-hidden="true" />
+            <input className="min-h-12 w-full rounded-xl border py-3 pl-12 pr-10 text-base outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/35" style={{ background: SURFACE, borderColor: BORDER, color: "oklch(0.90 0.006 145)" }} placeholder="Cerca gruppo..." value={filtro} onChange={e => setFiltro(e.target.value)} />
+            {filtro && <button type="button" onClick={() => setFiltro("")} className="absolute right-3 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"><X className="size-4" style={{ color: "oklch(0.55 0.01 145)" }} /><span className="sr-only">Cancella ricerca</span></button>}
+          </div>
+          <Button onClick={() => { resetForm(); setSheetOpen(true); }} className="min-h-12 shrink-0 rounded-xl px-4 text-base font-bold" style={{ background: GREEN, color: "oklch(0.08 0.01 145)" }}>
+            <Plus className="mr-1.5 size-5" /> Nuovo
+          </Button>
+        </div>
+      </header>
+
       {filtered.length === 0 ? (
         <div className="rounded-xl p-12 text-center" style={{ background: SURFACE, border: `1px solid ${BORDER}` }}>
           <Users className="w-12 h-12 mx-auto mb-3" style={{ color: "oklch(0.30 0.008 145)" }} />
-          <p className="text-sm font-medium mb-1" style={{ color: "oklch(0.65 0.01 145)" }}>Nessun gruppo creato</p>
-          <p className="text-xs mb-4" style={{ color: "oklch(0.40 0.008 145)" }}>Crea il primo gruppo per organizzare la mandria</p>
+          <p className="text-sm font-medium mb-1" style={{ color: "oklch(0.65 0.01 145)" }}>{filtro || tipologiaFiltro ? "Nessun gruppo corrisponde ai filtri" : "Nessun gruppo creato"}</p>
+          <p className="text-xs mb-4" style={{ color: "oklch(0.40 0.008 145)" }}>{filtro || tipologiaFiltro ? "Modifica o azzera i filtri per vedere altri gruppi." : "Crea il primo gruppo per organizzare la mandria."}</p>
           <Button onClick={() => { resetForm(); setSheetOpen(true); }} size="sm" style={{ background: GREEN, color: "oklch(0.08 0.01 145)" }}>
             <Plus className="w-4 h-4 mr-2" /> Crea gruppo
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3" aria-label="Elenco gruppi">
           {filtered.map((g: any) => {
             const tip = TIPOLOGIA_GRUPPO[g.tipologia] ?? TIPOLOGIA_GRUPPO.personalizzato;
-            const TipIcon = tip.icon;
+            const color = g.colore || tip.color;
+            const hasAlert = Boolean(g.hasAlert);
             return (
               <button
                 key={g.id}
                 onClick={() => setSelectedId(g.id)}
-                className="rounded-xl p-4 text-left transition-all hover:-translate-y-0.5 group"
-                style={{ background: SURFACE, border: `1px solid ${BORDER}` }}
+                className="group relative min-h-44 overflow-hidden rounded-2xl border p-3 text-left transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                style={{ backgroundImage: `linear-gradient(180deg, oklch(0.04 0.008 145 / .08) 0%, oklch(0.04 0.008 145 / .20) 38%, oklch(0.04 0.008 145 / .92) 100%), url(${GROUP_BACKGROUND[g.tipologia] ?? GROUP_BACKGROUND.personalizzato})`, backgroundPosition: "center", backgroundSize: "cover", borderColor: BORDER, boxShadow: "0 9px 20px oklch(0.02 0.005 145 / .24)" }}
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `${g.colore || tip.color}20`, border: `1px solid ${g.colore || tip.color}40` }}>
-                    <TipIcon className="w-5 h-5" style={{ color: g.colore || tip.color }} />
+                {hasAlert && <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold shadow-lg" style={{ background: RED, color: "white" }}><AlertTriangle className="size-3.5" aria-hidden="true" /> Avviso</span>}
+                <div className="absolute inset-x-3 bottom-3">
+                  <h2 className="truncate text-lg font-bold tracking-tight" style={{ color: "oklch(0.97 0.004 145)", fontFamily: "var(--font-display)", textShadow: "0 2px 10px oklch(0.02 0.005 145 / .98)" }}>{g.nome}</h2>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <span className="rounded-full border px-2 py-0.5 text-[11px] font-semibold" style={{ borderColor: `${color}99`, background: `${color}28`, color }}>{statoGruppo(g.tipologia)}</span>
+                    <span className="inline-flex items-center gap-1 text-sm font-bold" style={{ color: "oklch(0.96 0.004 145)" }}><Beef className="size-4" aria-hidden="true" /> {g.nAnimali}</span>
+                    <ChevronRight className="ml-auto size-5 transition-transform group-hover:translate-x-0.5" style={{ color: "oklch(0.88 0.01 145)" }} aria-hidden="true" />
                   </div>
-                  <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" style={{ color: "oklch(0.4 0.008 145)" }} />
                 </div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-semibold" style={{ color: "oklch(0.90 0.006 145)" }}>{g.nome}</span>
-                  <CodicePill codice={g.codice} />
-                </div>
-                <div className="text-xs mb-2" style={{ color: "oklch(0.50 0.01 145)" }}>{tip.label}</div>
-                <div className="flex items-center gap-3 text-xs" style={{ color: "oklch(0.55 0.01 145)" }}>
-                  <span><strong style={{ color: GREEN }}>{g.nAnimali}</strong> animali</span>
-                  {g.inLattazione > 0 && <span><strong style={{ color: GREEN }}>{g.inLattazione}</strong> in latt.</span>}
-                  {g.gravide > 0 && <span><strong style={{ color: "oklch(0.65 0.18 300)" }}>{g.gravide}</strong> gravide</span>}
-                </div>
-                {g.hasAlert && <span className="inline-block mt-2 w-2 h-2 rounded-full animate-pulse" style={{ background: "oklch(0.65 0.22 25)", boxShadow: "0 0 6px oklch(0.65 0.22 25)" }} />}
               </button>
             );
           })}
