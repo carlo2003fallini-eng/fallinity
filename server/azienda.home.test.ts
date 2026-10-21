@@ -30,7 +30,7 @@ describe("Home Azienda — accesso operativo essenziale", () => {
     expect(gridSource).toContain('path: "/magazzino"');
     expect(gridSource).toContain('path: "/officina"');
     expect(gridSource).toContain('path: "/campi"');
-    expect(gridSource).not.toContain("GripVertical");
+    expect(gridSource).toContain("GripVertical");
     expect(gridSource).not.toContain("Ripristina");
   });
 
@@ -49,9 +49,14 @@ describe("Home Azienda — accesso operativo essenziale", () => {
     expect(gridSource).not.toContain("Warehouse");
   });
 
-  it("attiva il trascinamento soltanto dopo una pressione prolungata e salva per utente", () => {
+  it("attiva il trascinamento subito con mouse, dopo pressione prolungata su touch e salva per utente", () => {
     expect(gridSource).toContain("const LONG_PRESS_MS = 320");
+    expect(gridSource).toContain('if (event.pointerType === "mouse")');
+    expect(gridSource).toContain("activateDrag(id);");
     expect(gridSource).toContain("window.setTimeout(() => activateDrag(id), LONG_PRESS_MS)");
+    expect(gridSource).toContain('id="azienda-drag-help"');
+    expect(gridSource).toContain("Trascina una scheda per personalizzare l’ordine.");
+    expect(gridSource).toContain('aria-describedby="azienda-drag-help"');
     expect(gridSource).toContain("fallinity:azienda:aree-ordine:v1:");
     expect(gridSource).toContain("persistOrder(orderRef.current)");
     expect(gridSource).toContain("transform: isDragging");

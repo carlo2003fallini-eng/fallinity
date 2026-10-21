@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
-import { LibraryBig, Sprout, Wrench, type LucideIcon } from "lucide-react";
+import { GripVertical, LibraryBig, Sprout, Wrench, type LucideIcon } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import {
   COMPANY_AREA_DEFAULT_ORDER,
@@ -183,6 +183,10 @@ export function CompanyAreasGrid({ onNavigate, userKey, companyKey, allowedAreas
       timer: null,
     };
     dragRef.current = drag;
+    if (event.pointerType === "mouse") {
+      activateDrag(id);
+      return;
+    }
     drag.timer = window.setTimeout(() => activateDrag(id), LONG_PRESS_MS);
   };
 
@@ -268,6 +272,10 @@ export function CompanyAreasGrid({ onNavigate, userKey, companyKey, allowedAreas
   return (
     <section aria-label="Aree operative aziendali">
       <p className="sr-only" aria-live="polite">{announcement}</p>
+      <p id="azienda-drag-help" className="mb-3 flex items-center gap-1.5 text-xs font-medium" style={{ color: "oklch(0.64 0.01 145)" }}>
+        <GripVertical size={16} aria-hidden="true" style={{ color: "oklch(0.72 0.15 75)" }} />
+        Trascina una scheda per personalizzare l’ordine.
+      </p>
       <div className="grid grid-cols-2 gap-3" role="list">
         {areas.map((area) => {
           const Icon = area.icon;
@@ -291,6 +299,7 @@ export function CompanyAreasGrid({ onNavigate, userKey, companyKey, allowedAreas
                 onPointerCancel={(event) => cancelDrag(event, area.id)}
                 onKeyDown={(event) => handleKeyDown(event, area.id)}
                 aria-label={`${area.label}. Tieni premuto e trascina per riordinare.`}
+                aria-describedby="azienda-drag-help"
                 aria-pressed={isKeyboardDragging}
                 className={`relative flex min-h-[180px] w-full select-none flex-col items-center justify-start gap-2 overflow-hidden rounded-2xl border px-3 pt-7 text-center transition-[transform,box-shadow,opacity,border-color] duration-200 active:scale-[0.98] ${isDragging ? "z-20 opacity-95" : ""}`}
                 style={{
@@ -305,6 +314,9 @@ export function CompanyAreasGrid({ onNavigate, userKey, companyKey, allowedAreas
                   touchAction: "none",
                 }}
               >
+                <span className="pointer-events-none absolute right-2 top-2 flex size-8 items-center justify-center rounded-lg border backdrop-blur-sm" style={{ background: "oklch(0.05 0.01 145 / .64)", borderColor: "oklch(0.85 0.01 145 / .20)", color: "oklch(0.92 0.006 145 / .80)" }}>
+                  <GripVertical size={17} aria-hidden="true" />
+                </span>
                 <span className="flex size-12 items-center justify-center rounded-2xl border backdrop-blur-sm" style={{ background: "oklch(0.07 0.01 145 / .62)", borderColor: `${area.color}55`, color: area.color }}>
                   {area.iconImage ? (
                     <img src={area.iconImage} alt="" aria-hidden="true" className="size-10 object-contain" />

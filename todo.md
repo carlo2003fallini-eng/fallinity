@@ -39,3 +39,10 @@
 - [x] Preservare dettaglio, creazione, modifica, archiviazione e contratti tRPC esistenti
 - [x] Aggiungere regressioni e cache PWA; verificare mobile, test, TypeScript e build
 - [x] Salvare il checkpoint della pagina Gruppi
+
+## Fase 90 — Drag and Drop Card Azienda
+- [x] Analizzare il riordino esistente, il salvataggio sincronizzato e le interazioni touch
+- [x] Rendere immediato il trascinamento con mouse e mantenere la pressione prolungata su touch
+- [x] Esporre un indicatore visivo e un’istruzione di riordino accessibile sulle card Azienda
+- [x] Aggiornare regressioni e cache PWA; verificare mobile, test, TypeScript e build
+- [ ] Salvare il checkpoint del drag and drop Azienda
