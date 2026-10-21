@@ -38,4 +38,4 @@
 - [x] Visualizzare gruppi reali in card fotografiche a due colonne con stato, consistenza e avvisi
 - [x] Preservare dettaglio, creazione, modifica, archiviazione e contratti tRPC esistenti
 - [x] Aggiungere regressioni e cache PWA; verificare mobile, test, TypeScript e build
-- [ ] Salvare il checkpoint della pagina Gruppi
+- [x] Salvare il checkpoint della pagina Gruppi
