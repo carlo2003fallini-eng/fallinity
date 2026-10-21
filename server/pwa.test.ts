@@ -95,7 +95,7 @@ describe("Fallinity PWA — cache e aggiornamenti", () => {
   });
 
   it("precarica soltanto gli sfondi pubblici e non sensibili dell’hub Stalla", () => {
-    expect(serviceWorker).toContain("fase-90-drag-drop-aree-azienda");
+    expect(serviceWorker).toContain("fase-91-anagrafica-animali");
     for (const asset of ["dati-stalla-dashboard_e7198686.jpg", "riproduzione_e5015a4c.jpg", "vitelli_fb9a167e.jpg", "gruppi_81c45d0c.jpg", "sanita_9ab86209.jpg", "alimentazione_71b16042.jpg"]) {
       expect(serviceWorker).toContain(asset);
     }

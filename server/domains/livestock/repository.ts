@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, like, or, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, like, or, sql, type SQL } from "drizzle-orm";
 import { getDb } from "../../db";
 import { animali, gruppi, trattamentiAnimali, zoppie, eventiAnimale } from "../../../drizzle/schema";
 import { withCreate, withUpdate, softDeletePayload, type ActorContext } from "../_core";
@@ -60,6 +60,23 @@ export const livestockRepository = {
     return db.select().from(animali)
       .where(and(eq(animali.companyId, companyId), isNull(animali.deletedAt)))
       .orderBy(animali.matricola);
+  },
+
+  async listAnimaliFiltrati(companyId: string, filtri?: { gruppoId?: string; stato?: string; statoProduttivo?: string; statoRiproduttivo?: string; ricerca?: string }) {
+    const db = await getDb();
+    if (!db) return [];
+
+    const condizioni: (SQL | undefined)[] = [eq(animali.companyId, companyId), isNull(animali.deletedAt)];
+    if (filtri?.gruppoId) condizioni.push(eq(animali.gruppoId, filtri.gruppoId));
+    if (filtri?.stato) condizioni.push(eq(animali.stato, filtri.stato as any));
+    if (filtri?.statoProduttivo) condizioni.push(eq(animali.statoProduttivo, filtri.statoProduttivo as any));
+    if (filtri?.statoRiproduttivo) condizioni.push(eq(animali.statoRiproduttivo, filtri.statoRiproduttivo as any));
+    if (filtri?.ricerca?.trim()) {
+      const pattern = `%${filtri.ricerca.trim()}%`;
+      condizioni.push(or(like(animali.matricola, pattern), like(animali.numeroAziendale, pattern))!);
+    }
+
+    return db.select().from(animali).where(and(...condizioni)).orderBy(animali.matricola);
   },
 
   async listAnimaliByGruppo(companyId: string, gruppoId: string) {

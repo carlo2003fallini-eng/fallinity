@@ -22,8 +22,10 @@ const AZIONI_ANIMALE: Array<{ id: ActionType; label: string; icon: React.Element
   { id: "scheda", label: "Apri scheda completa", icon: MoreHorizontal, color: "oklch(0.55 0.01 145)" },
 ];
 
-export default function AnimaliTab() {
+export default function AnimaliTab({ anagraficaCompleta = false, onBack }: { anagraficaCompleta?: boolean; onBack?: () => void }) {
   const [query, setQuery] = useState("");
+  const [gruppoFiltro, setGruppoFiltro] = useState("");
+  const [statoFiltro, setStatoFiltro] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [actionSheet, setActionSheet] = useState<ActionType>(null);
@@ -33,8 +35,14 @@ export default function AnimaliTab() {
   const [spostaGruppoId, setSpostaGruppoId] = useState("");
   const [notaText, setNotaText] = useState("");
 
-  const { data: animaliList = [], refetch: refetchList } = trpc.stalla.list.useQuery();
-  const { data: searchResults = [] } = trpc.stalla.ricerca.useQuery({ query }, { enabled: query.length >= 2 });
+  const { data: animaliList = [], refetch: refetchLegacyList } = trpc.stalla.list.useQuery(undefined, { enabled: !anagraficaCompleta });
+  const filtriAnagrafica = useMemo(() => ({
+    ricerca: query.trim() || undefined,
+    gruppoId: gruppoFiltro || undefined,
+    stato: statoFiltro as "attiva" | "asciutta" | "gravida" | "infermeria" | "venduta" | "morta" | undefined,
+  }), [query, gruppoFiltro, statoFiltro]);
+  const { data: animaliAnagrafica = [], refetch: refetchAnagrafica } = trpc.stalla.animali.list.useQuery(filtriAnagrafica, { enabled: anagraficaCompleta });
+  const { data: searchResults = [] } = trpc.stalla.ricerca.useQuery({ query }, { enabled: !anagraficaCompleta && query.length >= 2 });
   const { data: scheda, refetch: refetchScheda } = trpc.stalla.animali.scheda.useQuery({ id: selectedId! }, { enabled: !!selectedId });
   const { data: gruppiList = [] } = trpc.stalla.gruppi.list.useQuery(undefined);
   const { data: anteprimaData } = trpc.stalla.anteprimaFattori.useQuery(
@@ -42,6 +50,7 @@ export default function AnimaliTab() {
     { enabled: !!actionAnimaleId && !!spostaGruppoId && actionSheet === "sposta_gruppo" }
   );
 
+  const refetchList = () => anagraficaCompleta ? refetchAnagrafica() : refetchLegacyList();
   const createMut = trpc.stalla.animali.create.useMutation({ onSuccess: () => { refetchList(); setSheetOpen(false); toast.success("Animale registrato"); resetForm(); } });
   const addEventoMut = trpc.stalla.addEvento.useMutation({ onSuccess: () => { refetchScheda(); refetchList(); toast.success("Evento registrato"); } });
   const createTrattamentoMut = trpc.stalla.trattamenti.create.useMutation({ onSuccess: () => { refetchScheda(); refetchList(); toast.success("Trattamento registrato"); setActionSheet(null); } });
@@ -55,13 +64,15 @@ export default function AnimaliTab() {
     { enabled: !!form.gruppoId && sheetOpen }
   );
 
-  const displayList = query.length >= 2 ? searchResults : animaliList;
+  const displayList = anagraficaCompleta ? animaliAnagrafica : query.length >= 2 ? searchResults : animaliList;
+  const animaliPerAzioni = anagraficaCompleta ? animaliAnagrafica : animaliList;
+  const nomiGruppi = useMemo(() => new Map(gruppiList.map((gruppo: any) => [gruppo.id, gruppo.nome])), [gruppiList]);
 
   // Animale selezionato per azione
   const actionAnimale = useMemo(() => {
     if (!actionAnimaleId) return null;
-    return animaliList.find((a: any) => a.id === actionAnimaleId) ?? null;
-  }, [actionAnimaleId, animaliList]);
+    return animaliPerAzioni.find((a: any) => a.id === actionAnimaleId) ?? null;
+  }, [actionAnimaleId, animaliPerAzioni]);
 
   function openAction(animaleId: string, action: ActionType) {
     setActionAnimaleId(animaleId);
@@ -198,6 +209,13 @@ export default function AnimaliTab() {
   // ── Lista / Ricerca ──
   return (
     <div className="space-y-4">
+      {anagraficaCompleta && (
+        <header>
+          {onBack && <button type="button" onClick={onBack} className="mb-2 inline-flex min-h-10 items-center gap-1.5 rounded-lg px-1 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" style={{ color: GREEN }}><ArrowLeft size={17} aria-hidden="true" /> Gruppi</button>}
+          <h1 className="text-3xl font-bold tracking-tight" style={{ color: "oklch(0.96 0.005 145)", fontFamily: "var(--font-display)" }}>Tutti gli animali</h1>
+          <p className="mt-1 text-sm" style={{ color: "oklch(0.62 0.01 145)" }}>Visualizza e cerca nell’intera mandria</p>
+        </header>
+      )}
       {/* Barra ricerca */}
       <div className="flex items-center gap-3">
         <div className="flex-1 relative">
@@ -205,7 +223,7 @@ export default function AnimaliTab() {
           <input
             className="w-full pl-9 pr-3 py-2.5 rounded-lg text-sm outline-none"
             style={{ background: SURFACE, border: `1px solid ${BORDER}`, color: "oklch(0.88 0.006 145)" }}
-            placeholder="Cerca per matricola, nome, n° aziendale, RFID..."
+            placeholder={anagraficaCompleta ? "Cerca per matricola o n° aziendale..." : "Cerca per matricola, nome, n° aziendale, RFID..."}
             value={query}
             onChange={e => setQuery(e.target.value)}
           />
@@ -216,8 +234,32 @@ export default function AnimaliTab() {
         </Button>
       </div>
 
-      {query.length >= 2 && (
-        <p className="text-xs" style={{ color: "oklch(0.50 0.01 145)" }}>{searchResults.length} risultati per "{query}"</p>
+      {anagraficaCompleta && (
+        <div className="grid grid-cols-2 gap-3" aria-label="Filtri anagrafica animali">
+          <label className="min-w-0">
+            <span className="sr-only">Filtra per gruppo</span>
+            <select value={gruppoFiltro} onChange={(event) => setGruppoFiltro(event.target.value)} className="min-h-11 w-full truncate rounded-xl border px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/35" style={{ background: SURFACE, borderColor: gruppoFiltro ? GREEN : BORDER, color: "oklch(0.86 0.006 145)" }}>
+              <option value="">Tutti i gruppi</option>
+              {gruppiList.map((gruppo: any) => <option key={gruppo.id} value={gruppo.id}>{gruppo.nome}</option>)}
+            </select>
+          </label>
+          <label className="min-w-0">
+            <span className="sr-only">Filtra per stato</span>
+            <select value={statoFiltro} onChange={(event) => setStatoFiltro(event.target.value)} className="min-h-11 w-full truncate rounded-xl border px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/35" style={{ background: SURFACE, borderColor: statoFiltro ? GREEN : BORDER, color: "oklch(0.86 0.006 145)" }}>
+              <option value="">Tutti gli stati</option>
+              <option value="attiva">Attiva</option>
+              <option value="asciutta">Asciutta</option>
+              <option value="gravida">Gravida</option>
+              <option value="infermeria">Infermeria</option>
+              <option value="venduta">Venduta</option>
+              <option value="morta">Morta</option>
+            </select>
+          </label>
+        </div>
+      )}
+
+      {(anagraficaCompleta ? Boolean(query.trim() || gruppoFiltro || statoFiltro) : query.length >= 2) && (
+        <p className="text-xs" style={{ color: "oklch(0.50 0.01 145)" }}>{displayList.length} {query.trim() ? `risultati per "${query}"` : "animali corrispondono ai filtri"}</p>
       )}
 
       {/* Lista animali */}
@@ -225,13 +267,13 @@ export default function AnimaliTab() {
         <div className="rounded-xl p-12 text-center" style={{ background: SURFACE, border: `1px solid ${BORDER}` }}>
           <Activity className="w-12 h-12 mx-auto mb-3" style={{ color: "oklch(0.30 0.008 145)" }} />
           <p className="text-sm font-medium mb-1" style={{ color: "oklch(0.65 0.01 145)" }}>
-            {query.length >= 2 ? "Nessun risultato" : "Nessun animale registrato"}
+            {query.length >= 2 || anagraficaCompleta ? "Nessun animale corrisponde alla ricerca o ai filtri" : "Nessun animale registrato"}
           </p>
         </div>
       ) : (
         <div className="rounded-xl overflow-hidden" style={{ background: SURFACE, border: `1px solid ${BORDER}` }}>
           <div className="divide-y" style={{ borderColor: BORDER }}>
-            {displayList.slice(0, 30).map((a: any) => {
+            {displayList.map((a: any) => {
               const sp = STATO_PRODUTTIVO[a.statoProduttivo ?? "in_lattazione"] ?? STATO_PRODUTTIVO.in_lattazione;
               return (
                 <div key={a.id} className="flex items-center gap-3 px-5 py-3">
@@ -244,7 +286,7 @@ export default function AnimaliTab() {
                         {a.nome || a.matricola}
                       </div>
                       <div className="text-xs" style={{ color: "oklch(0.50 0.01 145)" }}>
-                        {a.matricola} {a.gruppo ? `· ${a.gruppo}` : ""}
+                        {a.matricola}{a.numeroAziendale ? ` · N° ${a.numeroAziendale}` : ""}{(a.gruppo || nomiGruppi.get(a.gruppoId)) ? ` · ${a.gruppo || nomiGruppi.get(a.gruppoId)}` : ""}
                       </div>
                     </div>
                   </button>

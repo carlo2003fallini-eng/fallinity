@@ -6,7 +6,7 @@ import {
   ricercaAnimaliInput, getAnimaleInput,
   createGruppoInput, updateGruppoInput, archiveGruppoInput,
   addZoppiaInput, eseguiTrattamentoInput, addEventoAnimaleInput,
-  filtriGruppiInput, spostaMultiploInput, anteprimaFattoriInput,
+  filtriGruppiInput, filtriAnimaliInput, spostaMultiploInput, anteprimaFattoriInput,
   createTrattamentoInput,
 } from "./validators";
 
@@ -64,6 +64,10 @@ export const stallaRouter = router({
 
   // ── Animali ──
   animali: router({
+    list: protectedProcedure.input(filtriAnimaliInput).query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return livestockService.listAnimaliFiltrati(actor.companyId, input ?? undefined);
+    }),
     create: protectedProcedure.input(addAnimaleInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);
       return livestockService.createAnimale(actor, input);

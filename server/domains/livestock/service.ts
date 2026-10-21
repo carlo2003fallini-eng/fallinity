@@ -3,7 +3,7 @@ import type { ActorContext } from "../_core";
 import { proposalsService } from "../finance/proposals.service";
 import type {
   CreateGruppoInput, UpdateGruppoInput, AddAnimaleInput, UpdateAnimaleInput,
-  AddZoppiaInput, AddEventoAnimaleInput, FiltriGruppiInput,
+  AddZoppiaInput, AddEventoAnimaleInput, FiltriGruppiInput, FiltriAnimaliInput,
   SpostaGruppoInput, SpostaMultiploInput, AnteprimaFattoriInput, CreateTrattamentoInput,
 } from "./validators";
 import { randomUUID as uuid } from "crypto";
@@ -46,6 +46,7 @@ function buildPatchFromFattori(effetti: ReturnType<typeof calcolaEffettiFattori>
 export const livestockService = {
   // ── Legacy ──
   async list(companyId: string) { return repo.listAnimali(companyId); },
+  async listAnimaliFiltrati(companyId: string, filtri?: FiltriAnimaliInput) { return repo.listAnimaliFiltrati(companyId, filtri); },
   async stats(companyId: string) { return repo.stats(companyId); },
   async zoppie(companyId: string) { return repo.listZoppie(companyId); },
   async addAnimale(actor: ActorContext, input: Record<string, unknown>) { return repo.insertAnimale(actor, input); },

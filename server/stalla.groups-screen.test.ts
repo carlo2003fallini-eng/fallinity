@@ -13,9 +13,14 @@ describe("Pagina Gruppi Stalla — mobile", () => {
     expect(groupsSource).not.toContain("Asciutta: 78");
   });
 
-  it("replica i controlli essenziali del riferimento in modo interattivo", () => {
+  it("mantiene Gruppi pulita, ricerca il singolo animale e offre un solo accesso alla mandria", () => {
     expect(groupsSource).toContain(">Gruppi</h1>");
-    expect(groupsSource).toContain('placeholder="Cerca gruppo..."');
+    expect(groupsSource).toContain('placeholder="Cerca animale..."');
+    expect(groupsSource).toContain('aria-label="Cerca animale per matricola o numero aziendale"');
+    expect(groupsSource).toContain("trpc.stalla.ricerca.useQuery");
+    expect(groupsSource).toContain(">Tutti gli animali</span>");
+    expect(groupsSource).toContain("Visualizza e cerca nell’intera mandria");
+    expect(groupsSource).not.toContain('placeholder="Cerca gruppo..."');
     expect(groupsSource).toContain(">Filtri</span>");
     expect(groupsSource).toContain(">Legenda</span>");
     expect(groupsSource).toContain("<Plus className=");
@@ -35,7 +40,7 @@ describe("Pagina Gruppi Stalla — mobile", () => {
 
   it("apre Gruppi in una vista dedicata e mantiene il ritorno alla Stalla", () => {
     expect(sectionSource).toContain('area.id === "gruppi" && activeTab === "gruppi"');
-    expect(sectionSource).toContain('<GruppiTab onBack={() => setLocation("/stalla")} />');
+    expect(sectionSource).toContain('<GruppiTab onBack={() => setLocation("/stalla")} onOpenAllAnimals={() => setLocation("/stalla/animali")} />');
     expect(groupsSource).toContain("onBack?: () => void");
   });
 });

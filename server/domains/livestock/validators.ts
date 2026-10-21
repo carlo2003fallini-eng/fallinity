@@ -194,6 +194,7 @@ export type FiltriGruppiInput = z.infer<typeof filtriGruppiInput>;
 // ── Filtri Animali ──
 export const filtriAnimaliInput = z.object({
   gruppoId: z.string().optional(),
+  stato: z.enum(["attiva", "asciutta", "gravida", "infermeria", "venduta", "morta"]).optional(),
   statoProduttivo: z.enum(STATI_PRODUTTIVI).optional(),
   statoRiproduttivo: z.enum(STATI_RIPRODUTTIVI).optional(),
   conTrattamento: z.boolean().optional(),

@@ -46,3 +46,11 @@
 - [x] Esporre un indicatore visivo e un’istruzione di riordino accessibile sulle card Azienda
 - [x] Aggiornare regressioni e cache PWA; verificare mobile, test, TypeScript e build
 - [x] Salvare il checkpoint del drag and drop Azienda
+
+## Fase 91 — Ricerca Animali e Anagrafica Mandria
+- [x] Analizzare Gruppi, anagrafica esistente e contratti zootecnici riutilizzabili
+- [x] Sostituire in Gruppi la ricerca per nome gruppo con la ricerca del singolo animale
+- [x] Inserire un solo accesso orizzontale “Tutti gli animali” sotto ricerca e Nuovo
+- [x] Creare l’anagrafica completa della mandria con ricerca per matricola/numero aziendale e filtri gruppo/stato
+- [x] Aggiungere route, regressioni e cache PWA; verificare mobile, test, TypeScript e build
+- [ ] Salvare il checkpoint dell’anagrafica animali

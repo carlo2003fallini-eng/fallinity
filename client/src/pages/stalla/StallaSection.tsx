@@ -92,7 +92,7 @@ export default function StallaSection({ sectionId }: { sectionId: string }) {
   }
 
   if (area.id === "gruppi" && activeTab === "gruppi") {
-    return <GruppiTab onBack={() => setLocation("/stalla")} />;
+    return <GruppiTab onBack={() => setLocation("/stalla")} onOpenAllAnimals={() => setLocation("/stalla/animali")} />;
   }
 
   const activeDefinition = area.tabs.find((tab) => tab.id === activeTab) ?? area.tabs[0]!;

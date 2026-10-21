@@ -33,11 +33,11 @@ function statoGruppo(tipologia: string) {
   return "Personalizzato";
 }
 
-export default function GruppiTab({ onBack }: { onBack?: () => void }) {
+export default function GruppiTab({ onBack, onOpenAllAnimals }: { onBack?: () => void; onOpenAllAnimals?: () => void }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [filtro, setFiltro] = useState("");
+  const [ricercaAnimale, setRicercaAnimale] = useState("");
   const [form, setForm] = useState({
     nome: "", tipologia: "personalizzato" as string, colore: "#4ade80", descrizione: "", capacitaMax: "" as string, note: "",
     applicaFattoriPredefiniti: false,
@@ -56,6 +56,10 @@ export default function GruppiTab({ onBack }: { onBack?: () => void }) {
   const [tipologiaFiltro, setTipologiaFiltro] = useState<string | null>(null);
 
   const { data: gruppiList = [], refetch } = trpc.stalla.gruppi.list.useQuery(undefined);
+  const { data: animaliTrovati = [] } = trpc.stalla.ricerca.useQuery(
+    { query: ricercaAnimale.trim() },
+    { enabled: ricercaAnimale.trim().length > 0 }
+  );
   const { data: detailData, refetch: refetchDetail } = trpc.stalla.gruppi.detail.useQuery({ id: selectedId! }, { enabled: !!selectedId });
   const createMut = trpc.stalla.gruppi.create.useMutation({ onSuccess: () => { refetch(); setSheetOpen(false); toast.success("Gruppo creato"); resetForm(); } });
   const updateMut = trpc.stalla.gruppi.update.useMutation({ onSuccess: () => { refetch(); refetchDetail(); setSheetOpen(false); toast.success("Gruppo aggiornato"); resetForm(); } });
@@ -93,10 +97,11 @@ export default function GruppiTab({ onBack }: { onBack?: () => void }) {
   }
 
   const filtered = useMemo(() => gruppiList.filter((g: any) => {
-    const matchesQuery = !filtro || g.nome.toLowerCase().includes(filtro.toLowerCase()) || g.codice?.toLowerCase().includes(filtro.toLowerCase());
     const matchesTipologia = !tipologiaFiltro || g.tipologia === tipologiaFiltro;
-    return matchesQuery && matchesTipologia;
-  }), [gruppiList, filtro, tipologiaFiltro]);
+    return matchesTipologia;
+  }), [gruppiList, tipologiaFiltro]);
+
+  const ricercaAnimaleAttiva = ricercaAnimale.trim().length > 0;
 
   const totaleAnimali = useMemo(() => gruppiList.reduce((totale: number, gruppo: any) => totale + Number(gruppo.nAnimali ?? 0), 0), [gruppiList]);
 
@@ -337,20 +342,46 @@ export default function GruppiTab({ onBack }: { onBack?: () => void }) {
         <div className="flex gap-3">
           <div className="relative min-w-0 flex-1">
             <Search className="absolute left-4 top-1/2 size-5 -translate-y-1/2" style={{ color: "oklch(0.56 0.01 145)" }} aria-hidden="true" />
-            <input className="min-h-12 w-full rounded-xl border py-3 pl-12 pr-10 text-base outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/35" style={{ background: SURFACE, borderColor: BORDER, color: "oklch(0.90 0.006 145)" }} placeholder="Cerca gruppo..." value={filtro} onChange={e => setFiltro(e.target.value)} />
-            {filtro && <button type="button" onClick={() => setFiltro("")} className="absolute right-3 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"><X className="size-4" style={{ color: "oklch(0.55 0.01 145)" }} /><span className="sr-only">Cancella ricerca</span></button>}
+            <input className="min-h-12 w-full rounded-xl border py-3 pl-12 pr-10 text-base outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/35" style={{ background: SURFACE, borderColor: BORDER, color: "oklch(0.90 0.006 145)" }} placeholder="Cerca animale..." aria-label="Cerca animale per matricola o numero aziendale" value={ricercaAnimale} onChange={e => setRicercaAnimale(e.target.value)} />
+            {ricercaAnimale && <button type="button" onClick={() => setRicercaAnimale("")} className="absolute right-3 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"><X className="size-4" style={{ color: "oklch(0.55 0.01 145)" }} /><span className="sr-only">Cancella ricerca</span></button>}
           </div>
           <Button onClick={() => { resetForm(); setSheetOpen(true); }} className="min-h-12 shrink-0 rounded-xl px-4 text-base font-bold" style={{ background: GREEN, color: "oklch(0.08 0.01 145)" }}>
             <Plus className="mr-1.5 size-5" /> Nuovo
           </Button>
         </div>
+
+        <button type="button" onClick={onOpenAllAnimals} className="flex min-h-16 w-full items-center gap-3 rounded-xl border px-4 text-left transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" style={{ background: SURFACE, borderColor: BORDER }}>
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl" style={{ background: `${GREEN}18`, color: GREEN }}><Beef size={21} aria-hidden="true" /></span>
+          <span className="min-w-0 flex-1"><span className="block text-sm font-bold" style={{ color: "oklch(0.91 0.006 145)" }}>Tutti gli animali</span><span className="mt-0.5 block text-xs" style={{ color: "oklch(0.57 0.01 145)" }}>Visualizza e cerca nell’intera mandria</span></span>
+          <ChevronRight className="size-5 shrink-0" style={{ color: "oklch(0.66 0.01 145)" }} aria-hidden="true" />
+        </button>
       </header>
 
-      {filtered.length === 0 ? (
+      {ricercaAnimaleAttiva ? (
+        <section className="overflow-hidden rounded-xl border" aria-label="Risultati ricerca animali" style={{ background: SURFACE, borderColor: BORDER }}>
+          <div className="border-b px-4 py-3" style={{ borderColor: BORDER }}>
+            <p className="text-sm font-semibold" style={{ color: "oklch(0.88 0.006 145)" }}>Animali trovati</p>
+            <p className="mt-0.5 text-xs" style={{ color: "oklch(0.53 0.01 145)" }}>Apri il gruppo dell’animale selezionato.</p>
+          </div>
+          {animaliTrovati.length === 0 ? (
+            <div className="p-7 text-center"><p className="text-sm" style={{ color: "oklch(0.55 0.01 145)" }}>Nessun animale trovato.</p></div>
+          ) : (
+            <div className="divide-y" style={{ borderColor: BORDER }}>
+              {animaliTrovati.map((animale: any) => (
+                <button key={animale.id} type="button" disabled={!animale.gruppoId} onClick={() => animale.gruppoId && setSelectedId(animale.gruppoId)} className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full text-xs font-bold" style={{ background: `${GREEN}18`, color: GREEN }}>{animale.matricola.slice(-2)}</span>
+                  <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold" style={{ color: "oklch(0.88 0.006 145)" }}>{animale.nome || animale.matricola}</span><span className="block truncate text-xs" style={{ color: "oklch(0.53 0.01 145)" }}>{animale.matricola}{animale.numeroAziendale ? ` · N° ${animale.numeroAziendale}` : ""}{animale.gruppo ? ` · ${animale.gruppo}` : ""}</span></span>
+                  <ChevronRight className="size-5 shrink-0" style={{ color: "oklch(0.62 0.01 145)" }} aria-hidden="true" />
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+      ) : filtered.length === 0 ? (
         <div className="rounded-xl p-12 text-center" style={{ background: SURFACE, border: `1px solid ${BORDER}` }}>
           <Users className="w-12 h-12 mx-auto mb-3" style={{ color: "oklch(0.30 0.008 145)" }} />
-          <p className="text-sm font-medium mb-1" style={{ color: "oklch(0.65 0.01 145)" }}>{filtro || tipologiaFiltro ? "Nessun gruppo corrisponde ai filtri" : "Nessun gruppo creato"}</p>
-          <p className="text-xs mb-4" style={{ color: "oklch(0.40 0.008 145)" }}>{filtro || tipologiaFiltro ? "Modifica o azzera i filtri per vedere altri gruppi." : "Crea il primo gruppo per organizzare la mandria."}</p>
+          <p className="text-sm font-medium mb-1" style={{ color: "oklch(0.65 0.01 145)" }}>{tipologiaFiltro ? "Nessun gruppo corrisponde ai filtri" : "Nessun gruppo creato"}</p>
+          <p className="text-xs mb-4" style={{ color: "oklch(0.40 0.008 145)" }}>{tipologiaFiltro ? "Modifica o azzera i filtri per vedere altri gruppi." : "Crea il primo gruppo per organizzare la mandria."}</p>
           <Button onClick={() => { resetForm(); setSheetOpen(true); }} size="sm" style={{ background: GREEN, color: "oklch(0.08 0.01 145)" }}>
             <Plus className="w-4 h-4 mr-2" /> Crea gruppo
           </Button>
