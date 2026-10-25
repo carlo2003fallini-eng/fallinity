@@ -7,7 +7,9 @@ import {
   createGruppoInput, updateGruppoInput, archiveGruppoInput,
   addZoppiaInput, eseguiTrattamentoInput, addEventoAnimaleInput,
   filtriGruppiInput, filtriAnimaliInput, spostaMultiploInput, anteprimaFattoriInput,
-  createTrattamentoInput,
+  createTrattamentoInput, getGruppoInput, disponibiliPerAggiuntaInput,
+  anteprimaAggiuntaMultiplaInput, aggiungiMultiploInput,
+  replaceGruppiPersonalizzatiInput, listMovimentiGruppoInput,
 } from "./validators";
 
 /** LIVESTOCK (Stalla) — Router */
@@ -44,7 +46,7 @@ export const stallaRouter = router({
       const actor = await getActor(ctx);
       return livestockService.listGruppi(actor.companyId, input ?? undefined);
     }),
-    detail: protectedProcedure.input(getAnimaleInput).query(async ({ ctx, input }) => {
+    detail: protectedProcedure.input(getGruppoInput).query(async ({ ctx, input }) => {
       const actor = await getActor(ctx);
       return livestockService.getGruppoDetail(actor.companyId, input.id);
     }),
@@ -59,6 +61,10 @@ export const stallaRouter = router({
     archive: protectedProcedure.input(archiveGruppoInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);
       return livestockService.archiveGruppo(actor, input.id);
+    }),
+    movimenti: protectedProcedure.input(listMovimentiGruppoInput).query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return livestockService.listMovimentiGruppo(actor.companyId, input.id, input.limit);
     }),
   }),
 
@@ -83,6 +89,22 @@ export const stallaRouter = router({
     spostaMultiplo: protectedProcedure.input(spostaMultiploInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);
       return livestockService.spostaMultiplo(actor, input);
+    }),
+    disponibiliPerAggiunta: protectedProcedure.input(disponibiliPerAggiuntaInput).query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return livestockService.disponibiliPerAggiunta(actor.companyId, input);
+    }),
+    anteprimaAggiuntaMultipla: protectedProcedure.input(anteprimaAggiuntaMultiplaInput).query(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return livestockService.anteprimaAggiuntaMultipla(actor.companyId, input);
+    }),
+    aggiungiMultiplo: protectedProcedure.input(aggiungiMultiploInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return livestockService.aggiungiMultiplo(actor, input);
+    }),
+    replaceGruppiPersonalizzati: protectedProcedure.input(replaceGruppiPersonalizzatiInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return livestockService.replaceGruppiPersonalizzati(actor, input);
     }),
     scheda: protectedProcedure.input(getAnimaleInput).query(async ({ ctx, input }) => {
       const actor = await getActor(ctx);

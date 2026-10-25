@@ -7,11 +7,22 @@ export const STATI_RIPRODUTTIVI = ["vuota", "inseminata", "gravida", "da_control
 export const MODALITA_FATTORE = ["automatico", "conferma", "suggerimento", "non_applicare"] as const;
 export const TIPOLOGIE_GRUPPO = ["lattazione", "asciutta", "rimonta", "infermeria", "vitelli", "manze", "pre_parto", "post_parto", "personalizzato"] as const;
 export const TIPI_EVENTO = ["inseminazione", "diagnosi_gravidanza", "parto", "trattamento", "zoppia", "mastite", "spostamento_gruppo", "asciugatura", "riforma", "vendita", "decesso", "visita", "sincronizzazione", "controllo", "nota", "altro"] as const;
+export const TIPI_GESTIONE_GRUPPO = ["manuale", "automatico"] as const;
+export const MODALITA_MEMBRI_GRUPPO = ["esclusivo", "personalizzato"] as const;
+
+export const regolaAutomaticaInput = z.discriminatedUnion("tipo", [
+  z.object({ tipo: z.literal("alta_produzione"), sogliaLitriGiorno: z.number().positive().max(200) }),
+  z.object({ tipo: z.literal("post_parto"), giorniMassimi: z.number().int().positive().max(365) }),
+]);
+export type RegolaAutomaticaInput = z.infer<typeof regolaAutomaticaInput>;
 
 // ── Gruppi ──
-export const createGruppoInput = z.object({
+const gruppoBaseInput = z.object({
   nome: z.string().min(1),
   tipologia: z.enum(TIPOLOGIE_GRUPPO).default("personalizzato"),
+  tipoGestione: z.enum(TIPI_GESTIONE_GRUPPO).default("manuale"),
+  modalitaMembri: z.enum(MODALITA_MEMBRI_GRUPPO).optional(),
+  regolaAutomatica: regolaAutomaticaInput.nullable().optional(),
   colore: z.string().optional(),
   descrizione: z.string().optional(),
   capacitaMax: z.number().int().positive().optional(),
@@ -25,12 +36,27 @@ export const createGruppoInput = z.object({
   modalitaCategoriaSanitaria: z.enum(MODALITA_FATTORE).default("non_applicare"),
   percorsoOperativoPredefinito: z.string().nullable().optional(),
 });
+export const createGruppoInput = gruppoBaseInput.superRefine((input, ctx) => {
+  const modalita = input.modalitaMembri ?? (input.tipologia === "personalizzato" ? "personalizzato" : "esclusivo");
+  if (input.tipoGestione === "automatico" && !input.regolaAutomatica) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["regolaAutomatica"], message: "Una regola è obbligatoria per un gruppo automatico" });
+  }
+  if (input.tipoGestione === "manuale" && input.regolaAutomatica) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["regolaAutomatica"], message: "Le regole sono disponibili solo per gruppi automatici" });
+  }
+  if (modalita === "personalizzato" && input.tipologia !== "personalizzato") {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["modalitaMembri"], message: "Le appartenenze sovrapposte richiedono la tipologia personalizzato" });
+  }
+});
 export type CreateGruppoInput = z.infer<typeof createGruppoInput>;
 
 export const updateGruppoInput = z.object({
   id: z.string(),
   nome: z.string().min(1).optional(),
   tipologia: z.enum(TIPOLOGIE_GRUPPO).optional(),
+  tipoGestione: z.enum(TIPI_GESTIONE_GRUPPO).optional(),
+  modalitaMembri: z.enum(MODALITA_MEMBRI_GRUPPO).optional(),
+  regolaAutomatica: regolaAutomaticaInput.nullable().optional(),
   colore: z.string().optional(),
   descrizione: z.string().optional(),
   capacitaMax: z.number().int().positive().nullable().optional(),
@@ -48,6 +74,7 @@ export const updateGruppoInput = z.object({
 export type UpdateGruppoInput = z.infer<typeof updateGruppoInput>;
 
 export const archiveGruppoInput = z.object({ id: z.string() });
+export const getGruppoInput = z.object({ id: z.string() });
 
 // ── Animali ──
 export const addAnimaleInput = z.object({
@@ -104,12 +131,49 @@ export type SpostaGruppoInput = z.infer<typeof spostaGruppoInput>;
 
 // ── Spostamento gruppo (multiplo) ──
 export const spostaMultiploInput = z.object({
-  animaleIds: z.array(z.string()).min(1),
+  animaleIds: z.array(z.string()).min(1).superRefine((ids, ctx) => {
+    if (new Set(ids).size !== ids.length) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Gli animali selezionati devono essere univoci" });
+  }),
   nuovoGruppoId: z.string(),
   confermaFattori: z.boolean().default(true),
   motivo: z.string().optional(),
 });
 export type SpostaMultiploInput = z.infer<typeof spostaMultiploInput>;
+
+export const disponibiliPerAggiuntaInput = z.object({
+  gruppoDestinazioneId: z.string(),
+  origineIds: z.array(z.string()).default([]),
+  includiSenzaGruppo: z.boolean().default(false),
+  ricerca: z.string().trim().max(100).optional(),
+});
+export type DisponibiliPerAggiuntaInput = z.infer<typeof disponibiliPerAggiuntaInput>;
+
+export const anteprimaAggiuntaMultiplaInput = z.object({
+  nuovoGruppoId: z.string(),
+  animaleIds: z.array(z.string()).min(1).transform((ids) => Array.from(new Set(ids))),
+  confermaFattori: z.boolean().default(false),
+});
+export type AnteprimaAggiuntaMultiplaInput = z.infer<typeof anteprimaAggiuntaMultiplaInput>;
+
+export const aggiungiMultiploInput = z.object({
+  idempotencyKey: z.string().uuid(),
+  nuovoGruppoId: z.string(),
+  animaleIds: z.array(z.string()).min(1).superRefine((ids, ctx) => {
+    if (new Set(ids).size !== ids.length) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Gli animali selezionati devono essere univoci" });
+  }),
+  confermaFattori: z.boolean().default(false),
+  origineAttese: z.array(z.object({ animaleId: z.string(), gruppoId: z.string().nullable() })).optional(),
+  motivo: z.string().max(255).optional(),
+});
+export type AggiungiMultiploInput = z.infer<typeof aggiungiMultiploInput>;
+
+export const replaceGruppiPersonalizzatiInput = z.object({
+  animaleId: z.string(),
+  gruppoIds: z.array(z.string()).max(30).transform((ids) => Array.from(new Set(ids))),
+});
+export type ReplaceGruppiPersonalizzatiInput = z.infer<typeof replaceGruppiPersonalizzatiInput>;
+
+export const listMovimentiGruppoInput = z.object({ id: z.string(), limit: z.number().int().min(1).max(100).default(30) });
 
 // ── Anteprima fattori ──
 export const anteprimaFattoriInput = z.object({
@@ -181,6 +245,7 @@ export type AddEventoAnimaleInput = z.infer<typeof addEventoAnimaleInput>;
 // ── Filtri Gruppi ──
 export const filtriGruppiInput = z.object({
   tipologia: z.string().optional(),
+  tipoGestione: z.enum(TIPI_GESTIONE_GRUPPO).optional(),
   stato: z.enum(["attivo", "archiviato"]).optional(),
   conAlert: z.boolean().optional(),
   conGravide: z.boolean().optional(),

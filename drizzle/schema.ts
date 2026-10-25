@@ -502,6 +502,11 @@ export const gruppi = mysqlTable("gruppi", {
   nome: varchar("nome", { length: 100 }).notNull(),
   codice: varchar("codice", { length: 20 }),
   tipologia: mysqlEnum("tipologia", ["lattazione", "asciutta", "rimonta", "infermeria", "vitelli", "manze", "pre_parto", "post_parto", "personalizzato"]).default("personalizzato").notNull(),
+  // Gestione e appartenenza sono deliberate: i gruppi automatici sono virtuali,
+  // mentre un gruppo personalizzato può sovrapporsi al gruppo operativo esclusivo.
+  tipoGestione: mysqlEnum("tipoGestione", ["manuale", "automatico"]).default("manuale").notNull(),
+  modalitaMembri: mysqlEnum("modalitaMembri", ["esclusivo", "personalizzato"]).default("esclusivo").notNull(),
+  regolaAutomatica: json("regolaAutomatica"),
   colore: varchar("colore", { length: 20 }).default("#4ade80"),
   descrizione: text("descrizione"),
   capacitaMax: int("capacitaMax"),
@@ -545,9 +550,29 @@ export const animali = mysqlTable("animali", {
   dataPartoPrevisto: date("dataPartoPrevisto"),
   note: text("note"),
   ...auditColumns,
-});
+}, (t) => [
+  index("animali_company_gruppo_active_idx").on(t.companyId, t.gruppoId, t.deletedAt),
+]);
 export type Animale = typeof animali.$inferSelect;
 export type InsertAnimale = typeof animali.$inferInsert;
+
+/**
+ * Appartenenze ai gruppi personali: non sostituiscono il gruppo operativo
+ * esclusivo dell'animale e permettono quindi classificazioni sovrapposte.
+ */
+export const gruppiAnimali = mysqlTable("gruppiAnimali", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  gruppoId: varchar("gruppoId", { length: 36 }).notNull(),
+  animaleId: varchar("animaleId", { length: 36 }).notNull(),
+  ...auditColumns,
+}, (t) => [
+  uniqueIndex("gruppi_animali_company_gruppo_animale_unique").on(t.companyId, t.gruppoId, t.animaleId),
+  index("gruppi_animali_company_gruppo_active_idx").on(t.companyId, t.gruppoId, t.deletedAt),
+  index("gruppi_animali_company_animale_active_idx").on(t.companyId, t.animaleId, t.deletedAt),
+]);
+export type GruppoAnimale = typeof gruppiAnimali.$inferSelect;
+export type InsertGruppoAnimale = typeof gruppiAnimali.$inferInsert;
 
 export const trattamentiAnimali = mysqlTable("trattamentiAnimali", {
   id: uuidPk(),

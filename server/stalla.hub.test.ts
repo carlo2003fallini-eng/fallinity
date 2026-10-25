@@ -73,7 +73,9 @@ describe("Hub Stalla — sezioni interne", () => {
   it("fornisce tab iconici e riusa i dati esistenti senza inventare valori", () => {
     expect(sectionSource).toContain("aria-label={`Sezioni ${area.title}`}");
     expect(sectionSource).toContain("<Icon size={16}");
-    expect(sectionSource).toContain('<GruppiTab onBack={() => setLocation("/stalla")} onOpenAllAnimals={() => setLocation("/stalla/animali")} />');
+    expect(sectionSource).toContain('onOpenAllAnimals={() => setLocation("/stalla/animali")}');
+    expect(sectionSource).toContain('onOpenDetail={(groupId) => setLocation(`/stalla/gruppi/${groupId}`)}');
+    expect(sectionSource).toContain('onOpenDemo={() => setLocation("/stalla/gruppi-demo")}');
     expect(sectionSource).toContain("<AnimaliTab />");
     expect(sectionSource).toContain("trpc.stalla.stats.useQuery");
     expect(sectionSource).toContain("trpc.stalla.zoppie.useQuery");
