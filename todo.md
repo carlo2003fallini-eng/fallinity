@@ -8,4 +8,4 @@
 - [x] Aggiungere gruppi automatici configurabili (alta produzione/post-parto), calcolati server-side e non modificabili manualmente
 - [x] Creare la demo Stalla isolata, persistita solo nella sessione, senza chiamate di scrittura al database
 - [x] Applicare migrazione additiva, scrivere regressioni complete e verificare mobile, test, TypeScript, build e PWA
-- [ ] Salvare il checkpoint della gestione Gruppi avanzata
+- [x] Salvare il checkpoint della gestione Gruppi avanzata
