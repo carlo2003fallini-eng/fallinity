@@ -9,3 +9,8 @@
 - [x] Creare la demo Stalla isolata, persistita solo nella sessione, senza chiamate di scrittura al database
 - [x] Applicare migrazione additiva, scrivere regressioni complete e verificare mobile, test, TypeScript, build e PWA
 - [x] Salvare il checkpoint della gestione Gruppi avanzata
+
+## Fase 93 — Registrazione animali M0156–M0163
+- [x] Inserire i 7 animali nell’azienda attiva, gruppo Primo, con matricola, nome e data di nascita
+- [x] Verificare assenza duplicati e isolamento multi-azienda
+- [x] Verificare i 7 animali tramite il servizio reale usato da trpc.stalla.animali.list
