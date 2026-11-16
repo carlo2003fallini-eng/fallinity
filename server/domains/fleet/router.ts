@@ -1,4 +1,5 @@
-import { protectedProcedure, router } from "../../_core/trpc";
+import { fleetProcedure as protectedProcedure } from "./permissions";
+import { router } from "../../_core/trpc";
 import { getActor } from "../_core";
 import { fleetService } from "./service";
 import { operatorService } from "./operator";
@@ -30,6 +31,7 @@ import { z } from "zod";
  * officina.ricambi.*. Mantiene compatibilità con le procedure usate dal frontend.
  */
 export const officinaRouter = router({
+  permessi: protectedProcedure.query(({ ctx }) => ctx.fleetAccess),
   operatore: router({
     catalogo: protectedProcedure.query(async ({ ctx }) => {
       const actor = await getActor(ctx);
@@ -92,7 +94,7 @@ export const officinaRouter = router({
     }),
     create: protectedProcedure.input(createInterventoInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);
-      return fleetService.createIntervento(actor, input);
+      return fleetService.createIntervento(actor, ctx.fleetAccess.canSeeCosts ? input : { ...input, costoOrario: undefined, costoPrevisto: undefined });
     }),
     updateStato: protectedProcedure.input(updateStatoInterventoInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);
@@ -100,7 +102,7 @@ export const officinaRouter = router({
     }),
     completa: protectedProcedure.input(completaInterventoInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);
-      return fleetService.completaIntervento(actor, input);
+      return fleetService.completaIntervento(actor, ctx.fleetAccess.canSeeCosts ? input : { ...input, costoOrario: undefined, ricambiUtilizzati: input.ricambiUtilizzati.map((r) => ({ ...r, costoUnitario: undefined })) });
     }),
     delete: protectedProcedure.input(deleteInterventoInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);
@@ -115,11 +117,11 @@ export const officinaRouter = router({
     }),
     create: protectedProcedure.input(createRicambioInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);
-      return fleetService.createRicambio(actor, input);
+      return fleetService.createRicambio(actor, ctx.fleetAccess.canSeeCosts ? input : { ...input, costoMedio: undefined });
     }),
     update: protectedProcedure.input(updateRicambioInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);
-      return fleetService.updateRicambio(actor, input);
+      return fleetService.updateRicambio(actor, ctx.fleetAccess.canSeeCosts ? input : { ...input, costoMedio: undefined });
     }),
     adjust: protectedProcedure.input(adjustRicambioInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);

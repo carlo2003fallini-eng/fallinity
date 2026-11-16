@@ -43,6 +43,13 @@
       "when": 1794828241619,
       "tag": "0005_f006_shared_family",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1794830962885,
+      "tag": "0006_f096_shared_parts_metadata",
+      "breakpoints": true
     }
   ]
 }

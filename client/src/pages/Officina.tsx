@@ -1,96 +1,36 @@
-import { useState } from "react";
+import { useLocation } from "wouter";
+import { ShoppingCart, Tractor, Wrench, Package } from "lucide-react";
 import { trpc } from "@/lib/trpc";
-import {
-  Tractor, Wrench, Package, AlertTriangle, Clock, Euro, Activity, ShoppingCart,
-} from "lucide-react";
-import { FAL_IMAGES } from "@/lib/assets";
 import { C, eur } from "./officina/shared";
-import MezziTab from "./officina/MezziTab";
-import InterventiTab from "./officina/InterventiTab";
-import RicambiTab from "./officina/RicambiTab";
-import OperatoreTab from "./officina/OperatoreTab";
+import { OFFICINA_IMAGES, OfficinaHeader, PhotoAreaCard, useOfficinaPermissions } from "./officina/OfficinaLayout";
 
-const TABS: { id: string; label: string; icon: any }[] = [
-  { id: "operatore", label: "Menù operatore", icon: ShoppingCart },
-  { id: "mezzi", label: "Mezzi", icon: Tractor },
-  { id: "interventi", label: "Interventi", icon: Wrench },
-  { id: "ricambi", label: "Ricambi", icon: Package },
-];
+const AREAS = [
+  { id: "operatore", label: "Menù operatore", description: "Prelievo ricambi", icon: ShoppingCart, color: C.blue },
+  { id: "mezzi", label: "Mezzi", description: "Parco aziendale", icon: Tractor, color: C.green },
+  { id: "interventi", label: "Interventi", description: "Manutenzioni e riparazioni", icon: Wrench, color: C.blue },
+  { id: "ricambi", label: "Ricambi", description: "Disponibilità materiali", icon: Package, color: C.gold },
+] as const;
 
 export default function Officina() {
-  const [tab, setTab] = useState("operatore");
-  const { data: dash } = trpc.officina.dashboard.useQuery();
-
-  const kpi = [
-    { label: "MEZZI OPERATIVI", value: `${dash?.mezziOperativi ?? 0}/${dash?.totaleMezzi ?? 0}`, color: C.green, icon: Tractor },
-    { label: "MEZZI FERMI", value: String(dash?.mezziFermi ?? 0), color: (dash?.mezziFermi ?? 0) > 0 ? C.red : C.green, icon: AlertTriangle },
-    { label: "INTERVENTI OGGI", value: String(dash?.manutenzioniOggi ?? 0), color: C.blue, icon: Clock },
-    { label: "IN RITARDO", value: String(dash?.interventiInRitardo ?? 0), color: (dash?.interventiInRitardo ?? 0) > 0 ? C.orange : C.green, icon: Activity },
-    { label: "RICAMBI SOTTO SCORTA", value: String(dash?.ricambiSottoScorta ?? 0), color: (dash?.ricambiSottoScorta ?? 0) > 0 ? C.gold : C.green, icon: Package },
-    { label: "COSTO MANUT. MESE", value: eur(dash?.costoManutenzioneMese ?? 0), color: C.gold, icon: Euro },
+  const [, navigate] = useLocation();
+  const { canSeeCosts } = useOfficinaPermissions();
+  const { data: dash, isLoading, isError, refetch } = trpc.officina.dashboard.useQuery();
+  const rows = [
+    { label: "Mezzi operativi", value: dash ? `${dash.mezziOperativi}/${dash.totaleMezzi}` : "—", path: "/officina/mezzi?stato=operativo" },
+    { label: "Mezzi fermi", value: dash?.mezziFermi ?? "—", path: "/officina/mezzi?stato=fermo" },
+    { label: "Interventi aperti", value: dash?.interventiAperti ?? "—", path: "/officina/interventi?stato=aperti" },
+    { label: "Interventi in ritardo", value: dash?.interventiInRitardo ?? "—", path: "/officina/interventi?periodo=ritardo" },
+    { label: "Ricambi sotto scorta", value: dash?.ricambiSottoScorta ?? "—", path: "/officina/ricambi?stato=sotto_scorta" },
+    ...(canSeeCosts ? [{ label: "Costo manutenzioni mese", value: dash ? eur(dash.costoManutenzioneMese) : "—", path: "/officina/interventi?stato=completato&periodo=mese" }] : []),
   ];
-
-  return (
-    <div className="space-y-5 animate-fade-in-up">
-      {/* HERO */}
-      <div className="relative rounded-2xl overflow-hidden min-h-[160px] flex items-end p-6"
-        style={{ backgroundImage: `linear-gradient(90deg, oklch(0.08 0.006 145 / 0.94) 0%, oklch(0.08 0.006 145 / 0.5) 100%), url(${FAL_IMAGES.officinaHero})`, backgroundSize: "cover", backgroundPosition: "center" }}>
-        <div className="flex items-end justify-between w-full flex-wrap gap-3">
-          <div>
-            <p className="text-xs font-semibold tracking-[0.2em] uppercase mb-1" style={{ color: C.gold }}>Parco Mezzi & Manutenzioni</p>
-            <h1 className="text-3xl font-bold" style={{ fontFamily: "var(--font-display)", color: "oklch(0.97 0.005 145)", letterSpacing: "-0.02em" }}>Officina</h1>
-            <p className="text-sm mt-1" style={{ color: "oklch(0.78 0.01 145)" }}>
-              {dash?.totaleMezzi ?? 0} mezzi · {dash?.interventiAperti ?? 0} interventi aperti · {dash?.ricambiSottoScorta ?? 0} ricambi da ordinare
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* KPI */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-        {kpi.map((k) => (
-          <div key={k.label} className="rounded-xl p-4" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
-            <div className="flex items-center justify-between mb-2.5">
-              <span className="text-[10px] font-semibold tracking-wider leading-tight" style={{ color: C.textFaint }}>{k.label}</span>
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${k.color}1a` }}>
-                <k.icon size={13} style={{ color: k.color }} />
-              </div>
-            </div>
-            <div className="text-xl font-bold" style={{ fontFamily: "var(--font-display)", color: "oklch(0.95 0.005 145)", letterSpacing: "-0.02em" }}>{k.value}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Alert attività prioritarie */}
-      {dash && (dash.interventiInRitardo > 0 || dash.mezziFermi > 0) && (
-        <div className="flex items-center gap-3 p-4 rounded-xl" style={{ background: `${C.red}10`, border: `1px solid ${C.red}30` }}>
-          <AlertTriangle size={18} style={{ color: C.red }} className="shrink-0" />
-          <p className="text-sm" style={{ color: C.text }}>
-            {dash.interventiInRitardo > 0 && <span><strong>{dash.interventiInRitardo}</strong> interventi in ritardo</span>}
-            {dash.interventiInRitardo > 0 && dash.mezziFermi > 0 && " · "}
-            {dash.mezziFermi > 0 && <span><strong>{dash.mezziFermi}</strong> mezzi fermi richiedono attenzione</span>}
-          </p>
-        </div>
-      )}
-
-      {/* Tab navigation */}
-      <div className="flex max-w-full gap-2 overflow-x-auto p-1 rounded-xl" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
-        {TABS.map((t) => {
-          const active = tab === t.id;
-          return (
-            <button key={t.id} onClick={() => setTab(t.id)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
-              style={{ background: active ? C.green : "transparent", color: active ? C.bgDeep : C.textDim }}>
-              <t.icon size={15} /> {t.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Tab content */}
-      {tab === "operatore" && <OperatoreTab />}
-      {tab === "mezzi" && <MezziTab />}
-      {tab === "interventi" && <InterventiTab />}
-      {tab === "ricambi" && <RicambiTab />}
-    </div>
-  );
+  return <div className="officina-page mx-auto w-full max-w-md pb-5 animate-fade-in-up">
+    <OfficinaHeader title="Officina" hub />
+    <section aria-label="Aree Officina" className="grid grid-cols-2 gap-3">
+      {AREAS.map((area) => <PhotoAreaCard key={area.id} title={area.label} description={area.description} icon={area.icon} image={OFFICINA_IMAGES[area.id]} color={area.color} onClick={() => navigate(`/officina/${area.id}`)} />)}
+    </section>
+    <section aria-labelledby="situazione-officina" className="mt-6 rounded-2xl border px-4 py-3" style={{ borderColor: C.border, background: C.panel }}>
+      <h2 id="situazione-officina" className="mb-1 text-sm font-semibold" style={{ color: C.text }}>Situazione Officina</h2>
+      {isError ? <button onClick={() => refetch()} className="min-h-11 text-sm" style={{ color: C.gold }}>Riepilogo non disponibile · Riprova</button> : <div aria-busy={isLoading}>{rows.map((row) => <button key={row.label} onClick={() => navigate(row.path)} className="flex min-h-10 w-full items-center justify-between gap-3 text-left text-xs" style={{ color: C.textDim }}><span>{row.label}</span><strong className="text-sm tabular-nums" style={{ color: C.text }}>{row.value}</strong></button>)}</div>}
+    </section>
+  </div>;
 }

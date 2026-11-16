@@ -29,3 +29,18 @@
 - [x] Aggiungere ricerca manuale fallback e messaggi per permessi/fotocamera non disponibili
 - [x] Collegare il codice rilevato alla selezione del ricambio reale del Magazzino senza modificare dati
 - [x] Scrivere test di normalizzazione/matching e verificare test completi, TypeScript, build e resa mobile
+
+## Fase 96 — Revisione grafica e organizzativa Officina
+- [x] Hub a quattro card fotografiche 2×2 nello stile Azienda e situazione compatta sotto gli accessi
+- [x] Quattro pagine dedicate con Indietro, percorso e Azienda attiva nella barra inferiore
+- [x] Operatore compatto con schede basse, mezzo sempre visibile, carrello fisso verde e scanner preservato
+- [x] Mezzi a due colonne, foto illustrative dichiarate e dettaglio completo preservato
+- [x] Interventi con filtri responsive mezzo/stato/priorità/tipo/periodo e dettaglio materiali prelevati
+- [x] Ricambi collegati al Magazzino condiviso per elenco, creazione, aggiornamenti e KPI coerenti
+- [x] Controlli server per lettura/scrittura e dati economici riservati; prelievi e completamento senza doppio costo/spesa
+- [x] Migrazione solo additiva per metadati ricambi condivisi, nessuna modifica delle giacenze reali
+- [x] Test isolati su carrello, giacenze, storico, costi, permessi, filtri; 489/489 test Vitest, TypeScript, build, service worker e diff validi
+- [x] Verifica UI a 360/390/430 px: 30 controlli, nessun overflow, scanner/manuale, carrello tra reparti, conferma solo su tenant temporaneo, storico e permessi server 403
+- [ ] Salvare checkpoint finale
+
+Verifiche eseguite esclusivamente su tenant temporanei con pulizia finale. Nessun mezzo, intervento, ricambio o movimento reale è stato cancellato o modificato per i test. Il prelievo attribuisce subito il costo al mezzo; il completamento conserva i materiali già usati e aggiunge soltanto nuovi materiali e manodopera. Nessuna nuova spesa Finanza viene generata per i materiali già acquistati. I costi sono rimossi dalle risposte tRPC per gli utenti senza autorizzazione economica.

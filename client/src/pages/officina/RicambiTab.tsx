@@ -1,3 +1,4 @@
+import { useOfficinaPermissions } from "./OfficinaLayout";
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
-  Package, Plus, Trash2, Search, Minus, AlertTriangle, ClipboardList, MapPin, Pencil,
+  Package, Plus, Trash2, Search, Minus, AlertTriangle, ClipboardList, MapPin, Pencil, SlidersHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import { C, STATO_SCORTA, CATEGORIE_RICAMBIO, eur, CodicePill } from "./shared";
@@ -33,8 +34,12 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 );
 
 export default function RicambiTab() {
+  const { canEdit, canSeeCosts } = useOfficinaPermissions();
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [repartoFiltro, setRepartoFiltro] = useState("tutti");
+  const [famigliaFiltro, setFamigliaFiltro] = useState("tutte");
   const [search, setSearch] = useState("");
-  const [filtro, setFiltro] = useState("tutti");
+  const [filtro, setFiltro] = useState(() => new URLSearchParams(window.location.search).get("stato") || "tutti");
   const [categoria, setCategoria] = useState("tutte");
   const [fornitore, setFornitore] = useState("tutti");
   const [openForm, setOpenForm] = useState(false);
@@ -43,13 +48,15 @@ export default function RicambiTab() {
   const [form, setForm] = useState({ ...EMPTY_R });
 
   const utils = trpc.useUtils();
-  const { data: ricambi = [], isLoading } = trpc.officina.ricambi.list.useQuery();
+  const { data: ricambi = [], isLoading, isError, refetch } = trpc.officina.ricambi.list.useQuery();
   const { data: ordine = [] } = trpc.officina.preparaOrdine.useQuery();
 
   const invalidate = () => {
     utils.officina.ricambi.list.invalidate();
     utils.officina.preparaOrdine.invalidate();
     utils.officina.dashboard.invalidate();
+    utils.officina.operatore.catalogo.invalidate();
+    utils.magazzino.invalidate();
   };
 
   const createR = trpc.officina.ricambi.create.useMutation({
@@ -87,14 +94,17 @@ export default function RicambiTab() {
     const okCat = categoria === "tutte" || r.categoria === categoria;
     const okForn = fornitore === "tutti" || r.fornitore === fornitore;
     let okFiltro = true;
-    if (filtro === "disponibili") okFiltro = r.statoScorta === "disponibile";
-    else if (filtro === "sotto_scorta") okFiltro = r.statoScorta === "sotto_scorta";
+    if (filtro === "disponibili") okFiltro = Number(r.quantitaDisponibile) > 0;
+    else if (filtro === "sotto_scorta") okFiltro = Number(r.quantitaDisponibile) <= 0 || (Number(r.sogliaMinima) > 0 && Number(r.quantitaDisponibile) <= Number(r.sogliaMinima));
     else if (filtro === "non_disponibili") okFiltro = r.statoScorta === "non_disponibile";
     else if (filtro === "da_ordinare") okFiltro = r.statoScorta !== "disponibile" && r.statoOrdine !== "ordinato";
     else if (filtro === "ordinati") okFiltro = r.statoOrdine === "ordinato";
-    return okSearch && okCat && okForn && okFiltro;
+    return okSearch && okCat && okForn && okFiltro && (repartoFiltro === "tutti" || r.reparto === repartoFiltro) && (famigliaFiltro === "tutte" || r.famiglia === famigliaFiltro);
   });
 
+  const reparti = Array.from(new Set((ricambi as any[]).map((r) => r.reparto).filter(Boolean))).sort();
+  const famiglie = Array.from(new Set((ricambi as any[]).filter((r) => repartoFiltro === "tutti" || r.reparto === repartoFiltro).map((r) => r.famiglia).filter(Boolean))).sort();
+  const categorie = Array.from(new Set([...CATEGORIE_RICAMBIO, ...(ricambi as any[]).map((r) => r.categoria).filter(Boolean)])).sort();
   const sottoScorta = (ricambi as any[]).filter((r) => r.statoScorta !== "disponibile").length;
   const totOrdine = (ordine as any[]).reduce((s, o) => s + Number(o.costoStimato ?? 0), 0);
 
@@ -149,96 +159,24 @@ export default function RicambiTab() {
         </button>
       )}
 
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: C.textFaint }} />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cerca per nome, codice, fornitore…" className="bg-input border-border text-sm pl-9" />
-        </div>
-        <Button onClick={openNew} className="gap-2 shrink-0" style={{ background: C.green, color: C.bgDeep }}>
-          <Plus size={15} /> Nuovo ricambio
-        </Button>
+      <div className="space-y-3">
+        <div className="relative"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: C.textDim }} /><Input aria-label="Cerca ricambi" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nome articolo, codice o fornitore…" className="h-11 w-full bg-input border-border pl-9 text-sm" /></div>
+        <div className="flex gap-2"><Button variant="outline" onClick={() => setFiltersOpen(!filtersOpen)} aria-expanded={filtersOpen} className="min-h-11 flex-1 gap-2"><SlidersHorizontal size={16} /> Filtri</Button>{canEdit && <Button onClick={openNew} className="min-h-11 flex-1 gap-1 px-2" style={{ background: C.green, color: C.bgDeep }}><Plus size={15} /> Nuovo ricambio</Button>}</div>
       </div>
-
-      {/* Filtri */}
-      <div className="flex gap-2 overflow-x-auto pb-0.5">
-        {FILTRI.map(([v, l]) => (
-          <button key={v} onClick={() => setFiltro(v)} className="px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all"
-            style={{ background: filtro === v ? `${C.green}18` : C.inner, color: filtro === v ? C.green : C.textDim, border: `1px solid ${filtro === v ? C.green + "40" : "transparent"}` }}>{l}</button>
-        ))}
-        <div className="w-px shrink-0" style={{ background: C.border }} />
-        <select value={categoria} onChange={(e) => setCategoria(e.target.value)} className="px-3 py-2 rounded-lg text-xs font-medium shrink-0"
-          style={{ background: C.inner, color: C.textDim, border: `1px solid ${C.border}` }}>
-          <option value="tutte">Tutte le categorie</option>
-          {CATEGORIE_RICAMBIO.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
-        {fornitori.length > 0 && (
-          <select value={fornitore} onChange={(e) => setFornitore(e.target.value)} className="px-3 py-2 rounded-lg text-xs font-medium shrink-0"
-            style={{ background: C.inner, color: C.textDim, border: `1px solid ${C.border}` }}>
-            <option value="tutti">Tutti i fornitori</option>
-            {fornitori.map((f) => <option key={f as string} value={f as string}>{f as string}</option>)}
-          </select>
-        )}
-      </div>
-
-      {/* Lista ricambi */}
-      {isLoading ? (
-        <div className="text-center py-16 text-sm" style={{ color: C.textFaint }}>Caricamento…</div>
-      ) : list.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3 rounded-xl" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
-          <Package size={36} className="opacity-10" style={{ color: C.green }} />
-          <p className="text-sm" style={{ color: C.textFaint }}>Nessun ricambio</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {list.map((r) => {
-            const sc = STATO_SCORTA[r.statoScorta] ?? STATO_SCORTA.disponibile;
-            return (
-              <div key={r.id} className="rounded-xl p-4" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
-                <div className="flex items-start gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-semibold truncate" style={{ color: C.text }}>{r.nome}</p>
-                      <Badge style={{ background: `${sc.color}18`, color: sc.color, border: "none", fontSize: 10 }}>{sc.label}</Badge>
-                      {r.statoOrdine === "ordinato" && <Badge style={{ background: `${C.blue}18`, color: C.blue, border: "none", fontSize: 10 }}>Ordinato</Badge>}
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      {r.codice && <CodicePill codice={r.codice} />}
-                      <span className="text-xs" style={{ color: C.textFaint }}>{r.categoria}</span>
-                    </div>
-                    {r.compatibilita && <p className="text-[11px] mt-1" style={{ color: C.textDim }}>Compatibile: {r.compatibilita}</p>}
-                    <div className="flex items-center gap-3 mt-2 text-[11px]" style={{ color: C.textFaint }}>
-                      {r.posizione && <span className="flex items-center gap-1"><MapPin size={11} />{r.posizione}</span>}
-                      {r.fornitore && <span>{r.fornitore}</span>}
-                      {r.costoMedio != null && Number(r.costoMedio) > 0 && <span style={{ color: C.gold }}>{eur(r.costoMedio)}/pz</span>}
-                    </div>
-                  </div>
-                  <div className="flex gap-1 shrink-0">
-                    {r.statoScorta !== "disponibile" && (
-                      <button onClick={() => setOrdine.mutate({ id: r.id, statoOrdine: r.statoOrdine === "ordinato" ? "nessuno" : "ordinato" })}
-                        title={r.statoOrdine === "ordinato" ? "Segna come non ordinato" : "Segna come ordinato"}
-                        className="p-1.5 rounded-lg" style={{ color: r.statoOrdine === "ordinato" ? C.blue : C.textDim }}><ClipboardList size={13} /></button>
-                    )}
-                    <button onClick={() => openEdit(r)} className="p-1.5 rounded-lg" style={{ color: C.gold }}><Pencil size={13} /></button>
-                    <button onClick={() => deleteR.mutate({ id: r.id })} className="p-1.5 rounded-lg" style={{ color: C.red }}><Trash2 size={13} /></button>
-                  </div>
-                </div>
-                {/* Stepper quantità */}
-                <div className="flex items-center justify-between mt-3 pt-3 border-t" style={{ borderColor: C.borderSoft }}>
-                  <span className="text-[10px] uppercase tracking-wider" style={{ color: C.textFaint }}>
-                    Scorta {r.sogliaMinima > 0 ? `· min ${r.sogliaMinima}` : ""}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => adjustR.mutate({ id: r.id, delta: -1 })} className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: C.inner, color: C.textDim, border: `1px solid ${C.border}` }}><Minus size={13} /></button>
-                    <span className="text-base font-bold w-10 text-center" style={{ color: sc.color, fontFamily: "var(--font-display)" }}>{Number(r.quantitaDisponibile)}</span>
-                    <button onClick={() => adjustR.mutate({ id: r.id, delta: 1 })} className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${C.green}18`, color: C.green, border: `1px solid ${C.green}30` }}><Plus size={13} /></button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {filtersOpen && <div className="grid grid-cols-2 gap-3 rounded-xl border p-3" style={{ borderColor: C.border, background: C.panel }}>
+        <Field label="Disponibilità"><PartFilter value={filtro} onChange={setFiltro} options={FILTRI} /></Field>
+        <Field label="Reparto"><PartFilter value={repartoFiltro} onChange={(v) => { setRepartoFiltro(v); setFamigliaFiltro("tutte"); }} options={[["tutti", "Tutti"], ...reparti.map((v) => [v,v] as [string,string])]} /></Field>
+        <Field label="Famiglia"><PartFilter value={famigliaFiltro} onChange={setFamigliaFiltro} options={[["tutte", "Tutte"], ...famiglie.map((v) => [v,v] as [string,string])]} /></Field>
+        <Field label="Categoria"><PartFilter value={categoria} onChange={setCategoria} options={[["tutte", "Tutte"], ...categorie.map((v) => [v,v] as [string,string])]} /></Field>
+        {fornitori.length > 0 && <Field label="Fornitore"><PartFilter value={fornitore} onChange={setFornitore} options={[["tutti", "Tutti"], ...fornitori.map((v) => [v,v] as [string,string])]} /></Field>}
+        <button onClick={() => { setFiltro("tutti"); setCategoria("tutte"); setFornitore("tutti"); setRepartoFiltro("tutti"); setFamigliaFiltro("tutte"); }} className="col-span-2 min-h-10 text-xs" style={{ color: C.green }}>Azzera filtri</button>
+      </div>}
+      <div className="grid grid-cols-2 gap-2" aria-label="Disponibilità ricambi">{FILTRI.slice(0,4).map(([v,l]) => <button key={v} onClick={() => setFiltro(v)} aria-pressed={filtro === v} className="min-h-11 rounded-lg border px-2 text-xs" style={{ background: C.inner, color: filtro === v ? C.green : C.textDim, borderColor: filtro === v ? C.green : C.border }}>{l}</button>)}</div>
+      {isError ? <button onClick={() => refetch()} className="w-full p-5 text-sm" style={{ color: C.gold }}>Impossibile caricare i ricambi · Riprova</button> : isLoading ? <p className="py-8 text-center text-sm" style={{ color: C.textDim }}>Caricamento…</p> : list.length === 0 ? <div className="rounded-xl border p-6 text-center" style={{ borderColor: C.border, background: C.panel }}><Package size={25} className="mx-auto mb-2" style={{ color: C.gold }} /><p className="text-sm" style={{ color: C.textDim }}>Nessun ricambio in questa selezione</p>{canEdit && <button onClick={openNew} className="mt-2 min-h-11 text-xs" style={{ color: C.green }}>Crea un ricambio nel Magazzino</button>}</div> : <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{list.map((part) => { const sc = STATO_SCORTA[part.statoScorta] ?? STATO_SCORTA.disponibile; return <article key={part.id} className="rounded-xl border p-3" style={{ borderColor: C.border, background: C.panel }}>
+        <div className="flex gap-3">{part.immagineUrl ? <img src={part.immagineUrl} alt={part.nome} loading="lazy" className="size-12 shrink-0 rounded-lg object-cover" /> : <div className="flex size-12 shrink-0 items-center justify-center rounded-lg" style={{ background: C.inner, color: C.gold }}><Package size={22} /></div>}<div className="min-w-0 flex-1"><h2 className="text-sm font-semibold leading-tight" style={{ color: C.text }}>{part.nome}</h2><p className="mt-1 break-words text-[11px]" style={{ color: C.textDim }}>{part.codice || "Senza codice"} · {part.categoria}</p><p className="mt-1 text-[11px]" style={{ color: sc.color }}>{sc.label}{part.statoOrdine === "ordinato" ? " · Ordinato" : ""}</p>{canSeeCosts && part.costoMedio != null && <p className="mt-1 text-xs" style={{ color: C.gold }}>{eur(part.costoMedio)} / unità</p>}</div><div className="text-right"><strong className="text-lg tabular-nums" style={{ color: sc.color }}>{Number(part.quantitaDisponibile)}</strong><p className="text-[10px]" style={{ color: C.textDim }}>Giacenza</p></div></div>
+        {(part.posizione || part.compatibilita || part.fornitore) && <p className="mt-2 text-[11px]" style={{ color: C.textDim }}>{[part.posizione, part.compatibilita, part.fornitore].filter(Boolean).join(" · ")}</p>}
+        {canEdit && <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t pt-2" style={{ borderColor: C.border }}><div className="flex gap-1"><button onClick={() => openEdit(part)} aria-label={`Modifica ${part.nome}`} className="flex size-11 items-center justify-center rounded-lg" style={{ color: C.gold }}><Pencil size={16} /></button><button onClick={() => { if (window.confirm(`Eliminare ${part.nome} dall’anagrafica condivisa? I movimenti storici rimangono conservati.`)) deleteR.mutate({ id: part.id }); }} aria-label={`Elimina ${part.nome}`} className="flex size-11 items-center justify-center rounded-lg" style={{ color: C.red }}><Trash2 size={16} /></button>{part.statoScorta !== "disponibile" && <button onClick={() => { if (window.confirm("Aggiornare lo stato ordine di questo ricambio?")) setOrdine.mutate({ id: part.id, statoOrdine: part.statoOrdine === "ordinato" ? "nessuno" : "ordinato" }); }} aria-label="Aggiorna stato ordine" className="flex size-11 items-center justify-center rounded-lg" style={{ color: C.blue }}><ClipboardList size={16} /></button>}</div><div className="flex items-center gap-2"><button disabled={adjustR.isPending || Number(part.quantitaDisponibile) < 1} onClick={() => { if (window.confirm(`Ridurre di 1 la giacenza di ${part.nome}?`)) adjustR.mutate({ id: part.id, delta: -1 }); }} aria-label={`Riduci giacenza ${part.nome}`} className="flex size-11 items-center justify-center rounded-lg border disabled:opacity-40" style={{ borderColor: C.border, color: C.text }}><Minus size={15} /></button><button disabled={adjustR.isPending} onClick={() => { if (window.confirm(`Aumentare di 1 la giacenza di ${part.nome} come rettifica? Non viene registrato un nuovo acquisto.`)) adjustR.mutate({ id: part.id, delta: 1 }); }} aria-label={`Aumenta giacenza ${part.nome}`} className="flex size-11 items-center justify-center rounded-lg border" style={{ borderColor: C.green, color: C.green }}><Plus size={15} /></button></div></div>}
+      </article>; })}</div>}
 
       {/* Sheet prepara ordine */}
       <Sheet open={openOrdine} onOpenChange={setOpenOrdine}>
@@ -265,16 +203,16 @@ export default function RicambiTab() {
                   <span>{[o.codice, o.fornitore].filter(Boolean).join(" · ") || o.categoria}</span>
                   <span>disp. {o.quantitaDisponibile}/{o.sogliaMinima}</span>
                 </div>
-                {o.costoStimato > 0 && <p className="text-xs mt-1" style={{ color: C.gold }}>Stima: {eur(o.costoStimato)}</p>}
+                {canSeeCosts && o.costoStimato > 0 && <p className="text-xs mt-1" style={{ color: C.gold }}>Stima: {eur(o.costoStimato)}</p>}
               </div>
             ))}
           </div>
           {(ordine as any[]).length > 0 && (
             <div className="px-6 py-4 border-t" style={{ borderColor: C.border }}>
-              <div className="flex items-center justify-between mb-3">
+              {canSeeCosts && <div className="flex items-center justify-between mb-3">
                 <span className="text-xs uppercase tracking-wider" style={{ color: C.textFaint }}>Totale stimato</span>
                 <span className="text-lg font-bold" style={{ color: C.gold, fontFamily: "var(--font-display)" }}>{eur(totOrdine)}</span>
-              </div>
+              </div>}
               <Button onClick={() => { navigator.clipboard?.writeText((ordine as any[]).map((o) => `${o.quantitaConsigliata}x ${o.nome}${o.codice ? ` (${o.codice})` : ""}`).join("\n")); toast.success("Lista copiata negli appunti"); }}
                 className="w-full" style={{ background: C.gold, color: C.bgDeep }}>Copia lista ordine</Button>
             </div>
@@ -301,7 +239,7 @@ export default function RicambiTab() {
               <Field label="Categoria">
                 <select value={form.categoria} onChange={(e) => setForm((f) => ({ ...f, categoria: e.target.value }))}
                   className="w-full px-3 py-2.5 rounded-lg text-sm" style={{ background: "oklch(0.14 0.007 145)", color: C.text, border: "1px solid oklch(0.22 0.01 145)" }}>
-                  {CATEGORIE_RICAMBIO.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {categorie.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </Field>
             </div>
@@ -321,13 +259,13 @@ export default function RicambiTab() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Posizione"><Input value={form.posizione} onChange={(e) => setForm((f) => ({ ...f, posizione: e.target.value }))} placeholder="Scaffale A3…" className="bg-input border-border text-sm" /></Field>
-              <Field label="Costo medio (€)"><Input type="number" step="0.01" value={form.costoMedio} onChange={(e) => setForm((f) => ({ ...f, costoMedio: e.target.value }))} className="bg-input border-border text-sm" /></Field>
+              {canSeeCosts && <Field label="Costo medio (€)"><Input type="number" step="0.01" value={form.costoMedio} onChange={(e) => setForm((f) => ({ ...f, costoMedio: e.target.value }))} className="bg-input border-border text-sm" /></Field>}
             </div>
             <Field label="Fornitore"><Input value={form.fornitore} onChange={(e) => setForm((f) => ({ ...f, fornitore: e.target.value }))} className="bg-input border-border text-sm" /></Field>
             <Field label="Note"><Input value={form.note} onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))} className="bg-input border-border text-sm" /></Field>
           </div>
           <div className="px-6 py-4 border-t" style={{ borderColor: C.border }}>
-            <Button onClick={submit} disabled={createR.isPending || updateR.isPending} className="w-full" style={{ background: C.green, color: C.bgDeep }}>
+            <Button onClick={submit} disabled={!canEdit || createR.isPending || updateR.isPending} className="w-full" style={{ background: C.green, color: C.bgDeep }}>
               {createR.isPending || updateR.isPending ? "Salvataggio…" : editing ? "Aggiorna ricambio" : "Salva ricambio"}
             </Button>
           </div>
@@ -335,4 +273,8 @@ export default function RicambiTab() {
       </Sheet>
     </div>
   );
+}
+
+function PartFilter({ value, onChange, options }: { value: string; onChange: (value: string) => void; options: [string,string][] }) {
+  return <select aria-label={options[0]?.[1]} value={value} onChange={(e) => onChange(e.target.value)} className="min-h-11 w-full min-w-0 rounded-lg px-2 text-xs" style={{ background: C.inner, color: C.text, border: `1px solid ${C.border}` }}>{options.map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select>;
 }

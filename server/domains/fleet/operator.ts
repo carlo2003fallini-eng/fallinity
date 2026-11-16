@@ -1,3 +1,4 @@
+import { eRicambio } from "./parts";
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
@@ -33,11 +34,6 @@ function categoriaMezzo(categoria: string | null) {
   return value || "Altri mezzi";
 }
 
-function eRicambio(product: any) {
-  const value = [product.categoria, product.reparto, product.famiglia, product.sottocategoria, product.nome]
-    .filter(Boolean).join(" ").toLowerCase();
-  return Boolean(product.reparto || product.famiglia || value.includes("ricamb") || value.includes("pezzi di ricambio"));
-}
 
 export function costruisciCatalogoOperatore(
   machines: any[],
@@ -53,7 +49,7 @@ export function costruisciCatalogoOperatore(
       reparto: part.reparto || repartoDaCategoria(part.categoria),
       famiglia: part.famiglia || part.categoria || "Ricambi",
       sottocategoria: part.sottocategoria || null,
-      immagineUrl: null,
+      immagineUrl: part.immagineUrl || null,
       quantitaDisponibile: Number(part.quantita ?? 0),
       costoUnitario: part.prezzoUnitario == null ? null : Number(part.prezzoUnitario),
     }));
@@ -73,7 +69,8 @@ export function costruisciCatalogoOperatore(
       })),
     }));
 
-  const reparti = REPARTI_PREDEFINITI.map((nome) => ({
+  const tuttiReparti = Array.from(new Set([...REPARTI_PREDEFINITI, ...disponibili.map((p) => p.reparto)]));
+  const reparti = tuttiReparti.map((nome) => ({
     nome,
     famiglie: Array.from(new Set(disponibili.filter((part) => part.reparto === nome).map((part) => part.famiglia)))
       .sort((a, b) => a.localeCompare(b, "it"))
@@ -125,9 +122,10 @@ export const operatorService = {
 
         let interventoId = input.interventoId;
         if (interventoId) {
+          await tx.execute(sql`SELECT id FROM interventi WHERE id=${interventoId} AND companyId=${actor.companyId} AND deletedAt IS NULL FOR UPDATE`);
           const open = await tx.select({ id: interventi.id }).from(interventi).where(and(
             eq(interventi.id, interventoId), eq(interventi.macchinaId, input.macchinaId),
-            eq(interventi.companyId, actor.companyId), isNull(interventi.deletedAt),
+            eq(interventi.companyId, actor.companyId), isNull(interventi.deletedAt), sql`${interventi.stato} <> 'completato'`,
           )).limit(1);
           if (!open[0]) throw new Error("Intervento non trovato per il mezzo selezionato");
         } else if (input.nuovoIntervento) {
@@ -197,6 +195,8 @@ export const operatorService = {
           await tx.update(interventi).set({ costoRicambi: sql`COALESCE(${interventi.costoRicambi}, 0) + ${costoTotale}` } as any)
             .where(and(eq(interventi.id, interventoId), eq(interventi.companyId, actor.companyId)));
         }
+
+        if (costoTotale > 0) await tx.update(macchine).set({ costoTotale: sql`COALESCE(${macchine.costoTotale}, 0) + ${costoTotale}`, updatedBy: actor.userUuid }).where(and(eq(macchine.id, input.macchinaId), eq(macchine.companyId, actor.companyId), isNull(macchine.deletedAt)));
 
         const prelievoId = newId();
         await tx.insert(prelieviOfficina).values(withCreate(actor, {

@@ -1,3 +1,5 @@
+import { useOfficinaPermissions } from "./OfficinaLayout";
+import { matchesWork } from "./filters";
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -5,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
-  Wrench, Plus, Trash2, CheckCircle2, X, User, Clock, Euro, Package, AlertTriangle, Play,
+  Wrench, Plus, Trash2, CheckCircle2, X, User, Clock, Euro, Package, AlertTriangle, Play, Search, SlidersHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -37,7 +39,16 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 type RigaRicambio = { ricambioId?: string; nomeRicambio?: string; quantitaRichiesta: number };
 
 export default function InterventiTab() {
-  const [tab, setTab] = useState("pianificato");
+  const { canEdit, canSeeCosts } = useOfficinaPermissions();
+  const params = new URLSearchParams(window.location.search);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filtroTipo, setFiltroTipo] = useState("tutti");
+  const [periodo, setPeriodo] = useState(params.get("periodo") || "tutti");
+  const [da, setDa] = useState("");
+  const [a, setA] = useState("");
+  const [detailId, setDetailId] = useState<string | null>(params.get("dettaglio"));
+  const { data: workDetail, isError: detailError } = trpc.officina.interventi.detail.useQuery({ id: detailId! }, { enabled: !!detailId });
+  const [tab, setTab] = useState(params.get("stato") || "tutti");
   const [filtroMezzo, setFiltroMezzo] = useState("tutti");
   const [filtroPriorita, setFiltroPriorita] = useState("tutte");
   const [filtroOperatore, setFiltroOperatore] = useState("tutti");
@@ -57,7 +68,7 @@ export default function InterventiTab() {
   const utils = trpc.useUtils();
   const { data: mezzi = [] } = trpc.officina.macchine.list.useQuery();
   const { data: ricambi = [] } = trpc.officina.ricambi.list.useQuery();
-  const { data: interventi = [], isLoading } = trpc.officina.interventi.list.useQuery();
+  const { data: interventi = [], isLoading, isError, refetch } = trpc.officina.interventi.list.useQuery();
   const { data: completaDetail } = trpc.officina.interventi.detail.useQuery(
     { id: completaId! }, { enabled: !!completaId });
 
@@ -66,6 +77,9 @@ export default function InterventiTab() {
     utils.officina.dashboard.invalidate();
     utils.officina.macchine.list.invalidate();
     utils.officina.ricambi.list.invalidate();
+    utils.officina.operatore.catalogo.invalidate();
+    utils.officina.interventi.detail.invalidate();
+    utils.magazzino.invalidate();
   };
 
   const createI = trpc.officina.interventi.create.useMutation({
@@ -77,7 +91,7 @@ export default function InterventiTab() {
     onError: () => toast.error("Errore"),
   });
   const completaI = trpc.officina.interventi.completa.useMutation({
-    onSuccess: (res) => { invalidate(); setOpenCompleta(false); setCompletaId(null); toast.success(`Intervento completato · ${eur(res.costoFinale)}`); },
+    onSuccess: (res) => { invalidate(); setOpenCompleta(false); setCompletaId(null); toast.success(canSeeCosts ? `Intervento completato · ${eur(res.costoFinale)}` : "Intervento completato"); },
     onError: () => toast.error("Errore durante il completamento"),
   });
   const deleteI = trpc.officina.interventi.delete.useMutation({
@@ -97,15 +111,8 @@ export default function InterventiTab() {
   }, [interventi]);
 
   const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
-  const q = ricerca.trim().toLowerCase();
-  const list = (interventi as any[]).filter((i) => {
-    const okTab = i.stato === tab;
-    const okMezzo = filtroMezzo === "tutti" || i.macchinaId === filtroMezzo;
-    const okPri = filtroPriorita === "tutte" || i.priorita === filtroPriorita;
-    const okOp = filtroOperatore === "tutti" || i.operatore === filtroOperatore;
-    const okQ = !q || (i.codice ?? "").toLowerCase().includes(q) || (i.descrizione ?? "").toLowerCase().includes(q) || (i.operatore ?? "").toLowerCase().includes(q);
-    return okTab && okMezzo && okPri && okOp && okQ;
-  });
+  const list = (interventi as any[]).filter((i) => matchesWork({ ...i, nomeMezzo: mezziMap[i.macchinaId]?.nome }, { ricerca, mezzo: filtroMezzo, stato: tab, priorita: filtroPriorita, tipo: filtroTipo, periodo, da, a, operatore: filtroOperatore }));
+  const filterCount = [filtroMezzo !== "tutti", filtroPriorita !== "tutte", filtroTipo !== "tutti", periodo !== "tutti", filtroOperatore !== "tutti"].filter(Boolean).length;
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -132,7 +139,7 @@ export default function InterventiTab() {
     if (!completaDetail) return 0;
     let tot = 0;
     for (const r of (completaDetail.ricambiNecessari ?? [])) {
-      const q = usati[r.id] ?? 0;
+      const q = Number(r.quantitaUtilizzata) > 0 ? Number(r.quantitaUtilizzata) : usati[r.id] ?? 0;
       const cu = Number(r.costoUnitario ?? 0) || (r.ricambioId ? Number((ricambi as any[]).find((rc) => rc.id === r.ricambioId)?.costoMedio ?? 0) : 0);
       tot += q * cu;
     }
@@ -171,8 +178,10 @@ export default function InterventiTab() {
       costoOrario: Number(costoOrarioFin) || undefined,
       note: noteFin || undefined,
       ricambiUtilizzati: (completaDetail.ricambiNecessari ?? [])
-        .filter((r: any) => (usati[r.id] ?? 0) > 0)
+        .filter((r: any) => Number(r.quantitaUtilizzata) === 0 && (usati[r.id] ?? 0) > 0)
         .map((r: any) => ({
+          rigaId: r.id,
+          prodottoId: r.prodottoId ?? undefined,
           ricambioId: r.ricambioId ?? undefined,
           codiceRicambio: r.codiceRicambio ?? undefined,
           nomeRicambio: r.nomeRicambio ?? undefined,
@@ -184,109 +193,32 @@ export default function InterventiTab() {
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex gap-2 overflow-x-auto pb-0.5 flex-1">
-          <select value={filtroMezzo} onChange={(e) => setFiltroMezzo(e.target.value)} className="px-3 py-2 rounded-lg text-xs font-medium shrink-0"
-            style={{ background: C.inner, color: C.textDim, border: `1px solid ${C.border}` }}>
-            <option value="tutti">Tutti i mezzi</option>
-            {(mezzi as any[]).map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
-          </select>
-          <select value={filtroPriorita} onChange={(e) => setFiltroPriorita(e.target.value)} className="px-3 py-2 rounded-lg text-xs font-medium shrink-0"
-            style={{ background: C.inner, color: C.textDim, border: `1px solid ${C.border}` }}>
-            <option value="tutte">Tutte le priorità</option>
-            {PRIORITA_KEYS.map((p) => <option key={p} value={p}>{PRIORITA[p].label}</option>)}
-          </select>
-          {operatori.length > 0 && (
-            <select value={filtroOperatore} onChange={(e) => setFiltroOperatore(e.target.value)} className="px-3 py-2 rounded-lg text-xs font-medium shrink-0"
-              style={{ background: C.inner, color: C.textDim, border: `1px solid ${C.border}` }}>
-              <option value="tutti">Tutti gli operatori</option>
-              {operatori.map((o) => <option key={o} value={o}>{o}</option>)}
-            </select>
-          )}
-          <Input value={ricerca} onChange={(e) => setRicerca(e.target.value)} placeholder="Cerca codice o descrizione…"
-            className="bg-input border-border text-xs h-auto py-2 shrink-0 w-44" />
-        </div>
-        <Button onClick={() => { setForm({ ...EMPTY_I }); setRighe([]); setOpenForm(true); }} className="gap-2 shrink-0" style={{ background: C.green, color: C.bgDeep }}>
-          <Plus size={15} /> Nuovo intervento
-        </Button>
+      <div className="space-y-3">
+        <div className="relative"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: C.textDim }} /><Input aria-label="Cerca interventi" value={ricerca} onChange={(e) => setRicerca(e.target.value)} placeholder="Codice, descrizione o mezzo…" className="h-11 w-full bg-input border-border pl-9 text-sm" /></div>
+        <div className="flex gap-2"><Button variant="outline" onClick={() => setFiltersOpen(!filtersOpen)} aria-expanded={filtersOpen} className="min-h-11 flex-1 gap-2"><SlidersHorizontal size={16} /> Filtri{filterCount ? ` · ${filterCount}` : ""}</Button>{canEdit && <Button onClick={() => { setForm({ ...EMPTY_I }); setRighe([]); setOpenForm(true); }} className="min-h-11 flex-1 gap-1 px-2" style={{ background: C.green, color: C.bgDeep }}><Plus size={15} /> Nuovo intervento</Button>}</div>
       </div>
+      {filtersOpen && <div className="grid grid-cols-2 gap-3 rounded-xl border p-3" style={{ borderColor: C.border, background: C.panel }}>
+        <Field label="Mezzo"><FilterSelect value={filtroMezzo} onChange={setFiltroMezzo} options={[["tutti", "Tutti i mezzi"], ...(mezzi as any[]).map((m) => [m.id, m.nome] as [string,string])]} /></Field>
+        <Field label="Stato"><FilterSelect value={tab} onChange={setTab} options={[["tutti", "Tutti"], ["aperti", "Aperti"], ...TABS]} /></Field>
+        <Field label="Priorità"><FilterSelect value={filtroPriorita} onChange={setFiltroPriorita} options={[["tutte", "Tutte"], ...PRIORITA_KEYS.map((v) => [v, PRIORITA[v].label] as [string,string])]} /></Field>
+        <Field label="Tipologia"><FilterSelect value={filtroTipo} onChange={setFiltroTipo} options={[["tutti", "Tutte"], ...TIPI.map((v) => [v, TIPO_INTERVENTO_LABEL[v]] as [string,string])]} /></Field>
+        <Field label="Periodo"><FilterSelect value={periodo} onChange={setPeriodo} options={[["tutti", "Tutti"], ["oggi", "Oggi"], ["mese", "Questo mese"], ["ritardo", "In ritardo"], ["personalizzato", "Personalizzato"]]} /></Field>
+        {operatori.length > 0 && <Field label="Operatore"><FilterSelect value={filtroOperatore} onChange={setFiltroOperatore} options={[["tutti", "Tutti"], ...operatori.map((v) => [v,v] as [string,string])]} /></Field>}
+        {periodo === "personalizzato" && <><Field label="Da"><Input type="date" value={da} max={a || undefined} onChange={(e) => setDa(e.target.value)} className="h-11 w-full min-w-0 bg-input border-border" /></Field><Field label="A"><Input type="date" value={a} min={da || undefined} onChange={(e) => setA(e.target.value)} className="h-11 w-full min-w-0 bg-input border-border" /></Field></>}
+        <button onClick={() => { setTab("tutti"); setFiltroMezzo("tutti"); setFiltroPriorita("tutte"); setFiltroTipo("tutti"); setPeriodo("tutti"); setFiltroOperatore("tutti"); setDa(""); setA(""); }} className="col-span-2 min-h-10 text-xs" style={{ color: C.green }}>Azzera filtri</button>
+      </div>}
+      <div className="grid grid-cols-2 gap-2" aria-label="Stati intervento">{TABS.map(([v,l]) => <button key={v} onClick={() => setTab(tab === v ? "tutti" : v)} aria-pressed={tab === v} className="min-h-11 rounded-lg border px-2 text-xs" style={{ color: tab === v ? C.green : C.textDim, background: C.inner, borderColor: tab === v ? C.green : C.border }}>{l} · {counts[v] ?? 0}</button>)}</div>
+      {isError ? <button onClick={() => refetch()} className="w-full p-5 text-sm" style={{ color: C.gold }}>Impossibile caricare gli interventi · Riprova</button> : isLoading ? <p className="py-8 text-center text-sm" style={{ color: C.textDim }}>Caricamento…</p> : list.length === 0 ? <div className="rounded-xl border p-6 text-center" style={{ background: C.panel, borderColor: C.border }}><Wrench size={25} className="mx-auto mb-2" style={{ color: C.blue }} /><p className="text-sm" style={{ color: C.textDim }}>Nessun intervento in questa selezione</p>{canEdit && <button onClick={() => { setForm({ ...EMPTY_I }); setRighe([]); setOpenForm(true); }} className="mt-2 min-h-11 text-xs" style={{ color: C.green }}>Crea un nuovo intervento</button>}</div> : <div className="space-y-3">{list.map((i) => { const sc = STATO_INTERVENTO[i.stato] ?? STATO_INTERVENTO.pianificato; const pri = PRIORITA[i.priorita] ?? PRIORITA.media; return <button key={i.id} onClick={() => setDetailId(i.id)} className="w-full rounded-xl border p-3 text-left" style={{ background: C.panel, borderColor: isInRitardo(i) ? C.red : C.border }}><div className="flex items-start gap-3"><sc.icon size={20} className="mt-1 shrink-0" style={{ color: sc.color }} /><div className="min-w-0 flex-1"><h2 className="text-sm font-semibold leading-tight" style={{ color: C.text }}>{i.descrizione || TIPO_INTERVENTO_LABEL[i.tipo]}</h2><p className="mt-1 text-xs" style={{ color: C.textDim }}>{mezziMap[i.macchinaId]?.nome || "Mezzo"} · {TIPO_INTERVENTO_LABEL[i.tipo] || i.tipo}</p><div className="mt-2 flex flex-wrap gap-2 text-[10px]"><span style={{ color: sc.color }}>{sc.label}</span><span style={{ color: pri.color }}>{pri.label}</span>{isInRitardo(i) && <span style={{ color: C.red }}>In ritardo</span>}<span style={{ color: C.textDim }}>{dataIT(i.stato === "completato" ? i.dataCompletamento || i.data : i.dataPianificata || i.data)}</span>{canSeeCosts && i.costoFinale != null && <span style={{ color: C.gold }}>{eur(i.stato === "completato" ? i.costoFinale : Number(i.costoRicambi || 0) + Number(i.costoManodopera || 0))}</span>}</div></div></div></button>; })}</div>}
 
-      {/* Tab stati */}
-      <div className="flex gap-2 overflow-x-auto pb-0.5">
-        {TABS.map(([v, l]) => {
-          const cfg = STATO_INTERVENTO[v];
-          const active = tab === v;
-          return (
-            <button key={v} onClick={() => setTab(v)} className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all"
-              style={{ background: active ? `${cfg.color}18` : C.inner, color: active ? cfg.color : C.textDim, border: `1px solid ${active ? cfg.color + "40" : "transparent"}` }}>
-              <cfg.icon size={13} /> {l}
-              <span className="px-1.5 py-0.5 rounded-md text-[10px]" style={{ background: active ? `${cfg.color}25` : C.border, color: active ? cfg.color : C.textFaint }}>{counts[v] ?? 0}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Lista interventi */}
-      {isLoading ? (
-        <div className="text-center py-16 text-sm" style={{ color: C.textFaint }}>Caricamento…</div>
-      ) : list.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3 rounded-xl" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
-          <CheckCircle2 size={36} className="opacity-10" style={{ color: C.green }} />
-          <p className="text-sm" style={{ color: C.textFaint }}>Nessun intervento in questa sezione</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {list.map((i) => {
-            const sc = STATO_INTERVENTO[i.stato] ?? STATO_INTERVENTO.pianificato;
-            const pri = PRIORITA[i.priorita] ?? PRIORITA.media;
-            const mezzo = mezziMap[i.macchinaId];
-            const ritardo = isInRitardo(i);
-            return (
-              <div key={i.id} className="rounded-xl p-4" style={{ background: C.panel, border: `1px solid ${ritardo ? C.red + "40" : C.border}` }}>
-                <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${sc.color}18` }}>
-                    <sc.icon size={15} style={{ color: sc.color }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-semibold" style={{ color: C.text }}>{TIPO_INTERVENTO_LABEL[i.tipo] ?? i.tipo}</p>
-                      {i.codice && <CodicePill codice={i.codice} />}
-                      <Badge style={{ background: `${pri.color}18`, color: pri.color, border: "none", fontSize: 10 }}>{pri.label}</Badge>
-                      {ritardo && <Badge className="gap-1" style={{ background: `${C.red}18`, color: C.red, border: "none", fontSize: 10 }}><AlertTriangle size={9} /> In ritardo</Badge>}
-                    </div>
-                    <p className="text-xs mt-0.5 truncate" style={{ color: C.textDim }}>{mezzo?.nome ?? "Mezzo"} · {i.descrizione}</p>
-                    <div className="flex items-center gap-3 mt-2 text-[11px] flex-wrap" style={{ color: C.textFaint }}>
-                      {i.operatore && <span className="flex items-center gap-1"><User size={11} />{i.operatore}</span>}
-                      <span className="flex items-center gap-1"><Clock size={11} />{dataIT(i.dataPianificata ?? i.data)}</span>
-                      {i.tempoStimato && <span>{Number(i.tempoStimato)}h stim.</span>}
-                      {i.stato === "completato" && i.costoFinale != null
-                        ? <span className="flex items-center gap-1" style={{ color: C.gold }}><Euro size={11} />{eur(i.costoFinale)}</span>
-                        : i.costoPrevisto != null && Number(i.costoPrevisto) > 0
-                          ? <span className="flex items-center gap-1" style={{ color: C.textDim }}><Euro size={11} />prev. {eur(i.costoPrevisto)}</span>
-                          : null}
-                    </div>
-                  </div>
-                  <button onClick={() => deleteI.mutate({ id: i.id })} className="p-1.5 rounded-lg shrink-0" style={{ color: C.red }}><Trash2 size={13} /></button>
-                </div>
-                {/* Azioni */}
-                {i.stato !== "completato" && (
-                  <div className="flex gap-2 mt-3 pt-3 border-t" style={{ borderColor: C.borderSoft }}>
-                    {i.stato === "pianificato" && (
-                      <button onClick={() => updateStato.mutate({ id: i.id, stato: "in_corso" })} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium" style={{ background: `${C.blue}18`, color: C.blue }}>
-                        <Play size={13} /> Avvia
-                      </button>
-                    )}
-                    <button onClick={() => openCompletamento(i)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium" style={{ background: `${C.green}18`, color: C.green }}>
-                      <CheckCircle2 size={13} /> Completa
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <Sheet open={!!detailId} onOpenChange={(open) => !open && setDetailId(null)}><SheetContent side="right" className="w-full sm:max-w-[440px] p-0 flex flex-col" style={{ background: C.panelDark }}><SheetHeader className="px-5 pt-5 pb-3 text-left"><SheetTitle style={{ color: C.text }}>Dettaglio intervento</SheetTitle></SheetHeader><div className="flex-1 overflow-y-auto px-5 pb-5 space-y-4">{workDetail ? <>
+        <h2 className="text-lg font-semibold" style={{ color: C.text }}>{workDetail.descrizione}</h2><p className="text-sm" style={{ color: C.textDim }}>{mezziMap[workDetail.macchinaId]?.nome} · {workDetail.codice}</p>
+        <div className="grid grid-cols-2 gap-3 text-xs">{[["Stato", STATO_INTERVENTO[workDetail.stato]?.label], ["Tipologia", TIPO_INTERVENTO_LABEL[workDetail.tipo]], ["Priorità", PRIORITA[workDetail.priorita]?.label], ["Data", dataIT(workDetail.dataPianificata || workDetail.data)], ["Operatore", workDetail.operatore || "—"], ["Ore lavoro", workDetail.oreLavoro || workDetail.tempoStimato || "—"]].map(([k,v]) => <div key={k} className="rounded-lg p-3" style={{ background: C.inner }}><span style={{ color: C.textDim }}>{k}</span><p className="mt-1 font-medium" style={{ color: C.text }}>{v}</p></div>)}</div>
+        <h3 className="text-sm font-semibold" style={{ color: C.blue }}>Materiali e prelievi</h3>{workDetail.ricambiNecessari.length ? workDetail.ricambiNecessari.map((part: any) => <div key={part.id} className="rounded-xl border p-3 text-xs" style={{ borderColor: C.border, background: C.inner }}><strong style={{ color: C.text }}>{part.nomeRicambio || "Ricambio"}</strong><p className="mt-1" style={{ color: C.textDim }}>{part.codice || "Senza codice"} · {Number(part.quantitaUtilizzata) > 0 ? `Prelevati ${Number(part.quantitaUtilizzata)}` : `Richiesti ${Number(part.quantitaRichiesta)}`}</p>{canSeeCosts && <p className="mt-1" style={{ color: C.gold }}>{eur(Number(part.costoUnitario || 0) * Number(part.quantitaUtilizzata || 0))}</p>}</div>) : <p className="text-xs" style={{ color: C.textDim }}>Nessun materiale associato</p>}
+        {canSeeCosts && <div className="rounded-xl p-3 text-sm" style={{ background: C.inner, color: C.gold }}>Materiali {eur(workDetail.costoRicambi)} · Manodopera {eur(workDetail.costoManodopera)}<p className="mt-1 font-semibold">Totale attribuito {eur(workDetail.stato === "completato" ? workDetail.costoFinale : Number(workDetail.costoRicambi || 0) + Number(workDetail.costoManodopera || 0))}</p></div>}
+        {workDetail.note && <p className="text-sm" style={{ color: C.textDim }}>{workDetail.note}</p>}{workDetail.foto && <img src={workDetail.foto} alt="Foto dell’intervento" className="w-full rounded-xl" />}
+      </> : <p className="py-6 text-sm" style={{ color: C.textDim }}>{detailError ? "Intervento non disponibile" : "Caricamento…"}</p>}</div>
+      {canEdit && workDetail && <div className="shrink-0 space-y-2 border-t px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]" style={{ borderColor: C.border }}>{workDetail.stato !== "completato" && <>{workDetail.stato === "pianificato" && <Button onClick={() => { if (window.confirm("Avviare questo intervento?")) updateStato.mutate({ id: workDetail.id, stato: "in_corso" }); }} disabled={updateStato.isPending} className="min-h-11 w-full" style={{ background: C.blue, color: C.bgDeep }}>Avvia intervento</Button>}<Button onClick={() => { openCompletamento(workDetail); setDetailId(null); }} className="min-h-11 w-full" style={{ background: C.green, color: C.bgDeep }}>Completa intervento</Button></>}<button onClick={() => { if (window.confirm("Eliminare questo intervento? Lo storico dei prelievi resterà conservato.")) { deleteI.mutate({ id: workDetail.id }); setDetailId(null); } }} className="min-h-11 w-full text-xs" style={{ color: C.red }}>Elimina intervento</button></div>}
+      </SheetContent></Sheet>
 
       {/* Sheet nuovo intervento */}
       <Sheet open={openForm} onOpenChange={setOpenForm}>
@@ -336,7 +268,7 @@ export default function InterventiTab() {
             <Field label="Operatore"><Input value={form.operatore} onChange={(e) => setForm((f) => ({ ...f, operatore: e.target.value }))} className="bg-input border-border text-sm" /></Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Tempo stimato (h)"><Input type="number" step="0.5" value={form.tempoStimato} onChange={(e) => setForm((f) => ({ ...f, tempoStimato: e.target.value }))} className="bg-input border-border text-sm" /></Field>
-              <Field label="Costo orario (€)"><Input type="number" value={form.costoOrario} onChange={(e) => setForm((f) => ({ ...f, costoOrario: e.target.value }))} className="bg-input border-border text-sm" /></Field>
+              {canSeeCosts && <Field label="Costo orario (€)"><Input type="number" value={form.costoOrario} onChange={(e) => setForm((f) => ({ ...f, costoOrario: e.target.value }))} className="bg-input border-border text-sm" /></Field>}
             </div>
 
             {/* Ricambi necessari */}
@@ -365,7 +297,7 @@ export default function InterventiTab() {
             </div>
           </div>
           <div className="px-6 py-4 border-t" style={{ borderColor: C.border }}>
-            <Button onClick={submitCreate} disabled={createI.isPending} className="w-full" style={{ background: C.green, color: C.bgDeep }}>
+            <Button onClick={submitCreate} disabled={!canEdit || createI.isPending} className="w-full" style={{ background: C.green, color: C.bgDeep }}>
               {createI.isPending ? "Salvataggio…" : "Crea intervento"}
             </Button>
           </div>
@@ -410,7 +342,7 @@ export default function InterventiTab() {
                 )}
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Ore lavoro"><Input type="number" step="0.5" value={oreLavoro} onChange={(e) => setOreLavoro(e.target.value)} className="bg-input border-border text-sm" /></Field>
-                  <Field label="Costo orario (€)"><Input type="number" value={costoOrarioFin} onChange={(e) => setCostoOrarioFin(e.target.value)} className="bg-input border-border text-sm" /></Field>
+                  {canSeeCosts && <Field label="Costo orario (€)"><Input type="number" value={costoOrarioFin} onChange={(e) => setCostoOrarioFin(e.target.value)} className="bg-input border-border text-sm" /></Field>}
                 </div>
 
                 {/* Ricambi utilizzati */}
@@ -433,7 +365,7 @@ export default function InterventiTab() {
                                 {r.codice && <CodicePill codice={r.codice} />}
                                 <p className="text-[11px] mt-0.5" style={{ color: sc.color }}>{sc.label} · disp. {r.disponibile} · rich. {Number(r.quantitaRichiesta)}</p>
                               </div>
-                              <Input type="number" value={usati[r.id] ?? ""} placeholder="0" onChange={(e) => setUsati((u) => ({ ...u, [r.id]: Number(e.target.value) }))} className="w-16 bg-input border-border text-sm shrink-0" />
+                              {Number(r.quantitaUtilizzata) > 0 ? <span className="text-xs" style={{ color: C.green }}>Già prelevato ×{Number(r.quantitaUtilizzata)}</span> : <Input type="number" value={usati[r.id] ?? ""} placeholder="0" onChange={(e) => setUsati((u) => ({ ...u, [r.id]: Number(e.target.value) }))} className="w-16 bg-input border-border text-sm shrink-0" />}
                             </div>
                           </div>
                         );
@@ -445,22 +377,22 @@ export default function InterventiTab() {
                 <Field label="Note finali"><Input value={noteFin} onChange={(e) => setNoteFin(e.target.value)} className="bg-input border-border text-sm" /></Field>
 
                 {/* Riepilogo costo */}
-                <div className="p-4 rounded-xl space-y-1.5" style={{ background: `${C.green}0d`, border: `1px solid ${C.green}25` }}>
+                {canSeeCosts && <div className="p-4 rounded-xl space-y-1.5" style={{ background: `${C.green}0d`, border: `1px solid ${C.green}25` }}>
                   <div className="flex justify-between text-xs" style={{ color: C.textDim }}><span>Manodopera</span><span>{eur(costoManodoperaPreview)}</span></div>
                   <div className="flex justify-between text-xs" style={{ color: C.textDim }}><span>Ricambi</span><span>{eur(costoRicambiPreview)}</span></div>
                   <div className="flex justify-between pt-1.5 border-t" style={{ borderColor: C.green + "25" }}>
                     <span className="text-sm font-semibold" style={{ color: C.text }}>Costo finale</span>
                     <span className="text-base font-bold" style={{ color: C.green, fontFamily: "var(--font-display)" }}>{eur(costoFinalePreview)}</span>
                   </div>
-                  <p className="text-[10px] pt-1" style={{ color: C.textFaint }}>Registrato in Finanza · scaricato dal magazzino · evento in Calendario</p>
-                </div>
+                  <p className="text-[10px] pt-1" style={{ color: C.textFaint }}>Costo attribuito al mezzo · prelievi già registrati non scaricati nuovamente</p>
+                </div>}
               </div>
               <div className="px-6 py-4 border-t" style={{ borderColor: C.border }}>
                 <Button onClick={() => {
                   const mancanti = completaDetail.ricambiObbligatoriMancanti?.length ?? 0;
                   if (mancanti > 0 && !window.confirm(`Mancano ${mancanti} ricambi obbligatori. Completare comunque l'intervento?`)) return;
                   submitCompleta();
-                }} disabled={completaI.isPending} className="w-full gap-2" style={{ background: C.green, color: C.bgDeep }}>
+                }} disabled={!canEdit || completaI.isPending} className="w-full gap-2" style={{ background: C.green, color: C.bgDeep }}>
                   <CheckCircle2 size={15} /> {completaI.isPending ? "Completamento…" : "Conferma completamento"}
                 </Button>
               </div>
@@ -472,4 +404,8 @@ export default function InterventiTab() {
       </Sheet>
     </div>
   );
+}
+
+function FilterSelect({ value, onChange, options }: { value: string; onChange: (value: string) => void; options: [string,string][] }) {
+  return <select aria-label={options[0]?.[1]} value={value} onChange={(e) => onChange(e.target.value)} className="min-h-11 w-full min-w-0 rounded-lg px-2 text-xs" style={{ background: C.inner, color: C.text, border: `1px solid ${C.border}` }}>{options.map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select>;
 }

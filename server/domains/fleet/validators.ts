@@ -89,6 +89,8 @@ export const createInterventoInput = z.object({
   ricambi: z
     .array(
       z.object({
+        rigaId: z.string().optional(),
+        prodottoId: z.string().optional(),
         ricambioId: z.string().optional(),
         codiceRicambio: z.string().optional(),
         nomeRicambio: z.string().optional(),
@@ -116,6 +118,8 @@ export const completaInterventoInput = z.object({
   ricambiUtilizzati: z
     .array(
       z.object({
+        rigaId: z.string().optional(),
+        prodottoId: z.string().optional(),
         ricambioId: z.string().optional(),
         codiceRicambio: z.string().optional(),
         nomeRicambio: z.string().optional(),
@@ -149,7 +153,7 @@ export const setStatoOrdineRicambioInput = z.object({
 export const createRicambioInput = z.object({
   codice: z.string().optional(),
   nome: z.string().min(1),
-  categoria: z.enum(CATEGORIE_RICAMBIO).default("Altro"),
+  categoria: z.string().min(1).max(100).default("Altro"),
   reparto: z.string().optional(),
   famiglia: z.string().optional(),
   sottocategoria: z.string().optional(),

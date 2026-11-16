@@ -1,3 +1,6 @@
+import { completaInterventoAtomico } from "./completion";
+import { listRicambiCondivisi } from "./parts";
+import { sharedPartsService } from "./sharedParts";
 import type { ActorContext } from "../_core";
 import { fleetRepository as repo } from "./repository";
 import { inventoryRepository } from "../inventory/repository";
@@ -222,7 +225,7 @@ export const fleetService = {
       const disponibile = prodotto ? Number(prodotto.quantita) : cat ? Number(cat.quantitaDisponibile) : 0;
       const soglia = prodotto ? Number(prodotto.quantitaMinima ?? 0) : cat ? Number(cat.sogliaMinima) : 0;
       const richiesta = Number(r.quantitaRichiesta);
-      const stato = statoDisponibilita(disponibile, richiesta, soglia);
+      const stato = Number(r.quantitaUtilizzata) > 0 ? "usato" : statoDisponibilita(disponibile, richiesta, soglia);
       return {
         ...r,
         codice: r.codiceRicambio ?? cat?.codice ?? prodotto?.codice ?? null,
@@ -247,6 +250,12 @@ export const fleetService = {
   },
 
   async createIntervento(actor: ActorContext, input: CreateInterventoInput) {
+    if (!await repo.getMacchina(actor.companyId, input.macchinaId)) throw new Error("Mezzo non trovato nell’azienda attiva");
+    const catalogoRicambi = input.ricambi?.length ? await listRicambiCondivisi(actor.companyId) : [];
+    for (const r of input.ricambi ?? []) {
+      const partId = r.prodottoId || r.ricambioId;
+      if (partId && !catalogoRicambi.some((part) => part.id === partId)) throw new Error("Ricambio non trovato nell’azienda attiva");
+    }
     const n = (await repo.countInterventi(actor.companyId)) + 1;
     const codice = `INT-${new Date().getFullYear()}-${pad(n, 4)}`;
     const costoOrario = input.costoOrario ?? COSTO_ORARIO_DEFAULT;
@@ -273,12 +282,15 @@ export const fleetService = {
       costoPrevisto: costoPrevisto != null ? String(costoPrevisto) : null,
       note: input.note ?? null,
     });
-    // Ricambi necessari: registrati sempre, anche se non disponibili.
+    // Ricambi necessari dalla fonte condivisa: sempre mostrati anche se esauriti.
     if (input.ricambi?.length) {
       for (const r of input.ricambi) {
+        const partId = r.prodottoId || r.ricambioId;
+        const part = partId ? catalogoRicambi.find((p) => p.id === partId) : null;
         await repo.insertInterventoRicambio(actor, {
           interventoId: id,
-          ricambioId: r.ricambioId ?? null,
+          ricambioId: part?.source === "legacy" ? part.id : null,
+          prodottoId: part?.source === "magazzino" ? part.id : null,
           codiceRicambio: r.codiceRicambio ?? null,
           nomeRicambio: r.nomeRicambio ?? null,
           quantitaRichiesta: String(r.quantitaRichiesta),
@@ -303,124 +315,7 @@ export const fleetService = {
    * aggiorna macchina (costo totale, ultimo tagliando) e crea evento Calendario.
    */
   async completaIntervento(actor: ActorContext, input: CompletaInterventoInput) {
-    const intervento = await repo.getIntervento(actor.companyId, input.id);
-    if (!intervento) throw new Error("Intervento non trovato");
-
-    // 1) Costo ricambi + scarico magazzino officina.
-    let costoRicambi = 0;
-    const righeEsistenti = await repo.listInterventoRicambi(actor.companyId, input.id);
-    for (const usato of input.ricambiUtilizzati) {
-      const qta = usato.quantitaUtilizzata;
-      if (qta <= 0) continue;
-      let costoUnitario = usato.costoUnitario ?? 0;
-      // Scala dal magazzino ricambi se collegato a catalogo.
-      if (usato.ricambioId) {
-        const rc = await repo.getRicambio(actor.companyId, usato.ricambioId);
-        if (rc) {
-          if (!usato.costoUnitario) costoUnitario = Number(rc.costoMedio ?? 0);
-          const nuova = Math.max(0, Number(rc.quantitaDisponibile) - qta);
-          await repo.updateRicambio(actor, usato.ricambioId, { quantitaDisponibile: String(nuova) });
-        }
-      }
-      costoRicambi += costoUnitario * qta;
-      // Aggiorna o crea la riga intervento-ricambio.
-      const esistente = righeEsistenti.find((r) => r.ricambioId === usato.ricambioId && usato.ricambioId);
-      if (esistente) {
-        await repo.updateInterventoRicambio(actor, esistente.id, {
-          quantitaUtilizzata: String(qta),
-          costoUnitario: String(costoUnitario),
-        });
-      } else {
-        await repo.insertInterventoRicambio(actor, {
-          interventoId: input.id,
-          ricambioId: usato.ricambioId ?? null,
-          codiceRicambio: usato.codiceRicambio ?? null,
-          nomeRicambio: usato.nomeRicambio ?? null,
-          quantitaRichiesta: String(qta),
-          quantitaUtilizzata: String(qta),
-          costoUnitario: String(costoUnitario),
-          obbligatorio: false,
-        });
-      }
-    }
-
-    // 2) Costo manodopera.
-    const costoOrario = input.costoOrario ?? Number(intervento.costoOrario ?? COSTO_ORARIO_DEFAULT);
-    const costoManodopera = input.oreLavoro * costoOrario;
-    const costoFinale = costoManodopera + costoRicambi;
-
-    // 3) Aggiorna intervento -> completato.
-    const oggi = new Date();
-    await repo.updateIntervento(actor, input.id, {
-      stato: "completato",
-      dataCompletamento: oggi,
-      oreLavoro: String(input.oreLavoro),
-      tempoEffettivo: String(input.oreLavoro),
-      costoOrario: String(costoOrario),
-      costoManodopera: String(costoManodopera),
-      costoRicambi: String(costoRicambi),
-      costoFinale: String(costoFinale),
-      note: input.note ?? intervento.note ?? null,
-      foto: input.foto ?? intervento.foto ?? null,
-    });
-
-    // 4) Aggiorna macchina: costo totale, ultimo tagliando se applicabile.
-    const macchina = await repo.getMacchina(actor.companyId, intervento.macchinaId);
-    if (macchina) {
-      const nuovoCosto = Number(macchina.costoTotale ?? 0) + costoFinale;
-      const patch: Record<string, unknown> = { costoTotale: String(nuovoCosto) };
-      if (intervento.tipo === "tagliando" || intervento.tipo === "manutenzione") {
-        patch.ultimoTagliando = oggi;
-      }
-      // Se la macchina era in manutenzione e non ci sono altri interventi aperti, torna operativa.
-      const altri = await repo.listInterventi(actor.companyId, { macchinaId: macchina.id });
-      const ancoraAperti = altri.filter((i) => i.id !== input.id && i.stato !== "completato");
-      if (macchina.stato === "manutenzione" && ancoraAperti.length === 0) patch.stato = "operativo";
-      await repo.updateMacchina(actor, macchina.id, patch);
-    }
-
-    // 5) Finanza: genera proposta uscita (solo costi finanziari: ricambi acquistati + manodopera esterna).
-    //    L'utilizzo di ricambi già in magazzino è costo gestionale, non finanziario.
-    //    La manodopera interna è configurabile (gestionale/finanziario/escluso).
-    try {
-      const includiManodopera = await proposalsService.isManodoperaFinanziaria(actor.companyId, "fleet");
-      const costoFinanziario = costoRicambi + (includiManodopera ? costoManodopera : 0);
-      if (costoFinanziario > 0) {
-        const codice = intervento.codice ?? `INT-${input.id.slice(0, 6)}`;
-        await proposalsService.createOrGetProposal(actor, {
-          tipo: "uscita",
-          importo: Math.round(costoFinanziario * 100), // centesimi
-          descrizione: `Intervento ${intervento.tipo} — ${macchina?.nome ?? "mezzo"} (${codice})`,
-          dataOrigine: oggi.toISOString().slice(0, 10),
-          originModule: "fleet",
-          originEntityType: "intervento",
-          originEntityId: input.id,
-          originEventType: "completamento",
-          originReference: codice,
-        });
-      }
-    } catch {
-      /* non bloccare il completamento se la proposta fallisce */
-    }
-
-    // 6) Calendario: evento di manutenzione completata.
-    try {
-      await calendarRepository.insert(actor, {
-        titolo: `Manutenzione: ${macchina?.nome ?? "mezzo"}`,
-        descrizione: intervento.descrizione,
-        tipo: "manutenzione",
-        dataInizio: oggi,
-        tuttoIlGiorno: true,
-        completato: true,
-        colore: "#4ade80",
-        riferimentoId: input.id,
-        riferimentoTipo: "intervento",
-      });
-    } catch {
-      /* idem */
-    }
-
-    return { success: true, costoFinale, costoManodopera, costoRicambi };
+    return completaInterventoAtomico(actor, input);
   },
 
   // ── Ricambi (magazzino officina) ────────────────────────────────────────────────
@@ -436,11 +331,11 @@ export const fleetService = {
       ricerca?: string;
     },
   ) {
-    const rows = await repo.listRicambi(companyId);
+    const rows = await listRicambiCondivisi(companyId);
     const arricchiti = rows.map((r) => {
       const disp = Number(r.quantitaDisponibile);
       const soglia = Number(r.sogliaMinima);
-      return { ...r, statoScorta: statoScortaRicambio(disp, soglia, r.statoOrdine) };
+      return { ...r, statoScorta: disp <= 0 ? "non_disponibile" : soglia > 0 && disp <= soglia ? "sotto_scorta" : "disponibile" };
     });
     let filtrati = arricchiti;
     if (opts?.categoria) filtrati = filtrati.filter((r) => r.categoria === opts.categoria);
@@ -481,7 +376,7 @@ export const fleetService = {
 
   /** Riepilogo per la lista ordine: ricambi sotto scorta o esauriti. */
   async preparaOrdine(companyId: string) {
-    const rows = await repo.listRicambi(companyId);
+    const rows = await listRicambiCondivisi(companyId);
     return rows
       .filter((r) => {
         const disp = Number(r.quantitaDisponibile);
@@ -507,62 +402,23 @@ export const fleetService = {
   },
 
   async createRicambio(actor: ActorContext, input: CreateRicambioInput) {
-    let codice = input.codice ?? null;
-    if (!codice) {
-      const n = (await repo.countRicambi(actor.companyId)) + 1;
-      codice = `RIC-${pad(n, 6)}`;
-    }
-    return repo.insertRicambio(actor, {
-      codice,
-      nome: input.nome,
-      categoria: input.categoria,
-      reparto: input.reparto ?? null,
-      famiglia: input.famiglia ?? null,
-      sottocategoria: input.sottocategoria ?? null,
-      immagineUrl: input.immagineUrl ?? null,
-      compatibilita: input.compatibilita ?? null,
-      quantitaDisponibile: String(input.quantitaDisponibile),
-      sogliaMinima: String(input.sogliaMinima),
-      posizione: input.posizione ?? null,
-      costoMedio: input.costoMedio != null ? String(input.costoMedio) : "0",
-      fornitore: input.fornitore ?? null,
-      note: input.note ?? null,
-    });
+    return sharedPartsService.create(actor, input);
   },
 
   updateRicambio(actor: ActorContext, input: UpdateRicambioInput) {
-    const { id, ...rest } = input;
-    const data: Record<string, unknown> = {};
-    if (rest.codice !== undefined) data.codice = rest.codice;
-    if (rest.nome !== undefined) data.nome = rest.nome;
-    if (rest.categoria !== undefined) data.categoria = rest.categoria;
-    if (rest.reparto !== undefined) data.reparto = rest.reparto;
-    if (rest.famiglia !== undefined) data.famiglia = rest.famiglia;
-    if (rest.sottocategoria !== undefined) data.sottocategoria = rest.sottocategoria;
-    if (rest.immagineUrl !== undefined) data.immagineUrl = rest.immagineUrl;
-    if (rest.compatibilita !== undefined) data.compatibilita = rest.compatibilita;
-    if (rest.quantitaDisponibile !== undefined) data.quantitaDisponibile = String(rest.quantitaDisponibile);
-    if (rest.sogliaMinima !== undefined) data.sogliaMinima = String(rest.sogliaMinima);
-    if (rest.posizione !== undefined) data.posizione = rest.posizione;
-    if (rest.costoMedio !== undefined) data.costoMedio = rest.costoMedio != null ? String(rest.costoMedio) : "0";
-    if (rest.fornitore !== undefined) data.fornitore = rest.fornitore;
-    if (rest.note !== undefined) data.note = rest.note;
-    return repo.updateRicambio(actor, id, data);
+    return sharedPartsService.update(actor, input);
   },
 
   setStatoOrdineRicambio(actor: ActorContext, id: string, statoOrdine: string) {
-    return repo.updateRicambio(actor, id, { statoOrdine });
+    return sharedPartsService.order(actor, id, statoOrdine);
   },
 
   async adjustRicambio(actor: ActorContext, id: string, delta: number) {
-    const rc = await repo.getRicambio(actor.companyId, id);
-    if (!rc) throw new Error("Ricambio non trovato");
-    const nuova = Math.max(0, Number(rc.quantitaDisponibile) + delta);
-    return repo.updateRicambio(actor, id, { quantitaDisponibile: String(nuova) });
+    return sharedPartsService.adjust(actor, id, delta);
   },
 
   removeRicambio(actor: ActorContext, id: string) {
-    return repo.softDeleteRicambio(actor, id);
+    return sharedPartsService.remove(actor, id);
   },
 
   // ── Dashboard KPI premium ──────────────────────────────────────────────────────
@@ -591,12 +447,8 @@ export const fleetService = {
     }).length;
     const interventiUrgenti = aperti.filter((i) => i.priorita === "urgente").length;
 
-    const ricambiSottoScorta = [
-      ...ricambiAll.map((r) => ({ disp: Number(r.quantitaDisponibile), soglia: Number(r.sogliaMinima) })),
-      ...prodottiAll
-        .filter((p) => [p.categoria, p.reparto, p.famiglia, p.sottocategoria, p.nome].filter(Boolean).join(" ").toLowerCase().includes("ricamb"))
-        .map((p) => ({ disp: Number(p.quantita), soglia: Number(p.quantitaMinima ?? 0) })),
-    ].filter(({ disp, soglia }) => disp <= 0 || (soglia > 0 && disp <= soglia)).length;
+    const ricambiCondivisi = await listRicambiCondivisi(companyId);
+    const ricambiSottoScorta = ricambiCondivisi.filter((r) => Number(r.quantitaDisponibile) <= 0 || (Number(r.sogliaMinima) > 0 && Number(r.quantitaDisponibile) <= Number(r.sogliaMinima))).length;
 
     const costoManutenzioneMese = interventiAll
       .filter((i) => i.stato === "completato" && i.dataCompletamento && new Date(i.dataCompletamento) >= inizioMese)

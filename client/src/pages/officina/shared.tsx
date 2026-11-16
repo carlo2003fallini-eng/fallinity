@@ -66,6 +66,7 @@ export const STATO_SCORTA: Record<string, { label: string; color: string }> = {
   insufficiente: { label: "Insufficiente", color: C.orange },
   da_ordinare: { label: "Da ordinare", color: C.orange },
   ordinato: { label: "Ordinato", color: C.blue },
+  usato: { label: "Già prelevato", color: C.green },
 };
 
 /** Pill compatta per i codici tracciabili (MEZ-/INT-/RIC-/OPR-). */

@@ -1,3 +1,5 @@
+import { useLocation } from "wouter";
+import { useOfficinaPermissions } from "./OfficinaLayout";
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -5,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
-  Tractor, Plus, Trash2, Wrench, Gauge, Calendar, FileText, History, Search, X, Pencil,
+  Tractor, Plus, Trash2, Wrench, Gauge, Calendar, FileText, History, Search, X, Pencil, SlidersHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import { FAL_IMAGES } from "@/lib/assets";
@@ -14,7 +16,7 @@ import {
 } from "./shared";
 
 const EMPTY_M = {
-  id: "", nome: "", categoria: "", marca: "", modello: "", targa: "", telaio: "",
+  id: "", foto: "", nome: "", categoria: "", marca: "", modello: "", targa: "", telaio: "",
   anno: "", oreMotore: "", chilometri: "", stato: "operativo",
   ultimoTagliando: "", prossimaManutenzione: "", note: "",
 };
@@ -27,8 +29,11 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 );
 
 export default function MezziTab() {
+  const [, navigate] = useLocation();
+  const { canEdit, canSeeCosts } = useOfficinaPermissions();
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [statoFiltro, setStatoFiltro] = useState<string>("tutti");
+  const [statoFiltro, setStatoFiltro] = useState<string>(() => new URLSearchParams(window.location.search).get("stato") || "tutti");
   const [openForm, setOpenForm] = useState(false);
   const [openDetail, setOpenDetail] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -36,7 +41,7 @@ export default function MezziTab() {
   const [editing, setEditing] = useState(false);
 
   const utils = trpc.useUtils();
-  const { data: mezzi = [], isLoading } = trpc.officina.macchine.list.useQuery();
+  const { data: mezzi = [], isLoading, isError, refetch } = trpc.officina.macchine.list.useQuery();
   const { data: detail } = trpc.officina.macchine.detail.useQuery(
     { id: detailId! },
     { enabled: !!detailId },
@@ -74,7 +79,7 @@ export default function MezziTab() {
   }
   function openEdit(m: any) {
     setForm({
-      id: m.id, nome: m.nome ?? "", categoria: m.categoria ?? "", marca: m.marca ?? "",
+      id: m.id, foto: m.foto ?? "", nome: m.nome ?? "", categoria: m.categoria ?? "", marca: m.marca ?? "",
       modello: m.modello ?? "", targa: m.targa ?? "", telaio: m.telaio ?? "",
       anno: m.anno ? String(m.anno) : "", oreMotore: m.oreMotore ? String(m.oreMotore) : "",
       chilometri: m.chilometri ? String(m.chilometri) : "", stato: m.stato ?? "operativo",
@@ -91,6 +96,7 @@ export default function MezziTab() {
     if (!form.nome.trim()) { toast.error("Nome obbligatorio"); return; }
     const payload = {
       nome: form.nome.trim(),
+      foto: form.foto || undefined,
       categoria: form.categoria || undefined,
       marca: form.marca || undefined,
       modello: form.modello || undefined,
@@ -110,93 +116,17 @@ export default function MezziTab() {
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: C.textFaint }} />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cerca per nome, marca, targa…"
-            className="bg-input border-border text-sm pl-9" />
-        </div>
-        <div className="flex gap-2 overflow-x-auto pb-0.5">
-          {[["tutti", "Tutti"], ["operativo", "Operativi"], ["manutenzione", "Manutenzione"], ["fermo", "Fermi"], ["riposo", "Riposo"]].map(([v, l]) => (
-            <button key={v} onClick={() => setStatoFiltro(v)}
-              className="px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all"
-              style={{
-                background: statoFiltro === v ? `${C.green}18` : C.inner,
-                color: statoFiltro === v ? C.green : C.textDim,
-                border: `1px solid ${statoFiltro === v ? C.green + "40" : "transparent"}`,
-              }}>{l}</button>
-          ))}
-        </div>
-        <Button onClick={openNew} className="gap-2 shrink-0" style={{ background: C.green, color: C.bgDeep }}>
-          <Plus size={15} /> Nuovo mezzo
-        </Button>
+      <div className="space-y-3">
+        <div className="relative"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: C.textDim }} /><Input aria-label="Cerca mezzi" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nome, marca, modello o targa…" className="h-11 w-full bg-input border-border pl-9 text-sm" /></div>
+        <div className="flex gap-2"><Button variant="outline" onClick={() => setFiltersOpen(!filtersOpen)} aria-expanded={filtersOpen} className="min-h-11 flex-1 gap-2"><SlidersHorizontal size={16} /> Filtri{statoFiltro !== "tutti" ? " · 1" : ""}</Button>{canEdit && <Button onClick={openNew} className="min-h-11 flex-1 gap-1 px-2" style={{ background: C.green, color: C.bgDeep }}><Plus size={16} /> Nuovo mezzo</Button>}</div>
+        {filtersOpen && <div className="rounded-xl border p-3" style={{ borderColor: C.border, background: C.panel }}><label htmlFor="stato-mezzo" className="mb-1 block text-xs" style={{ color: C.textDim }}>Stato operativo</label><select id="stato-mezzo" value={statoFiltro} onChange={(e) => setStatoFiltro(e.target.value)} className="min-h-11 w-full rounded-lg px-3 text-sm" style={{ color: C.text, background: C.inner, border: `1px solid ${C.border}` }}>{[["tutti", "Tutti"], ["operativo", "Operativi"], ["manutenzione", "Manutenzione"], ["fermo", "Fermi"], ["riposo", "Riposo"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select><button onClick={() => setStatoFiltro("tutti")} className="mt-1 min-h-10 text-xs" style={{ color: C.green }}>Azzera filtri</button></div>}
       </div>
-
-      {/* Griglia mezzi */}
-      {isLoading ? (
-        <div className="text-center py-16 text-sm" style={{ color: C.textFaint }}>Caricamento…</div>
-      ) : list.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3 rounded-xl"
-          style={{ background: C.panel, border: `1px solid ${C.border}` }}>
-          <Tractor size={36} className="opacity-10" style={{ color: C.green }} />
-          <p className="text-sm" style={{ color: C.textFaint }}>Nessun mezzo trovato</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {list.map((m) => {
-            const cfg = STATO_MACCHINA[m.stato] ?? STATO_MACCHINA.operativo;
-            return (
-              <button key={m.id} onClick={() => { setDetailId(m.id); setOpenDetail(true); }}
-                className="text-left rounded-2xl overflow-hidden transition-transform active:scale-[0.985]"
-                style={{ background: C.panel, border: `1px solid ${C.border}` }}>
-                <div className="relative h-28" style={{
-                  backgroundImage: `linear-gradient(180deg, transparent 30%, ${C.panel} 100%), url(${m.foto || FAL_IMAGES.officinaMezzo})`,
-                  backgroundSize: "cover", backgroundPosition: "center",
-                }}>
-                  <Badge className="absolute top-3 left-3" style={{ background: `${cfg.color}22`, color: cfg.color, border: `1px solid ${cfg.color}40`, fontSize: 10 }}>
-                    {cfg.label}
-                  </Badge>
-                  {m.interventiAperti > 0 && (
-                    <Badge className="absolute top-3 right-3 gap-1" style={{ background: `${C.gold}22`, color: C.gold, border: "none", fontSize: 10 }}>
-                      <Wrench size={10} /> {m.interventiAperti}
-                    </Badge>
-                  )}
-                </div>
-                <div className="p-4">
-                  <div className="flex items-start gap-3">
-                    <HealthRing score={m.healthScore ?? 100} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-sm font-bold truncate" style={{ color: C.text, fontFamily: "var(--font-display)" }}>{m.nome}</p>
-                      </div>
-                      <p className="text-xs mt-0.5 truncate" style={{ color: C.textDim }}>
-                        {[m.marca, m.modello].filter(Boolean).join(" ") || m.categoria || "—"}
-                      </p>
-                      {m.codice && <div className="mt-1.5"><CodicePill codice={m.codice} /></div>}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 mt-3">
-                    <div className="flex items-center gap-1.5 text-xs" style={{ color: C.textDim }}>
-                      <Gauge size={12} style={{ color: C.textFaint }} />
-                      {m.oreMotore ? `${Number(m.oreMotore).toLocaleString("it-IT")} h` : (m.chilometri ? `${Number(m.chilometri).toLocaleString("it-IT")} km` : "— h")}
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs justify-end" style={{ color: C.textDim }}>
-                      <Calendar size={12} style={{ color: C.textFaint }} />
-                      {m.prossimaManutenzione ? dataIT(m.prossimaManutenzione) : "Nessuna scad."}
-                    </div>
-                  </div>
-                  {m.costoTotale != null && Number(m.costoTotale) > 0 && (
-                    <p className="text-xs mt-2 pt-2 border-t" style={{ borderColor: C.borderSoft, color: C.textFaint }}>
-                      Costo manutenzioni: <span style={{ color: C.gold }}>{eur(m.costoTotale)}</span>
-                    </p>
-                  )}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {isError ? <button onClick={() => refetch()} className="w-full rounded-xl p-5 text-sm" style={{ color: C.gold }}>Impossibile caricare i mezzi · Riprova</button> : isLoading ? <p className="py-8 text-center text-sm" style={{ color: C.textDim }}>Caricamento…</p> : list.length === 0 ? <div className="rounded-xl border p-6 text-center" style={{ borderColor: C.border, background: C.panel }}><Tractor size={25} className="mx-auto mb-2" style={{ color: C.green }} /><p className="text-sm" style={{ color: C.textDim }}>Nessun mezzo trovato</p>{canEdit && <button onClick={openNew} className="mt-2 min-h-11 text-xs" style={{ color: C.green }}>Crea un nuovo mezzo</button>}</div> : <div className="grid grid-cols-2 gap-3">
+        {list.map((m) => { const cfg = STATO_MACCHINA[m.stato] ?? STATO_MACCHINA.operativo; return <button key={m.id} onClick={() => { setDetailId(m.id); setOpenDetail(true); }} className="overflow-hidden rounded-2xl border text-left transition-transform active:scale-[0.98]" style={{ borderColor: C.border, background: C.panel }}>
+          <div className="relative h-20 sm:h-28"><img src={m.foto || FAL_IMAGES.officinaMezzo} alt={m.foto ? `Foto del mezzo ${m.nome}` : "Immagine illustrativa di un mezzo agricolo"} className="h-full w-full object-cover" />{!m.foto && <span className="absolute bottom-1 right-1 rounded bg-black/80 px-1 py-0.5 text-[9px] text-white">Illustrativa</span>}</div>
+          <div className="p-3"><h2 className="text-sm font-bold leading-tight" style={{ color: C.text }}>{m.nome}</h2><p className="mt-1 text-[11px] leading-tight" style={{ color: C.textDim }}>{[m.marca, m.modello].filter(Boolean).join(" ") || m.categoria || "—"}</p><span className="mt-2 inline-block rounded-md px-1.5 py-1 text-[10px] font-semibold" style={{ color: cfg.color, background: C.inner }}>{cfg.label}</span><div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px]" style={{ color: C.textDim }}><span className="flex items-center gap-1"><Gauge size={12} />{Number(m.oreMotore) > 0 ? `${Number(m.oreMotore).toLocaleString("it-IT")} h` : Number(m.chilometri) > 0 ? `${Number(m.chilometri).toLocaleString("it-IT")} km` : "Ore n.d."}</span><span>Stato manut. {m.healthScore ?? 100}/100</span></div></div>
+        </button>; })}
+      </div>}
 
       {/* Sheet dettaglio mezzo */}
       <Sheet open={openDetail} onOpenChange={setOpenDetail}>
@@ -237,7 +167,7 @@ export default function MezziTab() {
                     ["Chilometri", detail.chilometri ? `${Number(detail.chilometri).toLocaleString("it-IT")} km` : "—"],
                     ["Ultimo tagliando", dataIT(detail.ultimoTagliando)],
                     ["Prossima manut.", dataIT(detail.prossimaManutenzione)],
-                    ["Costo totale", eur(detail.costoTotale)],
+                    ...(canSeeCosts ? [["Costo totale", eur(detail.costoTotale)]] : []),
                   ].map(([k, v]) => (
                     <div key={k} className="rounded-lg p-3" style={{ background: C.inner, border: `1px solid ${C.borderSoft}` }}>
                       <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: C.textFaint }}>{k}</p>
@@ -259,7 +189,7 @@ export default function MezziTab() {
                       {detail.storico.map((i: any) => {
                         const sc = STATO_INTERVENTO[i.stato] ?? STATO_INTERVENTO.pianificato;
                         return (
-                          <div key={i.id} className="flex items-center gap-3 p-2.5 rounded-lg" style={{ background: C.inner, border: `1px solid ${C.borderSoft}` }}>
+                          <button key={i.id} onClick={() => { setOpenDetail(false); navigate(`/officina/interventi?dettaglio=${i.id}`); }} className="flex w-full items-center gap-3 p-2.5 rounded-lg text-left" style={{ background: C.inner, border: `1px solid ${C.borderSoft}` }}>
                             <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${sc.color}18` }}>
                               <sc.icon size={12} style={{ color: sc.color }} />
                             </div>
@@ -267,10 +197,10 @@ export default function MezziTab() {
                               <p className="text-xs font-medium truncate" style={{ color: C.text }}>{TIPO_INTERVENTO_LABEL[i.tipo] ?? i.tipo}</p>
                               <p className="text-[11px]" style={{ color: C.textFaint }}>{dataIT(i.data)}</p>
                             </div>
-                            {i.costoFinale != null && Number(i.costoFinale) > 0 && (
+                            {canSeeCosts && i.costoFinale != null && Number(i.costoFinale) > 0 && (
                               <span className="text-xs font-medium" style={{ color: C.gold }}>{eur(i.costoFinale)}</span>
                             )}
-                          </div>
+                          </button>
                         );
                       })}
                     </div>
@@ -302,14 +232,14 @@ export default function MezziTab() {
                   <p className="text-xs p-3 rounded-lg" style={{ background: C.inner, color: C.textDim, border: `1px solid ${C.borderSoft}` }}>{detail.note}</p>
                 )}
               </div>
-              <div className="px-6 py-4 border-t flex gap-2" style={{ borderColor: C.border }}>
+              {canEdit && <div className="px-6 py-4 border-t flex shrink-0 gap-2 pb-[max(1rem,env(safe-area-inset-bottom))]" style={{ borderColor: C.border }}>
                 <Button onClick={() => openEdit(detail)} className="flex-1 gap-2" style={{ background: `${C.gold}18`, color: C.gold, border: `1px solid ${C.gold}30` }}>
                   <Pencil size={14} /> Modifica
                 </Button>
-                <button onClick={() => deleteM.mutate({ id: detail.id })} className="p-2.5 rounded-lg" style={{ color: C.red, border: `1px solid ${C.red}30` }}>
+                <button onClick={() => { if (window.confirm(`Eliminare il mezzo ${detail.nome}? Lo storico resterà conservato.`)) deleteM.mutate({ id: detail.id }); }} aria-label="Elimina mezzo" className="p-2.5 rounded-lg" style={{ color: C.red, border: `1px solid ${C.red}30` }}>
                   <Trash2 size={16} />
                 </button>
-              </div>
+              </div>}
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center text-sm" style={{ color: C.textFaint }}>Caricamento…</div>
@@ -333,6 +263,7 @@ export default function MezziTab() {
             <Field label="Nome *">
               <Input value={form.nome} onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))} className="bg-input border-border text-sm" />
             </Field>
+            <Field label="Foto del mezzo (URL)"><Input value={form.foto} onChange={(e) => setForm((f) => ({ ...f, foto: e.target.value }))} placeholder="https://…" className="bg-input border-border text-sm" /></Field>
             <Field label="Categoria">
               <Input value={form.categoria} onChange={(e) => setForm((f) => ({ ...f, categoria: e.target.value }))} placeholder="Trattore, Mietitrebbia…" className="bg-input border-border text-sm" />
             </Field>
@@ -365,7 +296,7 @@ export default function MezziTab() {
             <Field label="Note"><Input value={form.note} onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))} className="bg-input border-border text-sm" /></Field>
           </div>
           <div className="px-6 py-4 border-t" style={{ borderColor: C.border }}>
-            <Button onClick={submit} disabled={createM.isPending || updateM.isPending} className="w-full" style={{ background: C.green, color: C.bgDeep }}>
+            <Button onClick={submit} disabled={!canEdit || createM.isPending || updateM.isPending} className="w-full" style={{ background: C.green, color: C.bgDeep }}>
               {createM.isPending || updateM.isPending ? "Salvataggio…" : editing ? "Aggiorna mezzo" : "Salva mezzo"}
             </Button>
           </div>

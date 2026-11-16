@@ -415,6 +415,7 @@ export function FallinityBottomNavigation({
         borderColor: "oklch(0.18 0.008 145)",
         backdropFilter: "blur(16px)",
         paddingBottom: "env(safe-area-inset-bottom)",
+        height: "calc(4rem + env(safe-area-inset-bottom))",
       }}
     >
       {items.map((item) => {
