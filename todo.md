@@ -41,6 +41,6 @@
 - [x] Migrazione solo additiva per metadati ricambi condivisi, nessuna modifica delle giacenze reali
 - [x] Test isolati su carrello, giacenze, storico, costi, permessi, filtri; 489/489 test Vitest, TypeScript, build, service worker e diff validi
 - [x] Verifica UI a 360/390/430 px: 30 controlli, nessun overflow, scanner/manuale, carrello tra reparti, conferma solo su tenant temporaneo, storico e permessi server 403
-- [ ] Salvare checkpoint finale
+- [x] Salvare checkpoint finale
 
 Verifiche eseguite esclusivamente su tenant temporanei con pulizia finale. Nessun mezzo, intervento, ricambio o movimento reale è stato cancellato o modificato per i test. Il prelievo attribuisce subito il costo al mezzo; il completamento conserva i materiali già usati e aggiunge soltanto nuovi materiali e manodopera. Nessuna nuova spesa Finanza viene generata per i materiali già acquistati. I costi sono rimossi dalle risposte tRPC per gli utenti senza autorizzazione economica.
