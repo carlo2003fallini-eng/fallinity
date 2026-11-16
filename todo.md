@@ -52,6 +52,6 @@ Verifiche eseguite esclusivamente su tenant temporanei con pulizia finale. Nessu
 - [x] Conservazione dei dati tecnici, audit e permessi; nessuna foto utente nella cache PWA
 - [x] 90 regressioni server sulle foto; verifica UI mobile con upload storage reale, preview senza salvataggio, zoom, rimozione confermata, nuovo mezzo, reload e viewer 403 su tenant temporaneo poi eliminato
 - [x] Suite completa 579/579 Vitest, TypeScript, build e service worker validi; nessuna migrazione necessaria, foto nel campo esistente con soli riferimenti storage
-- [ ] Salvare checkpoint finale foto mezzi
+- [x] Salvare checkpoint finale foto mezzi
 
 Foto principale caricabile da galleria o fotocamera nel dettaglio e nei moduli di creazione/modifica. JPG/PNG/WebP fino a 20 MB sul dispositivo, ottimizzati localmente e nuovamente sul server a JPEG massimo 1600 px; EXIF/GPS/ICC rimossi. Solo la conferma associa la foto al mezzo. I riferimenti storage sono isolati per azienda, le operazioni sono protette dai permessi Officina e la cache PWA non conserva le foto utente. Le prove UI hanno verificato 12 scenari/layout a 360/390/430 px senza modificare mezzi reali. La fotocamera fisica del telefono non è disponibile nel browser di test; il comando capture è presente e il caricamento file/storage è stato verificato realmente.
