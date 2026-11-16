@@ -1,0 +1,24 @@
+import fs from "node:fs";
+import { eq } from "drizzle-orm";
+import { getDb } from "../server/db";
+import { users } from "../drizzle/schema";
+import { invoiceImportRouter } from "../server/domains/inventory/invoice-router";
+import { parseWarehouseInvoiceXml } from "../server/domains/inventory/invoice-xml";
+import { initialDemoState } from "../shared/inventory-invoice/engine";
+import { DEMO_INVOICE_PRESETS } from "../shared/inventory-invoice/fixtures";
+
+const fixture = JSON.parse(fs.readFileSync("/home/ubuntu/fleet96-ui-private.json", "utf8"));
+const db = await getDb(); if (!db) throw new Error("Database non disponibile");
+const [user] = await db.select().from(users).where(eq(users.id, fixture.sessions[0].userId));
+if (!user || user.activeCompanyId !== fixture.companyId) throw new Error("Usare solo l’utente della fixture isolata");
+const caller = invoiceImportRouter.createCaller({ user, req: { protocol: "http", headers: {} } as any, res: {} as any });
+const permissions = await caller.permessi();
+if (!permissions.canEdit || permissions.companyId !== fixture.companyId || permissions.productionEnabled) throw new Error("Permessi demo non validi");
+const state = initialDemoState("test-ai-isolato"); const before = JSON.stringify(state);
+const invoice = parseWarehouseInvoiceXml(DEMO_INVOICE_PRESETS[0].xml);
+const result = await caller.suggerisciAI({ invoice, products: state.products, structure: state.products.map(({ categoria, reparto, famiglia, sottocategoria }) => ({ categoria, reparto, famiglia, sottocategoria })) });
+if (!result.suggestions.length || result.suggestions.some(s => !invoice.lines.some(l => l.id === s.lineId))) throw new Error("Suggerimenti non validi");
+if (JSON.stringify(state) !== before) throw new Error("L’IA non deve modificare lo stato");
+fs.writeFileSync("/home/ubuntu/invoice98-ai-result.json", JSON.stringify({ model: result.model, suggestions: result.suggestions, stockChanged: false, financialWrite: false }, null, 2));
+console.log(`Prova IA: ${result.model}, ${result.suggestions.length} suggerimenti validi; nessun carico, nessuna spesa, nessuna associazione automatica`);
+process.exit(0);

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -114,6 +115,7 @@ function isLowStock(product: any) {
 }
 
 export default function Magazzino() {
+  const [, setLocation] = useLocation();
   const initial = posizioneIniziale();
   const [search, setSearch] = useState(initial.ricerca);
   const [catFilter, setCatFilter] = useState(initial.categoria);
@@ -261,6 +263,10 @@ export default function Magazzino() {
           <Plus className="size-5" />
         </Button>
       </header>
+
+      <button type="button" onClick={() => setLocation("/magazzino/importa-da-fattura")} className="flex min-h-16 w-full items-center gap-3 rounded-2xl border p-3 text-left" style={{ background: SURFACE, borderColor: BORDER }}>
+        <FileText className="size-6 shrink-0" style={{ color: GOLD }} /><span className="min-w-0 flex-1"><span className="block text-sm font-bold text-white">Importa da fattura</span><span className="mt-1 block text-xs" style={{ color: "oklch(0.65 0.01 145)" }}>Demo isolata · XML, inventario e ricezione materiali</span></span><ChevronRight className="size-4 shrink-0" style={{ color: GOLD }} />
+      </button>
 
       <section className="grid grid-cols-2 gap-3" aria-label="Riepilogo Magazzino">
         <div className="rounded-2xl p-4" style={{ background: SURFACE, border: `1px solid ${BORDER}` }}>

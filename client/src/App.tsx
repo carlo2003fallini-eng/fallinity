@@ -12,6 +12,7 @@ import Azienda from "./pages/Azienda";
 import Finanza from "./pages/Finanza";
 import Campi from "./pages/Campi";
 import Magazzino from "./pages/Magazzino";
+import ImportaDaFatturaDemo from "./pages/magazzino/ImportaDaFatturaDemo";
 import Officina from "./pages/Officina";
 import OfficinaSection from "./pages/officina/OfficinaSection";
 import Calendario from "./pages/Calendario";
@@ -92,6 +93,7 @@ function Router() {
         <Route path="/finanza/impostazioni/metodi-pagamento" component={ImpostazioniMetodi} />
         <Route path="/finanza/impostazioni/regolarizza-storico" component={RegolarizzaScadenzeStoriche} />
         <Route path="/campi" component={Campi} />
+        <Route path="/magazzino/importa-da-fattura" component={ImportaDaFatturaDemo} />
         <Route path="/magazzino" component={Magazzino} />
         <Route path="/officina/operatore">{() => <OfficinaSection section="operatore" />}</Route>
         <Route path="/officina/mezzi">{() => <OfficinaSection section="mezzi" />}</Route>

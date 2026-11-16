@@ -1,6 +1,7 @@
 import { protectedProcedure, router } from "../../_core/trpc";
 import { getActor } from "../_core";
 import { inventoryService } from "./service";
+import { invoiceImportRouter } from "./invoice-router";
 import {
   movimentiInput,
   createProdottoInput,
@@ -11,6 +12,7 @@ import {
 
 /** INVENTORY (Magazzino) — Router */
 export const magazzinoRouter = router({
+  importazione: invoiceImportRouter,
   list: protectedProcedure.query(async ({ ctx }) => {
     const actor = await getActor(ctx);
     return inventoryService.list(actor.companyId);

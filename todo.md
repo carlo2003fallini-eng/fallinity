@@ -55,3 +55,18 @@ Verifiche eseguite esclusivamente su tenant temporanei con pulizia finale. Nessu
 - [x] Salvare checkpoint finale foto mezzi
 
 Foto principale caricabile da galleria o fotocamera nel dettaglio e nei moduli di creazione/modifica. JPG/PNG/WebP fino a 20 MB sul dispositivo, ottimizzati localmente e nuovamente sul server a JPEG massimo 1600 px; EXIF/GPS/ICC rimossi. Solo la conferma associa la foto al mezzo. I riferimenti storage sono isolati per azienda, le operazioni sono protette dai permessi Officina e la cache PWA non conserva le foto utente. Le prove UI hanno verificato 12 scenari/layout a 360/390/430 px senza modificare mezzi reali. La fotocamera fisica del telefono non è disponibile nel browser di test; il comando capture è presente e il caricamento file/storage è stato verificato realmente.
+
+## Fase 98 — Importa da fattura: demo integrata e motore condiviso
+Questa fase realizza la demo funzionante richiesta al punto 21 prima dell’attivazione sui dati reali. Riutilizza il parser XML FatturaPA e i contratti dell’anagrafica Magazzino; nessun endpoint di scrittura per carichi reali viene attivato. La connessione SdI autorizzata, il carico automatico in produzione e il metodo definitivo di valorizzazione restano fasi future esplicite del documento.
+- [x] Analizzare parser, registrazione fatture, inventario, Officina, audit e permessi esistenti
+- [x] Motore condiviso: identità fornitore/codici multipli, riconoscimento prudente, classificazioni e conversioni confermate
+- [x] Lettura strutturata XML con codici aggiuntivi, sconti/maggiorazioni e DDT; IA solo suggerimenti con verifica umana
+- [x] Demo mobile Importa da fattura con lettura multipla, revisione, creazione/associazione, esclusioni e riepilogo di conferma
+- [x] Inventario iniziale con quantità fisica obbligatoria e rettifica, ricezioni parziali/residue, collegamento DDT/carichi senza doppio carico
+- [x] Unica anagrafica demo per importazione e Officina, prelievo Fendt 822 con costo storico, spesa fattura registrata una sola volta e pagamento distinto
+- [x] Storico associazioni/conversioni/prezzi/carichi, correzioni alias versionate, stati pendenti/completati e resi fisici espliciti senza cancellare lo storico
+- [x] Accesso Magazzino e scheda fattura; demo isolata per sessione/utente/azienda e permessi anche lato server per lettura XML/IA
+- [x] 64 regressioni nuove; suite completa 643/643 Vitest, TypeScript, build, PWA e diff validi; 20 verifiche UI a 360/390/430 px senza overflow, errori browser o API operative di scrittura
+- [ ] Salvare checkpoint finale demo integrata
+
+Nove preset XML FatturaPA ordinari simulati e scaricabili, importazione manuale multipla solo con consenso all’uso di dati simulati. Prova IA reale su cinque righe: gpt-6-luna restituisce identificativi/classificazioni validati; nessuna quantità, spesa o associazione viene applicata dall’IA. Il confronto tra prezzo netto e ultimo acquisto evidenzia le variazioni senza rivalutare materiali già usati o giacenze. Scenari UI verificati: lettura senza carico, conferma esplicita, 10 filtri × 40 € → stock 9 dopo un prelievo, costo mezzo 40 €, spese 400 € invariate, pagamento distinto, duplicato che riapre la revisione senza ricaricare, memoria alias, inventario 20 storici → 7 fisici, ricezione 6+4, tre materiali senza manodopera/trasporto, 2 confezioni × 10 pezzi, DDT precedente collegato senza secondo carico, file multipli, reload e utenti viewer/operatore separati con costi riservati e 403 server. Fixture temporanee e token rimossi dopo la verifica; anagrafica e giacenze operative esistenti non modificate.

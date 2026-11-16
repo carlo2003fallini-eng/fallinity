@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useLocation, useRoute } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { hasModule } from "@/lib/access";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,6 +36,7 @@ export default function VisualizzaFattura() {
   const documentoId = params?.documentoId ?? "";
   const input = useMemo(() => ({ documentoId }), [documentoId]);
   const invoiceQuery = trpc.finanza.fattureAutomatiche.perMovimento.useQuery(input, { enabled: Boolean(documentoId), retry: false });
+  const { data: access } = trpc.access.me.useQuery();
   const invoice = invoiceQuery.data;
   const isEntrata = invoice?.tipoMovimento === "entrata";
   const controparteLabel = isEntrata ? "Cliente" : "Fornitore";
@@ -71,6 +73,8 @@ export default function VisualizzaFattura() {
           </div>
           <Badge className={isEntrata ? "border-sky-300/20 bg-sky-300/10 text-sky-100" : "border-emerald-300/20 bg-emerald-300/10 text-emerald-100"}>{isEntrata ? "Entrata" : "Uscita"}</Badge>
         </header>
+
+        {!isEntrata && (access?.isCompanyAdmin || hasModule(access?.modules, "azienda.magazzino")) && <section className="mb-4 rounded-2xl border border-amber-300/20 bg-black p-4"><Button type="button" variant="outline" className="min-h-11 w-full whitespace-normal border-amber-300/20 text-amber-200" onClick={() => setLocation("/magazzino/importa-da-fattura")}><FileText className="mr-2 size-4 shrink-0" />Importa da fattura · Demo Magazzino</Button><p className="mt-2 text-xs leading-5 text-white/55">La demo usa dati simulati. Questa fattura reale e le sue giacenze non verranno modificate.</p></section>}
 
         <section className="overflow-hidden rounded-[28px] border border-emerald-300/15 bg-[radial-gradient(circle_at_top,rgba(52,211,153,0.14),transparent_48%),linear-gradient(155deg,rgba(16,35,27,0.98),rgba(7,17,13,0.98))] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
           <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300/70">Documento fiscale</p><h2 className="mt-2 truncate text-2xl font-semibold">{invoice.numeroDocumento}</h2><p className="mt-1 text-sm text-white/55">{formatDate(invoice.dataDocumento)} · {invoice.tipoDocumento || "Fattura"}</p></div><div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl ${isEntrata ? "bg-sky-300/10 text-sky-200" : "bg-emerald-300/10 text-emerald-200"}`}>{isEntrata ? <ArrowDownRight className="h-6 w-6" /> : <ArrowUpRight className="h-6 w-6" />}</div></div>
