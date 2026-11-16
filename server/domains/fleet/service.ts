@@ -1,6 +1,7 @@
 import { completaInterventoAtomico } from "./completion";
 import { listRicambiCondivisi } from "./parts";
 import { sharedPartsService } from "./sharedParts";
+import { validateFotoReference } from "./photos";
 import type { ActorContext } from "../_core";
 import { fleetRepository as repo } from "./repository";
 import { inventoryRepository } from "../inventory/repository";
@@ -116,7 +117,7 @@ export const fleetService = {
       targa: input.targa ?? null,
       telaio: input.telaio ?? null,
       anno: input.anno ?? null,
-      foto: input.foto ?? null,
+      foto: input.foto ? validateFotoReference(actor.companyId, input.foto) : null,
       oreTotali: input.oreTotali != null ? String(input.oreTotali) : "0",
       oreMotore: input.oreMotore != null ? String(input.oreMotore) : "0",
       chilometri: input.chilometri != null ? String(input.chilometri) : null,
@@ -138,7 +139,7 @@ export const fleetService = {
     if (rest.targa !== undefined) data.targa = rest.targa;
     if (rest.telaio !== undefined) data.telaio = rest.telaio;
     if (rest.anno !== undefined) data.anno = rest.anno;
-    if (rest.foto !== undefined) data.foto = rest.foto;
+    if (rest.foto !== undefined) data.foto = validateFotoReference(actor.companyId, rest.foto) || null;
     if (rest.oreTotali !== undefined) data.oreTotali = String(rest.oreTotali);
     if (rest.oreMotore !== undefined) data.oreMotore = String(rest.oreMotore);
     if (rest.chilometri !== undefined) data.chilometri = rest.chilometri != null ? String(rest.chilometri) : null;

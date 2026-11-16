@@ -1,6 +1,8 @@
 import { useLocation } from "wouter";
 import { useOfficinaPermissions } from "./OfficinaLayout";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { MezzoPhotoImage, MezzoPhotoManager, MezzoPhotoPicker, MezzoPhotoViewer } from "./MezzoPhoto";
+import type { PreparedMezzoPhoto } from "./photoUpload";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +41,12 @@ export default function MezziTab() {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [form, setForm] = useState({ ...EMPTY_M });
   const [editing, setEditing] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
+  const [photoDraft, setPhotoDraft] = useState<PreparedMezzoPhoto | null>(null);
+  const [photoProcessing, setPhotoProcessing] = useState(false);
+  const [formSaving, setFormSaving] = useState(false);
+  const formInFlight = useRef(false);
+  const uploadedFormPhoto = useRef<string | null>(null);
 
   const utils = trpc.useUtils();
   const { data: mezzi = [], isLoading, isError, refetch } = trpc.officina.macchine.list.useQuery();
@@ -64,6 +72,7 @@ export default function MezziTab() {
   const deleteM = trpc.officina.macchine.delete.useMutation({
     onSuccess: () => { invalidateAll(); setOpenDetail(false); setDetailId(null); toast.success("Mezzo eliminato"); },
   });
+  const uploadPhoto = trpc.officina.macchine.caricaFoto.useMutation();
 
   const list = (mezzi as any[]).filter((m) => {
     const okStato = statoFiltro === "tutti" || m.stato === statoFiltro;
@@ -73,11 +82,13 @@ export default function MezziTab() {
   });
 
   function openNew() {
+    setPhotoDraft(null); setPhotoProcessing(false); uploadedFormPhoto.current = null;
     setForm({ ...EMPTY_M });
     setEditing(false);
     setOpenForm(true);
   }
   function openEdit(m: any) {
+    setPhotoDraft(null); setPhotoProcessing(false); uploadedFormPhoto.current = null;
     setForm({
       id: m.id, foto: m.foto ?? "", nome: m.nome ?? "", categoria: m.categoria ?? "", marca: m.marca ?? "",
       modello: m.modello ?? "", targa: m.targa ?? "", telaio: m.telaio ?? "",
@@ -92,11 +103,22 @@ export default function MezziTab() {
     setOpenDetail(false);
   }
 
-  function submit() {
+  async function submit() {
+    if (!canEdit || formInFlight.current || photoProcessing) return;
     if (!form.nome.trim()) { toast.error("Nome obbligatorio"); return; }
+    formInFlight.current = true; setFormSaving(true);
+    try {
+    let foto = form.foto;
+    if (photoDraft) {
+      if (!uploadedFormPhoto.current) {
+        const { preview, ...file } = photoDraft;
+        uploadedFormPhoto.current = (await uploadPhoto.mutateAsync({ ...file, macchinaId: editing ? form.id : undefined })).foto;
+      }
+      foto = uploadedFormPhoto.current!;
+    }
     const payload = {
       nome: form.nome.trim(),
-      foto: form.foto || undefined,
+      foto,
       categoria: form.categoria || undefined,
       marca: form.marca || undefined,
       modello: form.modello || undefined,
@@ -110,8 +132,11 @@ export default function MezziTab() {
       prossimaManutenzione: form.prossimaManutenzione || undefined,
       note: form.note || undefined,
     };
-    if (editing) updateM.mutate({ id: form.id, ...payload });
-    else createM.mutate(payload);
+    if (editing) await updateM.mutateAsync({ id: form.id, ...payload });
+    else await createM.mutateAsync(payload);
+    setPhotoDraft(null); uploadedFormPhoto.current = null;
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Impossibile salvare il mezzo. Riprova."); }
+    finally { formInFlight.current = false; setFormSaving(false); }
   }
 
   return (
@@ -123,25 +148,18 @@ export default function MezziTab() {
       </div>
       {isError ? <button onClick={() => refetch()} className="w-full rounded-xl p-5 text-sm" style={{ color: C.gold }}>Impossibile caricare i mezzi · Riprova</button> : isLoading ? <p className="py-8 text-center text-sm" style={{ color: C.textDim }}>Caricamento…</p> : list.length === 0 ? <div className="rounded-xl border p-6 text-center" style={{ borderColor: C.border, background: C.panel }}><Tractor size={25} className="mx-auto mb-2" style={{ color: C.green }} /><p className="text-sm" style={{ color: C.textDim }}>Nessun mezzo trovato</p>{canEdit && <button onClick={openNew} className="mt-2 min-h-11 text-xs" style={{ color: C.green }}>Crea un nuovo mezzo</button>}</div> : <div className="grid grid-cols-2 gap-3">
         {list.map((m) => { const cfg = STATO_MACCHINA[m.stato] ?? STATO_MACCHINA.operativo; return <button key={m.id} onClick={() => { setDetailId(m.id); setOpenDetail(true); }} className="overflow-hidden rounded-2xl border text-left transition-transform active:scale-[0.98]" style={{ borderColor: C.border, background: C.panel }}>
-          <div className="relative h-20 sm:h-28"><img src={m.foto || FAL_IMAGES.officinaMezzo} alt={m.foto ? `Foto del mezzo ${m.nome}` : "Immagine illustrativa di un mezzo agricolo"} className="h-full w-full object-cover" />{!m.foto && <span className="absolute bottom-1 right-1 rounded bg-black/80 px-1 py-0.5 text-[9px] text-white">Illustrativa</span>}</div>
+          <div className="relative h-20 sm:h-28"><MezzoPhotoImage foto={m.foto} nome={m.nome} fallback={FAL_IMAGES.officinaMezzo} /></div>
           <div className="p-3"><h2 className="text-sm font-bold leading-tight" style={{ color: C.text }}>{m.nome}</h2><p className="mt-1 text-[11px] leading-tight" style={{ color: C.textDim }}>{[m.marca, m.modello].filter(Boolean).join(" ") || m.categoria || "—"}</p><span className="mt-2 inline-block rounded-md px-1.5 py-1 text-[10px] font-semibold" style={{ color: cfg.color, background: C.inner }}>{cfg.label}</span><div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px]" style={{ color: C.textDim }}><span className="flex items-center gap-1"><Gauge size={12} />{Number(m.oreMotore) > 0 ? `${Number(m.oreMotore).toLocaleString("it-IT")} h` : Number(m.chilometri) > 0 ? `${Number(m.chilometri).toLocaleString("it-IT")} km` : "Ore n.d."}</span><span>Stato manut. {m.healthScore ?? 100}/100</span></div></div>
         </button>; })}
       </div>}
 
       {/* Sheet dettaglio mezzo */}
-      <Sheet open={openDetail} onOpenChange={setOpenDetail}>
+      <Sheet open={openDetail} onOpenChange={(open) => { setOpenDetail(open); if (!open) setPhotoOpen(false); }}>
         <SheetContent side="right" className="w-full sm:w-[440px] sm:max-w-[440px] p-0 flex flex-col"
           style={{ background: C.panelDark, border: "none", borderLeft: `1px solid ${C.border}` }}>
           {detail ? (
             <>
-              <div className="relative h-36 shrink-0" style={{
-                backgroundImage: `linear-gradient(180deg, transparent 20%, ${C.panelDark} 100%), url(${detail.foto || FAL_IMAGES.officinaMezzo})`,
-                backgroundSize: "cover", backgroundPosition: "center",
-              }}>
-                <button onClick={() => setOpenDetail(false)} className="absolute top-3 right-3 p-2 rounded-lg" style={{ background: "oklch(0.08 0.005 145 / 0.6)", color: C.text }}>
-                  <X size={16} />
-                </button>
-              </div>
+              <div className="relative h-44 shrink-0"><MezzoPhotoImage foto={detail.foto} nome={detail.nome} fallback={FAL_IMAGES.officinaMezzo} onOpen={() => setPhotoOpen(true)} /></div>
               <SheetHeader className="px-6 pt-4 pb-3 text-left">
                 <div className="flex items-start gap-3">
                   <HealthRing score={detail.healthScore ?? 100} size={52} />
@@ -157,6 +175,7 @@ export default function MezziTab() {
                 </div>
               </SheetHeader>
               <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-5">
+                {canEdit && <MezzoPhotoManager key={detail.id} id={detail.id} foto={detail.foto || ""} onSaved={invalidateAll} />}
                 {/* Dati tecnici */}
                 <div className="grid grid-cols-2 gap-3">
                   {[
@@ -248,7 +267,7 @@ export default function MezziTab() {
       </Sheet>
 
       {/* Sheet form mezzo */}
-      <Sheet open={openForm} onOpenChange={setOpenForm}>
+      <Sheet open={openForm} onOpenChange={(open) => { if (formSaving) return; setOpenForm(open); if (!open) { setPhotoDraft(null); setPhotoProcessing(false); uploadedFormPhoto.current = null; } }}>
         <SheetContent side="right" className="w-full sm:w-[420px] sm:max-w-[420px] p-0 flex flex-col"
           style={{ background: C.panelDark, border: "none", borderLeft: `1px solid ${C.border}` }}>
           <SheetHeader className="px-6 py-5 border-b text-left" style={{ borderColor: C.border }}>
@@ -263,7 +282,7 @@ export default function MezziTab() {
             <Field label="Nome *">
               <Input value={form.nome} onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))} className="bg-input border-border text-sm" />
             </Field>
-            <Field label="Foto del mezzo (URL)"><Input value={form.foto} onChange={(e) => setForm((f) => ({ ...f, foto: e.target.value }))} placeholder="https://…" className="bg-input border-border text-sm" /></Field>
+            <Field label="Foto del mezzo"><MezzoPhotoPicker foto={form.foto} draft={photoDraft} onDraft={(draft) => { setPhotoDraft(draft); uploadedFormPhoto.current = null; }} onClear={() => { setPhotoDraft(null); uploadedFormPhoto.current = null; setForm((f) => ({ ...f, foto: "" })); }} onBusy={setPhotoProcessing} disabled={formSaving || !canEdit} /></Field>
             <Field label="Categoria">
               <Input value={form.categoria} onChange={(e) => setForm((f) => ({ ...f, categoria: e.target.value }))} placeholder="Trattore, Mietitrebbia…" className="bg-input border-border text-sm" />
             </Field>
@@ -295,13 +314,14 @@ export default function MezziTab() {
             </Field>
             <Field label="Note"><Input value={form.note} onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))} className="bg-input border-border text-sm" /></Field>
           </div>
-          <div className="px-6 py-4 border-t" style={{ borderColor: C.border }}>
-            <Button onClick={submit} disabled={!canEdit || createM.isPending || updateM.isPending} className="w-full" style={{ background: C.green, color: C.bgDeep }}>
-              {createM.isPending || updateM.isPending ? "Salvataggio…" : editing ? "Aggiorna mezzo" : "Salva mezzo"}
+          <div className="px-6 py-4 border-t pb-[max(1rem,env(safe-area-inset-bottom))]" style={{ borderColor: C.border }}>
+            <Button onClick={submit} disabled={!canEdit || formSaving || photoProcessing || createM.isPending || updateM.isPending} className="min-h-11 w-full" style={{ background: C.green, color: C.bgDeep }}>
+              {formSaving ? "Salvataggio foto e mezzo…" : photoProcessing ? "Preparazione foto…" : editing ? "Aggiorna mezzo" : "Salva mezzo"}
             </Button>
           </div>
         </SheetContent>
       </Sheet>
+      {detail?.foto && <MezzoPhotoViewer foto={detail.foto} nome={detail.nome} open={photoOpen} onOpenChange={setPhotoOpen} />}
     </div>
   );
 }

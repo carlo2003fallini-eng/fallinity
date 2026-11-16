@@ -27,7 +27,7 @@ export const createMacchinaInput = z.object({
   targa: z.string().optional(),
   telaio: z.string().optional(),
   anno: z.number().optional(),
-  foto: z.string().optional(),
+  foto: z.string().max(2048).optional(),
   oreTotali: z.number().optional(),
   oreMotore: z.number().optional(),
   chilometri: z.number().optional(),

@@ -3,6 +3,7 @@ import { router } from "../../_core/trpc";
 import { getActor } from "../_core";
 import { fleetService } from "./service";
 import { operatorService } from "./operator";
+import { fleetPhotosService, uploadMacchinaFotoInput, salvaMacchinaFotoInput } from "./photos";
 import {
   createMacchinaInput,
   updateMacchinaInput,
@@ -68,6 +69,14 @@ export const officinaRouter = router({
     update: protectedProcedure.input(updateMacchinaInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);
       return fleetService.updateMacchina(actor, input);
+    }),
+    caricaFoto: protectedProcedure.input(uploadMacchinaFotoInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return fleetPhotosService.carica(actor, input);
+    }),
+    salvaFoto: protectedProcedure.input(salvaMacchinaFotoInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return fleetPhotosService.salva(actor, input);
     }),
     delete: protectedProcedure.input(deleteMacchinaInput).mutation(async ({ ctx, input }) => {
       const actor = await getActor(ctx);

@@ -44,3 +44,14 @@
 - [x] Salvare checkpoint finale
 
 Verifiche eseguite esclusivamente su tenant temporanei con pulizia finale. Nessun mezzo, intervento, ricambio o movimento reale è stato cancellato o modificato per i test. Il prelievo attribuisce subito il costo al mezzo; il completamento conserva i materiali già usati e aggiunge soltanto nuovi materiali e manodopera. Nessuna nuova spesa Finanza viene generata per i materiali già acquistati. I costi sono rimossi dalle risposte tRPC per gli utenti senza autorizzazione economica.
+
+## Fase 97 — Foto mezzi dal dispositivo
+- [x] Caricamento da galleria/fotocamera con anteprima locale, ottimizzazione e salvataggio esplicito
+- [x] Upload tRPC protetto con controllo formato/dimensione, decodifica reale, rimozione metadati e storage aziendale
+- [x] Foto direttamente nel dettaglio e nell’elenco; ingrandimento, sostituzione/rimozione confermate e fallback immagini esistenti
+- [x] Conservazione dei dati tecnici, audit e permessi; nessuna foto utente nella cache PWA
+- [x] 90 regressioni server sulle foto; verifica UI mobile con upload storage reale, preview senza salvataggio, zoom, rimozione confermata, nuovo mezzo, reload e viewer 403 su tenant temporaneo poi eliminato
+- [x] Suite completa 579/579 Vitest, TypeScript, build e service worker validi; nessuna migrazione necessaria, foto nel campo esistente con soli riferimenti storage
+- [ ] Salvare checkpoint finale foto mezzi
+
+Foto principale caricabile da galleria o fotocamera nel dettaglio e nei moduli di creazione/modifica. JPG/PNG/WebP fino a 20 MB sul dispositivo, ottimizzati localmente e nuovamente sul server a JPEG massimo 1600 px; EXIF/GPS/ICC rimossi. Solo la conferma associa la foto al mezzo. I riferimenti storage sono isolati per azienda, le operazioni sono protette dai permessi Officina e la cache PWA non conserva le foto utente. Le prove UI hanno verificato 12 scenari/layout a 360/390/430 px senza modificare mezzi reali. La fotocamera fisica del telefono non è disponibile nel browser di test; il comando capture è presente e il caricamento file/storage è stato verificato realmente.
