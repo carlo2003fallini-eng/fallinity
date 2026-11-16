@@ -23,3 +23,9 @@
 - [x] Collegare ogni prelievo a mezzo, intervento, prodotto Magazzino, operatore e costo senza creare doppie spese Finanza
 - [x] Integrare il Menù operatore nella sezione Officina esistente, con UX touch mobile e stile Fallinity
 - [x] Scrivere test catalogo e integrazione per scarico, rollback, storico, isolamento e doppio submit; verificare test completi, TypeScript, build e resa mobile
+
+## Fase 95 — Scanner barcode/QR Menù operatore
+- [x] Integrare la fotocamera del dispositivo con rilevamento barcode e QR nativo
+- [x] Aggiungere ricerca manuale fallback e messaggi per permessi/fotocamera non disponibili
+- [x] Collegare il codice rilevato alla selezione del ricambio reale del Magazzino senza modificare dati
+- [x] Scrivere test di normalizzazione/matching e verificare test completi, TypeScript, build e resa mobile

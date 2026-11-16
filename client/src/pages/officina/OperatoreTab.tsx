@@ -1,16 +1,31 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
-  ArrowLeft, ArrowRight, Check, ChevronRight, CircleDot, Cpu, Droplets,
+  ArrowLeft, ArrowRight, Camera, Check, ChevronRight, CircleDot, Cpu, Droplets,
   Gauge, Minus, Package, Plus, RotateCcw, ShoppingCart, Tractor, Trash2,
-  Wrench, Zap,
+  ScanLine, Wrench, Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { C, eur } from "./shared";
+import { findArticleByScanCode } from "./scanner";
+
+type BarcodeDetectorLike = {
+  detect: (source: HTMLVideoElement) => Promise<Array<{ rawValue: string }>>;
+};
+type BarcodeDetectorConstructor = {
+  new (options?: { formats?: string[] }): BarcodeDetectorLike;
+  getSupportedFormats?: () => Promise<string[]>;
+};
+
+declare global {
+  interface Window {
+    BarcodeDetector?: BarcodeDetectorConstructor;
+  }
+}
 
 type Step = "categoria" | "mezzo" | "reparto" | "famiglia" | "sottocategoria" | "articoli";
 type Cart = Record<string, number>;
@@ -41,6 +56,13 @@ export default function OperatoreTab() {
   const [sottocategoria, setSottocategoria] = useState<string | null>(null);
   const [cart, setCart] = useState<Cart>({});
   const [cartOpen, setCartOpen] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scanInput, setScanInput] = useState("");
+  const [scannerState, setScannerState] = useState<"idle" | "starting" | "scanning" | "error">("idle");
+  const [scannerMessage, setScannerMessage] = useState("");
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const scanTimerRef = useRef<number | null>(null);
   const [attemptKey, setAttemptKey] = useState(() => `operator-${crypto.randomUUID()}`);
   const [interventoId, setInterventoId] = useState("");
   const [nuovaDescrizione, setNuovaDescrizione] = useState("");
@@ -75,6 +97,98 @@ export default function OperatoreTab() {
   const cartCount = cartRows.reduce((sum, row) => sum + row.quantita, 0);
   const cartTotal = cartRows.reduce((sum, row) => sum + row.quantita * (row.part.costoUnitario ?? 0), 0);
   const openInterventi = (data?.interventiAperti ?? []).filter((item) => item.macchinaId === mezzoId);
+
+  function closeScanner() {
+    if (scanTimerRef.current !== null) window.clearTimeout(scanTimerRef.current);
+    scanTimerRef.current = null;
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+    setScannerOpen(false);
+    setScannerState("idle");
+    setScannerMessage("");
+  }
+
+  function selectScannedArticle(rawValue: string) {
+    const article = findArticleByScanCode(data?.articoli ?? [], rawValue);
+    if (!article) {
+      setScannerState("error");
+      setScannerMessage(`Nessun ricambio con codice “${rawValue.trim()}” nella selezione corrente.`);
+      return false;
+    }
+    if (article.quantitaDisponibile <= 0) {
+      setScannerState("error");
+      setScannerMessage(`${article.nome} è esaurito e non può essere aggiunto al prelievo.`);
+      return false;
+    }
+    add(article.id);
+    closeScanner();
+    toast.success(`${article.nome} aggiunto al carrello`);
+    return true;
+  }
+
+  function submitManualScan(event: React.FormEvent) {
+    event.preventDefault();
+    if (!scanInput.trim()) return;
+    selectScannedArticle(scanInput);
+  }
+
+  useEffect(() => {
+    if (!scannerOpen) return;
+    let cancelled = false;
+    async function startCamera() {
+      setScannerState("starting");
+      setScannerMessage("");
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setScannerState("error");
+        setScannerMessage("La fotocamera non è disponibile in questo browser. Inserisci il codice manualmente.");
+        return;
+      }
+      if (!window.BarcodeDetector) {
+        setScannerState("error");
+        setScannerMessage("Questo browser non supporta la lettura automatica. Inserisci il codice manualmente o usa Chrome/Edge aggiornato.");
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+        if (cancelled) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        streamRef.current = stream;
+        if (!videoRef.current) return;
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+        setScannerState("scanning");
+        const requestedFormats = ["qr_code", "ean_13", "ean_8", "code_128", "code_39", "upc_a", "upc_e", "itf_14", "data_matrix", "pdf417", "aztec"];
+        const supportedFormats = await window.BarcodeDetector.getSupportedFormats?.();
+        const formats = supportedFormats?.length ? requestedFormats.filter((format) => supportedFormats.includes(format)) : requestedFormats;
+        const detector = new window.BarcodeDetector(formats.length ? { formats } : undefined);
+        const detect = async () => {
+          if (cancelled || !videoRef.current || scannerState === "error") return;
+          try {
+            const codes = await detector.detect(videoRef.current);
+            const value = codes[0]?.rawValue;
+            if (value && selectScannedArticle(value)) return;
+          } catch {
+            // Il frame può essere ancora vuoto o non leggibile: riprova al frame successivo.
+          }
+          scanTimerRef.current = window.setTimeout(detect, 180);
+        };
+        scanTimerRef.current = window.setTimeout(detect, 180);
+      } catch (error) {
+        setScannerState("error");
+        setScannerMessage(error instanceof DOMException && error.name === "NotAllowedError" ? "Permesso fotocamera negato. Abilitalo nelle impostazioni del browser oppure inserisci il codice manualmente." : "Non riesco ad aprire la fotocamera. Inserisci il codice manualmente.");
+      }
+    }
+    void startCamera();
+    return () => {
+      cancelled = true;
+      if (scanTimerRef.current !== null) window.clearTimeout(scanTimerRef.current);
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    };
+  }, [scannerOpen]);
 
   function chooseMezzo(id: string) {
     setMezzoId(id);
@@ -185,7 +299,24 @@ export default function OperatoreTab() {
 
       {!success && step === "sottocategoria" && <><PanelTitle title="5 · Sottocategoria" hint="Le sottocategorie sono mostrate solo quando configurate" onBack={back} /> <div className="grid grid-cols-2 gap-3">{(famigliaData?.sottocategorie ?? []).map((item) => <Tile key={item} icon={CircleDot} title={item} detail="Articoli disponibili" color={C.orange} onClick={() => { setSottocategoria(item); setStep("articoli"); }} />)}</div></>}
 
-      {!success && step === "articoli" && <><PanelTitle title="6 · Articoli disponibili" hint="Tocca una scheda per aggiungere un pezzo al carrello" onBack={back} /> <div className="grid grid-cols-2 gap-3">{selectedArticles.map((part) => <button key={part.id} onClick={() => add(part.id)} className="min-h-[126px] rounded-xl p-3 text-left transition-transform active:scale-[0.98]" style={{ background: C.panel, border: `1px solid ${cart[part.id] ? C.green : C.border}` }}><div className="flex items-start justify-between gap-2"><div className="rounded-lg p-2" style={{ background: `${C.orange}18`, color: C.orange }}><Package size={17} /></div>{cart[part.id] ? <Badge style={{ background: `${C.green}20`, color: C.green }}>×{cart[part.id]}</Badge> : <Plus size={16} style={{ color: C.green }} />}</div><p className="mt-3 text-sm font-semibold leading-tight" style={{ color: C.text }}>{part.nome}</p><p className="mt-1 text-[11px]" style={{ color: C.textFaint }}>{part.codice} · disp. {part.quantitaDisponibile}</p></button>)}</div>{selectedArticles.length === 0 && <div className="py-12 text-center text-sm" style={{ color: C.textFaint }}>Nessun articolo disponibile in questa selezione.</div>}</>}
+      {!success && step === "articoli" && <><PanelTitle title="6 · Articoli disponibili" hint="Tocca una scheda o scansiona il codice del ricambio" onBack={back} /> <button onClick={() => { setScanInput(""); setScannerState("idle"); setScannerOpen(true); }} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-transform active:scale-[0.98]" style={{ background: `${C.blue}18`, color: C.blue, border: `1px solid ${C.blue}55` }}><ScanLine size={18} /> Scansiona barcode / QR</button> <div className="grid grid-cols-2 gap-3">{selectedArticles.map((part) => <button key={part.id} onClick={() => add(part.id)} className="min-h-[126px] rounded-xl p-3 text-left transition-transform active:scale-[0.98]" style={{ background: C.panel, border: `1px solid ${cart[part.id] ? C.green : C.border}` }}><div className="flex items-start justify-between gap-2"><div className="rounded-lg p-2" style={{ background: `${C.orange}18`, color: C.orange }}><Package size={17} /></div>{cart[part.id] ? <Badge style={{ background: `${C.green}20`, color: C.green }}>×{cart[part.id]}</Badge> : <Plus size={16} style={{ color: C.green }} />}</div><p className="mt-3 text-sm font-semibold leading-tight" style={{ color: C.text }}>{part.nome}</p><p className="mt-1 text-[11px]" style={{ color: C.textFaint }}>{part.codice} · disp. {part.quantitaDisponibile}</p></button>)}</div>{selectedArticles.length === 0 && <div className="py-12 text-center text-sm" style={{ color: C.textFaint }}>Nessun articolo disponibile in questa selezione.</div>}</>}
+
+      <Sheet open={scannerOpen} onOpenChange={(open) => open ? setScannerOpen(true) : closeScanner()}>
+        <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto" style={{ background: C.bgDeep, borderColor: C.border }}>
+          <SheetHeader><SheetTitle style={{ color: C.text }}>Scansiona ricambio</SheetTitle></SheetHeader>
+          <div className="mt-4 space-y-4">
+            <div className="relative overflow-hidden rounded-2xl" style={{ background: "#050807", border: `1px solid ${C.blue}55`, aspectRatio: "4 / 3" }}>
+              <video ref={videoRef} muted playsInline className="h-full w-full object-cover" aria-label="Anteprima fotocamera per scansione barcode" />
+              <div className="pointer-events-none absolute inset-[18%] rounded-2xl" style={{ border: `2px solid ${C.blue}`, boxShadow: `0 0 0 999px ${C.bgDeep}55` }} />
+              {scannerState === "starting" && <div className="absolute inset-0 grid place-items-center bg-black/45 text-sm" style={{ color: C.text }}>Avvio fotocamera…</div>}
+            </div>
+            <div className="flex items-center gap-2 text-xs" style={{ color: scannerState === "error" ? C.red : C.textDim }}><Camera size={15} />{scannerState === "scanning" ? "Inquadra il barcode o QR del ricambio" : scannerMessage || "Consenti l’accesso alla fotocamera per iniziare"}</div>
+            <div className="flex items-center gap-3"><div className="h-px flex-1" style={{ background: C.border }} /><span className="text-[10px] uppercase tracking-wider" style={{ color: C.textFaint }}>oppure inserisci il codice</span><div className="h-px flex-1" style={{ background: C.border }} /></div>
+            <form onSubmit={submitManualScan} className="flex gap-2"><Input value={scanInput} onChange={(event) => { setScanInput(event.target.value); if (scannerState === "error") setScannerState("idle"); }} placeholder="Codice articolo o valore QR" autoComplete="off" className="h-12 bg-input border-border" /><Button type="submit" className="h-12 shrink-0 gap-2" style={{ background: C.blue, color: C.bgDeep }}><ScanLine size={16} /> Cerca</Button></form>
+            <button type="button" onClick={closeScanner} className="w-full py-2 text-xs" style={{ color: C.textDim }}>Chiudi scanner</button>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <Sheet open={cartOpen} onOpenChange={setCartOpen}><SheetContent side="bottom" className="max-h-[88vh] overflow-y-auto" style={{ background: C.bgDeep, borderColor: C.border }}><SheetHeader><SheetTitle style={{ color: C.text }}>Carrello prelievo · {mezzo?.nome ?? "Nessun mezzo"}</SheetTitle></SheetHeader><div className="mt-4 space-y-4">{cartRows.length === 0 ? <p className="py-8 text-center text-sm" style={{ color: C.textFaint }}>Il carrello è vuoto.</p> : <>{cartRows.map(({ part, quantita }) => <div key={part.id} className="flex items-center gap-3 rounded-xl p-3" style={{ background: C.panel, border: `1px solid ${C.border}` }}><div className="min-w-0 flex-1"><p className="text-sm font-medium truncate" style={{ color: C.text }}>{part.nome}</p><p className="text-xs" style={{ color: C.textFaint }}>{eur(part.costoUnitario ?? 0)} · disponibilità {part.quantitaDisponibile}</p></div><div className="flex items-center gap-2"><button onClick={() => change(part.id, -1)} className="h-9 w-9 rounded-lg flex items-center justify-center" style={{ background: C.inner, color: C.text }} aria-label={`Riduci ${part.nome}`}><Minus size={15} /></button><span className="w-6 text-center text-sm font-semibold" style={{ color: C.text }}>{quantita}</span><button onClick={() => change(part.id, 1)} className="h-9 w-9 rounded-lg flex items-center justify-center" style={{ background: `${C.green}20`, color: C.green }} aria-label={`Aumenta ${part.nome}`}><Plus size={15} /></button></div></div>)}<div className="flex items-center justify-between border-t pt-3" style={{ borderColor: C.border }}><span className="text-sm" style={{ color: C.textDim }}>Totale materiali</span><strong style={{ color: C.gold }}>{eur(cartTotal)}</strong></div><div className="space-y-3"><label className="text-xs font-medium" style={{ color: C.textDim }}>Intervento associato</label>{openInterventi.length > 0 && <select value={interventoId} onChange={(event) => setInterventoId(event.target.value)} className="h-11 w-full rounded-xl px-3 text-sm" style={{ background: C.inner, color: C.text, border: `1px solid ${C.border}` }}><option value="">Crea nuovo intervento</option>{openInterventi.map((item) => <option key={item.id} value={item.id}>{item.codice} · {item.descrizione}</option>)}</select>}{!interventoId && <Input value={nuovaDescrizione} onChange={(event) => setNuovaDescrizione(event.target.value)} placeholder="Descrizione nuovo intervento" className="bg-input border-border" />}</div><Button onClick={confirm} disabled={!cartRows.length || conferma.isPending} className="h-12 w-full gap-2" style={{ background: C.green, color: C.bgDeep }}>{conferma.isPending ? "Conferma in corso…" : <><Check size={17} /> Conferma e scarica</>}</Button><button onClick={() => setCart({})} className="flex w-full items-center justify-center gap-2 py-2 text-xs" style={{ color: C.red }}><Trash2 size={14} /> Svuota carrello</button></>}</div></SheetContent></Sheet>
 
