@@ -22,6 +22,27 @@
       "when": 1781781898396,
       "tag": "0002_cloudy_the_santerians",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1794827603590,
+      "tag": "0003_f006_operator_menu",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1794828196024,
+      "tag": "0004_f006_shared_inventory",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1794828241619,
+      "tag": "0005_f006_shared_family",
+      "breakpoints": true
     }
   ]
 }

@@ -14,3 +14,12 @@
 - [x] Inserire i 7 animali nell’azienda attiva, gruppo Primo, con matricola, nome e data di nascita
 - [x] Verificare assenza duplicati e isolamento multi-azienda
 - [x] Verificare i 7 animali tramite il servizio reale usato da trpc.stalla.animali.list
+
+## Fase 94 — Menù operatore Officina F-006 reale
+- [x] Analizzare e riusare anagrafiche reali di mezzi, ricambi e interventi
+- [x] Aggiungere classificazione condivisa nel Magazzino: reparto, famiglia e sottocategoria letti dal Menù operatore
+- [x] Implementare query server-side del menù con sole giacenze disponibili e isolamento aziendale
+- [x] Implementare carrello operatore e conferma atomica con controllo giacenze, idempotenza stabile per retry/doppio tap e storico
+- [x] Collegare ogni prelievo a mezzo, intervento, prodotto Magazzino, operatore e costo senza creare doppie spese Finanza
+- [x] Integrare il Menù operatore nella sezione Officina esistente, con UX touch mobile e stile Fallinity
+- [x] Scrivere test catalogo e integrazione per scarico, rollback, storico, isolamento e doppio submit; verificare test completi, TypeScript, build e resa mobile

@@ -12,6 +12,7 @@ import { C, STATO_SCORTA, CATEGORIE_RICAMBIO, eur, CodicePill } from "./shared";
 
 const EMPTY_R = {
   id: "", codice: "", nome: "", categoria: "Altro", compatibilita: "",
+  reparto: "", famiglia: "", sottocategoria: "", immagineUrl: "",
   quantitaDisponibile: "", sogliaMinima: "", posizione: "", costoMedio: "", fornitore: "", note: "",
 };
 
@@ -101,6 +102,7 @@ export default function RicambiTab() {
   function openEdit(r: any) {
     setForm({
       id: r.id, codice: r.codice ?? "", nome: r.nome ?? "", categoria: r.categoria ?? "Altro",
+      reparto: r.reparto ?? "", famiglia: r.famiglia ?? "", sottocategoria: r.sottocategoria ?? "", immagineUrl: r.immagineUrl ?? "",
       compatibilita: r.compatibilita ?? "", quantitaDisponibile: String(r.quantitaDisponibile ?? ""),
       sogliaMinima: String(r.sogliaMinima ?? ""), posizione: r.posizione ?? "",
       costoMedio: r.costoMedio != null ? String(r.costoMedio) : "", fornitore: r.fornitore ?? "", note: r.note ?? "",
@@ -113,6 +115,10 @@ export default function RicambiTab() {
       codice: form.codice || undefined,
       nome: form.nome.trim(),
       categoria: form.categoria as any,
+      reparto: form.reparto || undefined,
+      famiglia: form.famiglia || undefined,
+      sottocategoria: form.sottocategoria || undefined,
+      immagineUrl: form.immagineUrl || undefined,
       compatibilita: form.compatibilita || undefined,
       quantitaDisponibile: form.quantitaDisponibile ? Number(form.quantitaDisponibile) : 0,
       sogliaMinima: form.sogliaMinima ? Number(form.sogliaMinima) : 0,
@@ -298,6 +304,15 @@ export default function RicambiTab() {
                   {CATEGORIE_RICAMBIO.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </Field>
+            </div>
+            <div className="rounded-xl p-3 space-y-3" style={{ background: C.inner, border: `1px solid ${C.border}` }}>
+              <p className="text-xs font-semibold" style={{ color: C.blue }}>Classificazione Menù operatore</p>
+              <Field label="Reparto"><Input value={form.reparto} onChange={(e) => setForm((f) => ({ ...f, reparto: e.target.value }))} placeholder="Es. Idraulica" className="bg-input border-border text-sm" /></Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Famiglia"><Input value={form.famiglia} onChange={(e) => setForm((f) => ({ ...f, famiglia: e.target.value }))} placeholder="Es. Tubi" className="bg-input border-border text-sm" /></Field>
+                <Field label="Sottocategoria"><Input value={form.sottocategoria} onChange={(e) => setForm((f) => ({ ...f, sottocategoria: e.target.value }))} placeholder="Facoltativa" className="bg-input border-border text-sm" /></Field>
+              </div>
+              <Field label="URL immagine (facoltativo)"><Input value={form.immagineUrl} onChange={(e) => setForm((f) => ({ ...f, immagineUrl: e.target.value }))} placeholder="https://…" className="bg-input border-border text-sm" /></Field>
             </div>
             <Field label="Compatibilità (mezzi)"><Input value={form.compatibilita} onChange={(e) => setForm((f) => ({ ...f, compatibilita: e.target.value }))} placeholder="Es. Trattori serie X, mietitrebbie…" className="bg-input border-border text-sm" /></Field>
             <div className="grid grid-cols-2 gap-3">

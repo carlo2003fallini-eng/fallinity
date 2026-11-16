@@ -8,6 +8,8 @@ export const createProdottoInput = z.object({
   nome: z.string().trim().min(1).max(255),
   codice: z.string().trim().max(100).optional(),
   categoria: z.string().trim().max(100).optional(),
+  reparto: z.string().trim().max(100).optional(),
+  famiglia: z.string().trim().max(100).optional(),
   sottocategoria: z.string().trim().max(100).optional(),
   unitaMisura: z.string().trim().max(50).optional(),
   quantita: z.number().min(0).default(0),

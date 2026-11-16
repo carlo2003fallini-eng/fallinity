@@ -69,6 +69,8 @@ type ScaricoForm = {
 const EMPTY_PRODUCT = {
   nome: "",
   categoria: "",
+  reparto: "",
+  famiglia: "",
   sottocategoria: "",
   unitaMisura: "kg",
   quantita: "",
@@ -468,6 +470,11 @@ export default function Magazzino() {
               <FieldLabel label="Categoria"><select value={formProd.categoria} onChange={(event) => setFormProd((value) => ({ ...value, categoria: event.target.value }))} className="inventory-select"><option value="">Seleziona categoria</option>{Array.from(new Set([...CATEGORIE_PRODOTTO, ...categories.map(String)])).map((category) => <option key={category} value={category}>{category}</option>)}</select></FieldLabel>
               <FieldLabel label="Sottocategoria"><Input value={formProd.sottocategoria} onChange={(event) => setFormProd((value) => ({ ...value, sottocategoria: event.target.value }))} placeholder="Facoltativa" className="bg-input border-border" /></FieldLabel>
             </div>
+            <div className="rounded-xl p-3 space-y-3" style={{ background: SURFACE_RAISED, border: `1px solid ${BORDER}` }}>
+              <p className="text-xs font-semibold" style={{ color: GOLD }}>Classificazione Menù operatore</p>
+              <FieldLabel label="Reparto"><Input value={formProd.reparto} onChange={(event) => setFormProd((value) => ({ ...value, reparto: event.target.value }))} placeholder="Es. Meccanica" className="bg-input border-border" /></FieldLabel>
+              <FieldLabel label="Famiglia"><Input value={formProd.famiglia} onChange={(event) => setFormProd((value) => ({ ...value, famiglia: event.target.value }))} placeholder="Es. Filtri" className="bg-input border-border" /></FieldLabel>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <FieldLabel label="Quantità iniziale *"><Input type="number" min="0" step="0.001" inputMode="decimal" value={formProd.quantita} onChange={(event) => setFormProd((value) => ({ ...value, quantita: event.target.value }))} className="bg-input border-border" /></FieldLabel>
               <FieldLabel label="Unità"><select value={formProd.unitaMisura} onChange={(event) => setFormProd((value) => ({ ...value, unitaMisura: event.target.value }))} className="inventory-select">{["kg", "q", "t", "L", "pz", "m", "m²", "m³"].map((unit) => <option key={unit} value={unit}>{unit}</option>)}</select></FieldLabel>
@@ -491,6 +498,8 @@ export default function Magazzino() {
                 createProd.mutate({
                   nome: formProd.nome.trim(),
                   categoria: formProd.categoria || undefined,
+                  reparto: formProd.reparto.trim() || undefined,
+                  famiglia: formProd.famiglia.trim() || undefined,
                   sottocategoria: formProd.sottocategoria.trim() || undefined,
                   unitaMisura: formProd.unitaMisura,
                   quantita: quantity,

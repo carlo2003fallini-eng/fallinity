@@ -209,24 +209,26 @@ export const fleetService = {
 
   /** Dettaglio intervento con i ricambi necessari (sempre mostrati). */
   async interventoDetail(companyId: string, id: string) {
-    const [intervento, righe, ricambiAll] = await Promise.all([
+    const [intervento, righe, ricambiAll, prodottiAll] = await Promise.all([
       repo.getIntervento(companyId, id),
       repo.listInterventoRicambi(companyId, id),
       repo.listRicambi(companyId),
+      inventoryRepository.listProdotti(companyId),
     ]);
     if (!intervento) return null;
     const ricambiNecessari = righe.map((r) => {
       const cat = ricambiAll.find((rc) => rc.id === r.ricambioId);
-      const disponibile = cat ? Number(cat.quantitaDisponibile) : 0;
-      const soglia = cat ? Number(cat.sogliaMinima) : 0;
+      const prodotto = prodottiAll.find((item) => item.id === r.prodottoId);
+      const disponibile = prodotto ? Number(prodotto.quantita) : cat ? Number(cat.quantitaDisponibile) : 0;
+      const soglia = prodotto ? Number(prodotto.quantitaMinima ?? 0) : cat ? Number(cat.sogliaMinima) : 0;
       const richiesta = Number(r.quantitaRichiesta);
       const stato = statoDisponibilita(disponibile, richiesta, soglia);
       return {
         ...r,
-        codice: r.codiceRicambio ?? cat?.codice ?? null,
+        codice: r.codiceRicambio ?? cat?.codice ?? prodotto?.codice ?? null,
         fornitore: cat?.fornitore ?? null,
-        categoria: cat?.categoria ?? null,
-        costoUnitario: r.costoUnitario ?? cat?.costoMedio ?? null,
+        categoria: cat?.categoria ?? prodotto?.categoria ?? null,
+        costoUnitario: r.costoUnitario ?? cat?.costoMedio ?? prodotto?.prezzoUnitario ?? null,
         disponibile,
         soglia,
         statoDisponibilita: stato,
@@ -514,6 +516,10 @@ export const fleetService = {
       codice,
       nome: input.nome,
       categoria: input.categoria,
+      reparto: input.reparto ?? null,
+      famiglia: input.famiglia ?? null,
+      sottocategoria: input.sottocategoria ?? null,
+      immagineUrl: input.immagineUrl ?? null,
       compatibilita: input.compatibilita ?? null,
       quantitaDisponibile: String(input.quantitaDisponibile),
       sogliaMinima: String(input.sogliaMinima),
@@ -530,6 +536,10 @@ export const fleetService = {
     if (rest.codice !== undefined) data.codice = rest.codice;
     if (rest.nome !== undefined) data.nome = rest.nome;
     if (rest.categoria !== undefined) data.categoria = rest.categoria;
+    if (rest.reparto !== undefined) data.reparto = rest.reparto;
+    if (rest.famiglia !== undefined) data.famiglia = rest.famiglia;
+    if (rest.sottocategoria !== undefined) data.sottocategoria = rest.sottocategoria;
+    if (rest.immagineUrl !== undefined) data.immagineUrl = rest.immagineUrl;
     if (rest.compatibilita !== undefined) data.compatibilita = rest.compatibilita;
     if (rest.quantitaDisponibile !== undefined) data.quantitaDisponibile = String(rest.quantitaDisponibile);
     if (rest.sogliaMinima !== undefined) data.sogliaMinima = String(rest.sogliaMinima);
@@ -557,10 +567,11 @@ export const fleetService = {
 
   // ── Dashboard KPI premium ──────────────────────────────────────────────────────
   async dashboard(companyId: string) {
-    const [mezzi, interventiAll, ricambiAll] = await Promise.all([
+    const [mezzi, interventiAll, ricambiAll, prodottiAll] = await Promise.all([
       repo.listMacchine(companyId),
       repo.listInterventi(companyId),
       repo.listRicambi(companyId),
+      inventoryRepository.listProdotti(companyId),
     ]);
     const oggi = new Date();
     const inizioMese = new Date(oggi.getFullYear(), oggi.getMonth(), 1);
@@ -580,11 +591,12 @@ export const fleetService = {
     }).length;
     const interventiUrgenti = aperti.filter((i) => i.priorita === "urgente").length;
 
-    const ricambiSottoScorta = ricambiAll.filter((r) => {
-      const disp = Number(r.quantitaDisponibile);
-      const soglia = Number(r.sogliaMinima);
-      return disp <= 0 || (soglia > 0 && disp <= soglia);
-    }).length;
+    const ricambiSottoScorta = [
+      ...ricambiAll.map((r) => ({ disp: Number(r.quantitaDisponibile), soglia: Number(r.sogliaMinima) })),
+      ...prodottiAll
+        .filter((p) => [p.categoria, p.reparto, p.famiglia, p.sottocategoria, p.nome].filter(Boolean).join(" ").toLowerCase().includes("ricamb"))
+        .map((p) => ({ disp: Number(p.quantita), soglia: Number(p.quantitaMinima ?? 0) })),
+    ].filter(({ disp, soglia }) => disp <= 0 || (soglia > 0 && disp <= soglia)).length;
 
     const costoManutenzioneMese = interventiAll
       .filter((i) => i.stato === "completato" && i.dataCompletamento && new Date(i.dataCompletamento) >= inizioMese)

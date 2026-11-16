@@ -339,6 +339,8 @@ export const prodotti = mysqlTable("prodotti", {
   nome: varchar("nome", { length: 255 }).notNull(),
   codice: varchar("codice", { length: 100 }),
   categoria: varchar("categoria", { length: 100 }),
+  reparto: varchar("reparto", { length: 100 }),
+  famiglia: varchar("famiglia", { length: 100 }),
   sottocategoria: varchar("sottocategoria", { length: 100 }),
   unitaMisura: varchar("unitaMisura", { length: 50 }),
   quantita: decimal("quantita", { precision: 12, scale: 3 }).default("0").notNull(),
@@ -446,6 +448,10 @@ export const ricambi = mysqlTable("ricambi", {
   codice: varchar("codice", { length: 100 }).notNull(),
   nome: varchar("nome", { length: 255 }).notNull(),
   categoria: varchar("categoria", { length: 100 }),
+  reparto: varchar("reparto", { length: 100 }),
+  famiglia: varchar("famiglia", { length: 100 }),
+  sottocategoria: varchar("sottocategoria", { length: 100 }),
+  immagineUrl: text("immagineUrl"),
   compatibilita: text("compatibilita"),
   quantitaDisponibile: decimal("quantitaDisponibile", { precision: 12, scale: 2 }).default("0").notNull(),
   sogliaMinima: decimal("sogliaMinima", { precision: 12, scale: 2 }).default("0").notNull(),
@@ -465,6 +471,7 @@ export const interventoRicambi = mysqlTable("interventoRicambi", {
   companyId: companyRef(),
   interventoId: varchar("interventoId", { length: 36 }).notNull(),
   ricambioId: varchar("ricambioId", { length: 36 }),
+  prodottoId: varchar("prodottoId", { length: 36 }),
   codiceRicambio: varchar("codiceRicambio", { length: 100 }),
   nomeRicambio: varchar("nomeRicambio", { length: 255 }),
   quantitaRichiesta: decimal("quantitaRichiesta", { precision: 12, scale: 2 }).default("0").notNull(),
@@ -475,6 +482,23 @@ export const interventoRicambi = mysqlTable("interventoRicambi", {
 });
 export type InterventoRicambio = typeof interventoRicambi.$inferSelect;
 export type InsertInterventoRicambio = typeof interventoRicambi.$inferInsert;
+
+/** Un singolo prelievo confermato dal Menù operatore Officina. */
+export const prelieviOfficina = mysqlTable("prelieviOfficina", {
+  id: uuidPk(),
+  companyId: companyRef(),
+  idempotencyKey: varchar("idempotencyKey", { length: 80 }).notNull(),
+  macchinaId: varchar("macchinaId", { length: 36 }).notNull(),
+  interventoId: varchar("interventoId", { length: 36 }),
+  operatore: varchar("operatore", { length: 255 }),
+  costoTotale: decimal("costoTotale", { precision: 12, scale: 2 }).default("0").notNull(),
+  righe: json("righe").notNull(),
+  ...auditColumns,
+}, (table) => [
+  uniqueIndex("prelievi_officina_company_idempotency_unique").on(table.companyId, table.idempotencyKey),
+]);
+export type PrelievoOfficina = typeof prelieviOfficina.$inferSelect;
+export type InsertPrelievoOfficina = typeof prelieviOfficina.$inferInsert;
 
 // ─── CALENDARIO ───────────────────────────────────────────────────────────────
 export const eventi = mysqlTable("eventi", {

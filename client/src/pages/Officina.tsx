@@ -1,22 +1,24 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import {
-  Tractor, Wrench, Package, AlertTriangle, Clock, CheckCircle2, Euro, Activity,
+  Tractor, Wrench, Package, AlertTriangle, Clock, Euro, Activity, ShoppingCart,
 } from "lucide-react";
 import { FAL_IMAGES } from "@/lib/assets";
 import { C, eur } from "./officina/shared";
 import MezziTab from "./officina/MezziTab";
 import InterventiTab from "./officina/InterventiTab";
 import RicambiTab from "./officina/RicambiTab";
+import OperatoreTab from "./officina/OperatoreTab";
 
 const TABS: { id: string; label: string; icon: any }[] = [
+  { id: "operatore", label: "Menù operatore", icon: ShoppingCart },
   { id: "mezzi", label: "Mezzi", icon: Tractor },
   { id: "interventi", label: "Interventi", icon: Wrench },
   { id: "ricambi", label: "Ricambi", icon: Package },
 ];
 
 export default function Officina() {
-  const [tab, setTab] = useState("mezzi");
+  const [tab, setTab] = useState("operatore");
   const { data: dash } = trpc.officina.dashboard.useQuery();
 
   const kpi = [
@@ -72,7 +74,7 @@ export default function Officina() {
       )}
 
       {/* Tab navigation */}
-      <div className="flex gap-2 p-1 rounded-xl w-fit" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
+      <div className="flex max-w-full gap-2 overflow-x-auto p-1 rounded-xl" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
         {TABS.map((t) => {
           const active = tab === t.id;
           return (
@@ -85,6 +87,7 @@ export default function Officina() {
       </div>
 
       {/* Tab content */}
+      {tab === "operatore" && <OperatoreTab />}
       {tab === "mezzi" && <MezziTab />}
       {tab === "interventi" && <InterventiTab />}
       {tab === "ricambi" && <RicambiTab />}

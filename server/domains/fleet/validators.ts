@@ -150,6 +150,10 @@ export const createRicambioInput = z.object({
   codice: z.string().optional(),
   nome: z.string().min(1),
   categoria: z.enum(CATEGORIE_RICAMBIO).default("Altro"),
+  reparto: z.string().optional(),
+  famiglia: z.string().optional(),
+  sottocategoria: z.string().optional(),
+  immagineUrl: z.string().optional(),
   compatibilita: z.string().optional(),
   quantitaDisponibile: z.number().min(0).default(0),
   sogliaMinima: z.number().min(0).default(0),
@@ -168,6 +172,21 @@ export const adjustRicambioInput = z.object({
   delta: z.number(),
 });
 
+// ── Menù operatore Officina ───────────────────────────────────────────────────
+export const confermaPrelievoInput = z.object({
+  idempotencyKey: z.string().min(8).max(80),
+  macchinaId: z.string().min(1),
+  interventoId: z.string().optional(),
+  nuovoIntervento: z.object({
+    descrizione: z.string().min(3).max(255),
+    tipo: z.enum(TIPI_INTERVENTO).default("manutenzione"),
+  }).optional(),
+  righe: z.array(z.object({
+    ricambioId: z.string().min(1),
+    quantita: z.number().positive().max(10000),
+  })).min(1).max(100),
+});
+
 export type CreateMacchinaInput = z.infer<typeof createMacchinaInput>;
 export type UpdateMacchinaInput = z.infer<typeof updateMacchinaInput>;
 export type AddDocumentoInput = z.infer<typeof addDocumentoInput>;
@@ -175,3 +194,4 @@ export type CreateInterventoInput = z.infer<typeof createInterventoInput>;
 export type CompletaInterventoInput = z.infer<typeof completaInterventoInput>;
 export type CreateRicambioInput = z.infer<typeof createRicambioInput>;
 export type UpdateRicambioInput = z.infer<typeof updateRicambioInput>;
+export type ConfermaPrelievoInput = z.infer<typeof confermaPrelievoInput>;

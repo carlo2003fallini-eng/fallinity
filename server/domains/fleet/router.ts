@@ -1,6 +1,7 @@
 import { protectedProcedure, router } from "../../_core/trpc";
 import { getActor } from "../_core";
 import { fleetService } from "./service";
+import { operatorService } from "./operator";
 import {
   createMacchinaInput,
   updateMacchinaInput,
@@ -19,6 +20,7 @@ import {
   deleteRicambioInput,
   adjustRicambioInput,
   setStatoOrdineRicambioInput,
+  confermaPrelievoInput,
 } from "./validators";
 import { z } from "zod";
 
@@ -28,6 +30,16 @@ import { z } from "zod";
  * officina.ricambi.*. Mantiene compatibilità con le procedure usate dal frontend.
  */
 export const officinaRouter = router({
+  operatore: router({
+    catalogo: protectedProcedure.query(async ({ ctx }) => {
+      const actor = await getActor(ctx);
+      return operatorService.catalogo(actor.companyId);
+    }),
+    confermaPrelievo: protectedProcedure.input(confermaPrelievoInput).mutation(async ({ ctx, input }) => {
+      const actor = await getActor(ctx);
+      return operatorService.confermaPrelievo(actor, input);
+    }),
+  }),
   dashboard: protectedProcedure.query(async ({ ctx }) => {
     const actor = await getActor(ctx);
     return fleetService.dashboard(actor.companyId);
