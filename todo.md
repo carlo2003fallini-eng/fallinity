@@ -101,7 +101,7 @@ Limiti e completamenti espliciti: rettifica guidata dopo distribuzione non attiv
 - [x] Sostituire solo le quattro immagini dell’hub; preservare dimensioni, testi, icone, percorsi, riepilogo e logica
 - [x] Aggiornare la versione PWA e la whitelist con solo i nuovi sfondi pubblici
 - [x] Regressioni mirate, suite completa, TypeScript/build/SW/diff e verifica mobile
-- [ ] Salvare checkpoint finale
+- [x] Salvare checkpoint finale
 Nota: il messaggio termina con «e anche», senza specificare ulteriori modifiche. Non vengono dedotti cambi di nome, icone o funzioni.
 
 Verifiche Fase 100: 19/19 test mirati sfondi/PWA; suite globale, TypeScript, build, service worker e diff validi. Screenshot mobile a 360/390 px: quattro scene coerenti col riferimento, overlay leggibile, titoli/icone/dimensioni/rotte e riepilogo preservati. Sfondi privi di UI incorporata, ottimizzati a 1100 px, luminosità ridotta del 12%. Nessuna modifica a dati aziendali, database o procedure operative.
