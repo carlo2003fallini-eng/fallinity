@@ -87,7 +87,7 @@ Perimetro: documento completo del 20 novembre 2026. Nessuna demo o seconda app; 
 - [x] Permessi server, isolamento multi-azienda, conferme esplicite, costi riservati, proxy NIR privato e PWA network-only per dati e documenti
 - [x] Dodici scenari di accettazione sul DB/API reali: suite globale finale 766/766, 22/22 test UI operatore separati, TypeScript/build/SW/diff validi; 25 controlli browser a 360/390/430 px senza errori o overflow
 - [x] Riepilogo consegna in docs/alimentazione-fase99-consegna.md con funzionalità, fonti, migrazione, limiti/configurazioni esterne e test
-- [ ] Salvare checkpoint finale della sezione reale verificata
+- [x] Salvare checkpoint finale della sezione reale verificata
 
 Bilance del carro e strumenti NIR diretti: predisposizione soltanto, nessuna compatibilità dichiarata senza protocollo/documentazione verificati. Nessuna modifica automatica di una ricetta da parte dell’IA; raccomandazioni da validare con allevatore/alimentarista. Offline: bozze esplicite ove disponibili; nessuna conferma finale di scarico prima della risposta server.
 
