@@ -12,25 +12,25 @@ const areas = [
     path: "razioni",
     title: "Razioni",
     icon: Wheat,
-    image: "/manus-storage/feeding-razioni_2cdc04ba.jpg",
+    image: "/manus-storage/feeding-ref100-razioni_4912de69.jpg",
   },
   {
     path: "distribuzione",
     title: "Distribuzione e consumi",
     icon: Tractor,
-    image: "/manus-storage/feeding-distribuzione_157e3648.jpg",
+    image: "/manus-storage/feeding-ref100-distribuzione_2070bdde.jpg",
   },
   {
     path: "alimenti",
     title: "Alimenti e analisi alimenti",
     icon: FlaskConical,
-    image: "/manus-storage/feeding-alimenti_abc971fd.jpg",
+    image: "/manus-storage/feeding-ref100-alimenti_f3e2b3c5.jpg",
   },
   {
     path: "analisi",
     title: "Analisi",
     icon: ChartNoAxesCombined,
-    image: "/manus-storage/feeding-analisi_9c56c92e.jpg",
+    image: "/manus-storage/feeding-ref100-analisi_0785d3bc.jpg",
   },
 ];
 export default function Alimentazione() {
@@ -49,7 +49,7 @@ export default function Alimentazione() {
             aria-label={`Apri ${a.title}`}
             className="group flex min-h-[180px] flex-col items-center gap-2 overflow-hidden rounded-2xl border border-white/10 px-3 pt-7 text-center transition-transform active:scale-[.98]"
             style={{
-              backgroundImage: `linear-gradient(180deg,rgba(3,9,5,.92),rgba(3,9,5,.60),rgba(3,9,5,.25)),url(${a.image})`,
+              backgroundImage: `linear-gradient(180deg,rgba(3,9,5,.58),rgba(3,9,5,.28),rgba(3,9,5,.10)),url(${a.image})`,
               backgroundSize: "cover",
               backgroundPosition: "center",
               boxShadow: "0 8px 20px #0005",

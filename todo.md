@@ -94,3 +94,14 @@ Bilance del carro e strumenti NIR diretti: predisposizione soltanto, nessuna com
 Prova IA reale superata su PDF sintetico privato: gpt-6.1-sol estrae SS/umidità/PG/NDF/amido nelle basi corrette e lascia gli altri valori mancanti; Intelligence restituisce fonti e limiti senza scritture operative. Le prove hanno usato solo tenant UUID temporanei eliminati dopo l’esecuzione, anche per i test acquisti/DDT/costo medio/concorrenza. Nessuna ricetta o analisi di prova è stata inserita nell’azienda agricola reale. La lettura corrente FOR UPDATE protegge i retry concorrenti; gli errori operativi definitivi sono distinguibili dagli esiti incerti. La fonte del latte include rilevazioni reali e prezzi documentati, non stime di produzione dagli animali attuali.
 
 Limiti e completamenti espliciti: rettifica guidata dopo distribuzione non attivata (richiede correzione fisica documentata in Magazzino); riuso automatico non consentito tra gruppi/ricette differenti o per carro interamente da avanzo; giacenze per singolo lotto e ripartizioni complesse fra più DDT non inventate; frequenza minima 0,1 esecuzioni/giorno; giornate analytics UTC dichiarate; tentativi finali congelati non recuperati automaticamente dopo reload. Configurazioni/hardware esterni da verificare. Tutti i dettagli e le cautele sono riportati nel documento di consegna.
+
+## Fase 100 — Sfondi Alimentazione dal riferimento utente
+- [x] Ricavare quattro sfondi dal riferimento 1000170467.png, rimuovendo soltanto UI/scritte incorporate e preservando scene/composizione
+- [x] Rendere gli sfondi leggermente più scuri, ottimizzarli e caricarli nello storage WebDev
+- [x] Sostituire solo le quattro immagini dell’hub; preservare dimensioni, testi, icone, percorsi, riepilogo e logica
+- [x] Aggiornare la versione PWA e la whitelist con solo i nuovi sfondi pubblici
+- [x] Regressioni mirate, suite completa, TypeScript/build/SW/diff e verifica mobile
+- [ ] Salvare checkpoint finale
+Nota: il messaggio termina con «e anche», senza specificare ulteriori modifiche. Non vengono dedotti cambi di nome, icone o funzioni.
+
+Verifiche Fase 100: 19/19 test mirati sfondi/PWA; suite globale, TypeScript, build, service worker e diff validi. Screenshot mobile a 360/390 px: quattro scene coerenti col riferimento, overlay leggibile, titoli/icone/dimensioni/rotte e riepilogo preservati. Sfondi privi di UI incorporata, ottimizzati a 1100 px, luminosità ridotta del 12%. Nessuna modifica a dati aziendali, database o procedure operative.
