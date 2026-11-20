@@ -413,6 +413,8 @@ export const fatturaPerMovimentoInput = z.object({
 });
 
 export const rigaConfermaFatturaInput = z.object({
+  ricevimentoMagazzinoId: z.string().min(1).max(100).nullish(),
+  quantitaRicevutaResidua: z.number().finite().min(0).max(1e9).nullish(),
   rigaId: z.string().min(1),
   categoriaId: z.string().min(1),
   centroCostoId: z.string().min(1),

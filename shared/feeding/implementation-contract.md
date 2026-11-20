@@ -1,0 +1,24 @@
+# Contratto implementazione Alimentazione Fase 99
+
+Progetto /home/ubuntu/fallinity. Requisiti integrali /home/ubuntu/upload/pasted_content.txt. Nessuna demo e nessun dato dimostrativo nel tenant operativo. Solo tRPC per le API. Tema nero/verde; quattro categorie principali. Fonte unica prodotti Magazzino e gruppi Stalla. Cambi confermati esplicitamente, costi riservati lato server. Tipi definitivi in shared/feeding/types.ts.
+
+## API tRPC alimentazione (parent crea router/core)
+- data({scope?: companyId}): FeedData. Hook useFeed in client/src/pages/alimentazione/shared.tsx.
+- saveRecipe(RecipeInput): {id}. Nuova versione sempre; non cambiare record storico. activateRecipe({id,validFrom?:timestamp,confirm:true}), archiveRecipe({id,confirm:true}).
+- configureFrequency({groupId,runsPerDay:number>0,confirm:true}), saveContainer({id?:string,nome,kg,groupId?:string,recipeId?:string,confirm:true}), savePreferences({scopeType:'operatore'|'gruppo'|'azienda',scopeId?:string,value:Record,confirm:true}).
+- saveDraft({groupId,recipeId,draft:object,confirm:true}): {id}; il draft non scarica. confirmLoad(LoadInput): {id,idempotent}. key UUID stabile sul medesimo tentativo. reusedKg sottratti proporzionalmente al fresco solo se stesso snapshot ricetta, composizione nota e compatibilità confermata. Controllo disponibilità/lock/rollback server.
+- distribute(DistributionInput): {id,idempotent}; nessun secondo scarico. registerLeftover(LeftoverInput): {id}; quantità contenitore ricalcolata server; collegamento distribuzione precedente e preferenze persistite. rectifyLoad({key,runId,reason,confirm:true}): annullamento tracciato con movimenti compensativi, solo se nessuna distribuzione effettiva.
+- saveNir(NirInput): {id}; activateNir({id,confirm:true}); uploadNirDocument({productId,name,mime,base64}): {documentKey,url}; extractNir({productId,documentKey}): {params,notes}; documentNir({id}): {url}. Immagini/PDF <=5 MB e documenti privati con ownership aziendale verificata.
+- saveComparison({id?:string,left:ComparisonSide,right:ComparisonSide,notes?:string,ai?:string,confirm:true}): {id}. left lato server riletto dal prodotto aziendale; snapshot storico conservato; id parametro crea nuova versione con parentId.
+- analytics(AnalyticsInput): AnalyticsResult.
+- intelligence({question:string,comparison?:{left,right},from?:number,to?:number,groupId?:string}): {answer:string,sources:string[],missing:string[]}. Server rilegge dati reali della propria azienda. IA nessuna modifica.
+- saveMilkRecord({groupId,at,milkKg,fat?:number|null,protein?:number|null,pricePerKg?:number|null,priceSource?:string,source?:string,confirm:true}): {id}; fonte unica persistita Dati stalla, integrata nella schermata esistente, non valori fittizi. Prezzo manuale eventuale identificato come liquidazione/contabilità registrata, i prezzi fatture di vendita vengono recuperati automaticamente se associati e in kg.
+
+## Matematica (agente nutrizione)
+File shared/feeding/math.ts: kgFactor(unit), calculateRecipe(recipe,group,products) -> {kgPerHead,kgPerDay,kgPerRun,ssKgPerHead,ssPercent,costPerHead,costPerDay,lines:[{productId,nome,kgPerHead,kgPerDay,kgPerRun,ssKgPerHead,costPerHead}]}; calculateComparison(left,right) -> {nutrients:[{key,label,left,right,unit,warning}],economic:[{key,label,left,right,diffPercent}],equivalentPrice:number|null,warnings:string[]}; weightedCost(oldQuantity,oldUnitCost,newQuantity,newUnitCost), dryMatter(params), nutrientOnDm(params,key). Null per dati mancanti; nessun costo zero inventato; metodi/tempi di digeribilità diversi segnalati, non direttamente confrontati. kg/q/t conversioni esplicite.
+
+## DB (parent crea schema/migrazione)
+Le tabelle feedingRecipes, feedingRuns, feedingDistributions, feedingLeftovers, feedingNirAnalyses, feedingContainers, feedingSettings, feedingComparisons, datiStallaRilevazioni utilizzano id/companyId/audit; payload json tipizzati per ricette, run ingredient snapshots, valoriNIR, confronto. Repo/service esporta loadFeedingData(actor,permissions):Promise<FeedData>. Agente analytics può lavorare su FeedData pure senza DB; implementa server/domains/feeding/analytics.ts export feedingAnalytics(data,input):AnalyticsResult. Le fonti reali/snapshot arrivano da core.
+
+## Confini
+UI Razioni: solo Razioni.tsx. UI Operatore: solo Distribuzione.tsx. UI Alimenti e confronto: solo Alimenti.tsx e Confronto.tsx. UI Analisi: solo Analisi.tsx. Componenti comuni parent, non modificarli senza accordo. Backend nutrizione: solo math.ts e nutrition.ts, test nutrizione. Backend analytics: solo analytics.ts e test analytics. Test integrati: agent dedicato dopo schema/core. Non modificare App, schema, router, todo o altri domini: parent. Nessun browser parallelo condiviso. Non eseguire pnpm build o suite globale in agent; solo test mirati.

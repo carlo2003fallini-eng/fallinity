@@ -1,7 +1,7 @@
 // Fallinity FEOS — Service Worker minimale
 // Fallinity PWA: viene memorizzata soltanto la shell dell'app.
 // API, autenticazione e file utente restano sempre network-only.
-const buildVersion = new URL(self.location.href).searchParams.get("v") || "fase-98-importazione-fatture-demo";
+const buildVersion = new URL(self.location.href).searchParams.get("v") || "fase-99-alimentazione";
 const safeVersion = buildVersion.replace(/[^a-zA-Z0-9_-]/g, "-");
 const SHELL_CACHE = `fallinity-shell-${safeVersion}`;
 const RUNTIME_CACHE = `fallinity-runtime-${safeVersion}`;
@@ -25,6 +25,10 @@ const APP_SHELL = [
   "/manus-storage/officina-mezzi-card_2aaf0eca.jpg",
   "/manus-storage/officina-interventi-card_0cd91977.jpg",
   "/manus-storage/officina-ricambi-card_7d786495.jpg",
+  "/manus-storage/feeding-razioni_2cdc04ba.jpg",
+  "/manus-storage/feeding-distribuzione_157e3648.jpg",
+  "/manus-storage/feeding-alimenti_abc971fd.jpg",
+  "/manus-storage/feeding-analisi_9c56c92e.jpg",
 ];
 const PUBLIC_BRAND_ASSETS = new Set([
   "/manus-storage/fallinity-logo_8c31d682.png",
@@ -44,6 +48,10 @@ const PUBLIC_BRAND_ASSETS = new Set([
   "/manus-storage/officina-mezzi-card_2aaf0eca.jpg",
   "/manus-storage/officina-interventi-card_0cd91977.jpg",
   "/manus-storage/officina-ricambi-card_7d786495.jpg",
+  "/manus-storage/feeding-razioni_2cdc04ba.jpg",
+  "/manus-storage/feeding-distribuzione_157e3648.jpg",
+  "/manus-storage/feeding-alimenti_abc971fd.jpg",
+  "/manus-storage/feeding-analisi_9c56c92e.jpg",
 ]);
 
 const OFFLINE_HTML = `<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0a0f0a"><title>Fallinity offline</title><style>body{margin:0;background:#070b07;color:#f3f5f3;font:16px system-ui;min-height:100vh;display:grid;place-items:center}.box{max-width:28rem;padding:2rem;text-align:center}h1{font-size:1.4rem}p{color:#a4aca4;line-height:1.5}button{border:0;border-radius:12px;background:#4ade80;color:#071108;font-weight:700;padding:.8rem 1.2rem}</style></head><body><main class="box"><h1>Fallinity è offline</h1><p>L'interfaccia non è ancora disponibile su questo dispositivo. Riconnettiti almeno una volta per scaricare l'ultima versione.</p><button onclick="location.reload()">Riprova</button></main></body></html>`;

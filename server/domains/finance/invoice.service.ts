@@ -480,6 +480,8 @@ export const invoiceService = {
         centroCostoId: line.centroCostoId ?? null,
         destinazione: line.destinazione,
         aggiornaMagazzino: line.aggiornaMagazzino,
+        ricevimentoMagazzinoId: line.ricevimentoMagazzinoId ?? null,
+        quantitaRicevutaResidua: line.quantitaRicevutaResidua ?? null,
         prodottoId: line.prodottoId ?? null,
         creaProdotto: line.creaProdotto,
         nomeProdotto: line.nomeProdotto ?? null,

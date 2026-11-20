@@ -1,6 +1,7 @@
 import { protectedProcedure, router } from "../../_core/trpc";
 import { getActor } from "../_core";
 import { livestockService } from "./service";
+import { produzioneData, salvaProduzione } from "../feeding/milk";
 import {
   addAnimaleInput, updateAnimaleInput, spostaGruppoInput,
   ricercaAnimaliInput, getAnimaleInput,
@@ -14,6 +15,8 @@ import {
 
 /** LIVESTOCK (Stalla) — Router */
 export const stallaRouter = router({
+  produzioneData,
+  salvaProduzione,
   // ── Legacy (retrocompatibilità) ──
   list: protectedProcedure.query(async ({ ctx }) => {
     const actor = await getActor(ctx);

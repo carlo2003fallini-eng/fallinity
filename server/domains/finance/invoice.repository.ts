@@ -12,6 +12,7 @@ import {
   scadenzeFinanziarie,
   soggetti,
 } from "../../../drizzle/schema";
+import { kgFactor, weightedCost } from "../../../shared/feeding/math";
 import { newId, withCreate, withUpdate, type ActorContext } from "../_core";
 import type { ListArchivioFattureInput } from "./validators";
 
@@ -21,6 +22,8 @@ export type RigaConfermaPreparata = {
   centroCostoId: string | null;
   destinazione: "costo" | "magazzino" | "investimento" | "altro";
   aggiornaMagazzino: boolean;
+  ricevimentoMagazzinoId?: string | null;
+  quantitaRicevutaResidua?: number | null;
   prodottoId: string | null;
   creaProdotto: boolean;
   nomeProdotto: string | null;
@@ -424,6 +427,7 @@ export const invoiceRepository = {
             }) as any);
           }
           if (!productId) throw new Error(`Seleziona o crea un prodotto per la riga “${line.descrizione}”`);
+          await tx.execute(sql`SELECT id FROM prodotti WHERE id=${productId} AND companyId=${actor.companyId} AND deletedAt IS NULL FOR UPDATE`);
           const productRows = await tx.select().from(prodotti).where(and(
             eq(prodotti.id, productId),
             eq(prodotti.companyId, actor.companyId),
@@ -431,21 +435,45 @@ export const invoiceRepository = {
           )).limit(1);
           const product = productRows[0];
           if (!product) throw new Error("Il prodotto selezionato non appartiene all’azienda attiva");
-          const newQuantity = Number(product.quantita) + quantity;
+          const invoiceFactor = kgFactor(line.unitaMisura);
+          const stockFactor = kgFactor(product.unitaMisura);
+          if ((invoiceFactor !== null || stockFactor !== null) && invoiceFactor !== stockFactor && (invoiceFactor === null || stockFactor === null)) throw new Error(`Unità incompatibili per ${product.nome}: verifica la conversione prima del carico`);
+          const stockQuantity = invoiceFactor && stockFactor ? quantity * invoiceFactor / stockFactor : quantity;
+          const incomingCost = line.importoEconomico >= 0 ? line.importoEconomico / 100 / stockQuantity : null;
+          if (line.ricevimentoMagazzinoId) {
+            await tx.execute(sql`SELECT id FROM movimentiMagazzino WHERE id=${line.ricevimentoMagazzinoId} AND companyId=${actor.companyId} FOR UPDATE`);
+            const [receipt] = await tx.select().from(movimentiMagazzino).where(and(eq(movimentiMagazzino.id,line.ricevimentoMagazzinoId),eq(movimentiMagazzino.companyId,actor.companyId),isNull(movimentiMagazzino.deletedAt))).limit(1);
+            if (!receipt || receipt.prodottoId !== productId || receipt.tipo !== "carico" || receipt.fatturaRigaId || receipt.originModule === "finance" || receipt.originModule === "feeding") throw new Error("Il ricevimento selezionato non è un carico fisico disponibile per questo prodotto");
+            if (Math.abs(Number(receipt.quantita) - stockQuantity) > .001) throw new Error("Il collegamento richiede la riga ricevuta integralmente: suddividi prima i ricevimenti in Magazzino");
+            const residual = line.quantitaRicevutaResidua;
+            if (residual == null || residual < 0 || residual > stockQuantity || residual > Number(product.quantita)) throw new Error("Conferma la quantità residua effettivamente presente di questo ricevimento (nell’unità Magazzino)");
+            const prior = product.costoMedioUnitario != null ? Number(product.costoMedioUnitario) : product.prezzoUnitario != null && Number(product.prezzoUnitario)>0 ? Number(product.prezzoUnitario) : null;
+            const mean = weightedCost(Number(product.quantita)-residual,prior,residual,incomingCost);
+            await tx.update(prodotti).set(withUpdate(actor,{costoMedioUnitario:mean==null?null:mean.toFixed(6),costoFonte:"Fattura collegata al ricevimento: valorizzazione dei residui confermati, nessun secondo carico",fornitoreId:soggettoId,prezzoUnitario:String(line.prezzoUnitario/100*(stockFactor&&invoiceFactor?stockFactor/invoiceFactor:1))})).where(and(eq(prodotti.id,productId),eq(prodotti.companyId,actor.companyId)));
+            await tx.update(movimentiMagazzino).set(withUpdate(actor,{fatturaRigaId:line.rigaId,costoUnitario:incomingCost==null?null:incomingCost.toFixed(6),importoCosto:(line.importoEconomico/100).toFixed(2),note:`${receipt.note??""}\nValorizzazione fattura ${acquisition.numeroDocumento}; residuo confermato ${residual} ${product.unitaMisura}` })).where(and(eq(movimentiMagazzino.id,receipt.id),eq(movimentiMagazzino.companyId,actor.companyId)));
+          } else {
+          const previousCost = product.costoMedioUnitario != null ? Number(product.costoMedioUnitario) : product.prezzoUnitario != null && Number(product.prezzoUnitario) > 0 ? Number(product.prezzoUnitario) : null;
+          const meanCost = weightedCost(Number(product.quantita), previousCost, stockQuantity, incomingCost);
+          const newQuantity = Number(product.quantita) + stockQuantity;
           await tx.insert(movimentiMagazzino).values(withCreate(actor, {
             id: newId(),
             prodottoId: productId,
             tipo: "carico",
-            quantita: quantity.toFixed(3),
+            quantita: stockQuantity.toFixed(3),
             data: acquisition.dataDocumento,
             descrizione: `Carico da fattura ${acquisition.numeroDocumento} — ${line.descrizione}`,
+            costoUnitario: incomingCost == null ? null : incomingCost.toFixed(6),
+            importoCosto: incomingCost == null ? null : (line.importoEconomico / 100).toFixed(2),
+            originModule: "finance", originId: acquisition.id, fatturaRigaId: line.rigaId,
+            causale: "acquisto_fattura",
             operatore: actor.userUuid,
           }) as any);
-          await tx.update(prodotti).set(withUpdate(actor, { quantita: newQuantity.toFixed(3) }) as any).where(and(
+          await tx.update(prodotti).set(withUpdate(actor, { quantita: newQuantity.toFixed(3), costoMedioUnitario: meanCost == null ? null : meanCost.toFixed(6), costoFonte: meanCost == null ? "Media non calcolabile: costo residuo mancante" : "Media ponderata residua; importi economici della fattura", prezzoUnitario: String(line.prezzoUnitario / 100 * (stockFactor && invoiceFactor ? stockFactor / invoiceFactor : 1)), fornitoreId: soggettoId }) as any).where(and(
             eq(prodotti.id, productId),
             eq(prodotti.companyId, actor.companyId),
           ));
           stockMovements += 1;
+          }
         }
 
         await tx.update(righeFattureAcquisite).set(withUpdate(actor, {

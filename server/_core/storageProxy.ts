@@ -4,6 +4,13 @@ import { ENV } from "./env";
 export function registerStorageProxy(app: Express) {
   app.get("/manus-storage/*", async (req, res) => {
     const key = (req.params as Record<string, string>)[0];
+    // Referti NIR privati: soltanto documentNir, dopo autorizzazione aziendale,
+    // può restituire l’URL firmato. Il proxy pubblico non deve firmare questi file.
+    if (key && /^companies\/[^/]+\/feeding\/nir\//i.test(key)) {
+      res.set("Cache-Control", "no-store");
+      res.status(403).send("Referto privato: usa l’accesso autorizzato Alimentazione");
+      return;
+    }
     if (!key) {
       res.status(400).send("Missing storage key");
       return;

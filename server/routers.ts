@@ -17,6 +17,7 @@ import { aiRouter } from "./domains/ai/router";
 import { scenarioRouter } from "./domains/scenario/router";
 import { fiscalRouter } from "./domains/fiscal/router";
 import { accessRouter } from "./domains/access/router";
+import { alimentazioneRouter } from "./domains/feeding/router";
 
 /**
  * ──────────────────────────────────────────────────────────────────────────────
@@ -50,6 +51,7 @@ export const appRouter = router({
   magazzino: magazzinoRouter,
   officina: officinaRouter,
   stalla: stallaRouter,
+  alimentazione: alimentazioneRouter,
   reintegrazione: reintegrazioneRouter,
   calendario: calendarioRouter,
   report: reportRouter,

@@ -70,3 +70,27 @@ Questa fase realizza la demo funzionante richiesta al punto 21 prima dell’atti
 - [x] Salvare checkpoint finale demo integrata
 
 Nove preset XML FatturaPA ordinari simulati e scaricabili, importazione manuale multipla solo con consenso all’uso di dati simulati. Prova IA reale su cinque righe: gpt-6-luna restituisce identificativi/classificazioni validati; nessuna quantità, spesa o associazione viene applicata dall’IA. Il confronto tra prezzo netto e ultimo acquisto evidenzia le variazioni senza rivalutare materiali già usati o giacenze. Scenari UI verificati: lettura senza carico, conferma esplicita, 10 filtri × 40 € → stock 9 dopo un prelievo, costo mezzo 40 €, spese 400 € invariate, pagamento distinto, duplicato che riapre la revisione senza ricaricare, memoria alias, inventario 20 storici → 7 fisici, ricezione 6+4, tre materiali senza manodopera/trasporto, 2 confezioni × 10 pezzi, DDT precedente collegato senza secondo carico, file multipli, reload e utenti viewer/operatore separati con costi riservati e 403 server. Fixture temporanee e token rimossi dopo la verifica; anagrafica e giacenze operative esistenti non modificate.
+
+## Fase 99 — Alimentazione reale, integrata e persistente
+Perimetro: documento completo del 20 novembre 2026. Nessuna demo o seconda app; nessun dato dimostrativo nel tenant operativo. Prodotti, gruppi, animali e fatture restano fonti uniche. Esempi nutrizionali esclusivamente nei test, non razioni approvate per animali reali.
+- [x] Analizzare fonti esistenti e introdurre solo le entità operative mancanti, con migrazione additiva verificata
+- [x] Hub Alimentazione con esattamente quattro card fotografiche 2×2 e riepilogo calcolato
+- [x] Ricette per gruppi Stalla reali: versioni, attivazione/programmazione, ingredienti Magazzino, quantità capo/gruppo/carro e valori mancanti espliciti
+- [x] Carico guidato con draft persistente, quantità effettive, avanzo precedente, riuso compatibile nella stessa versione/gruppo e conferma idempotente atomica
+- [x] Distribuzione completa/parziale e multigruppo autorizzata senza secondo scarico, rettifica compensativa pre-distribuzione e storico immutabile
+- [x] Contenitori e preferenze per operatore/gruppo/azienda con riconferma quantità; frequenze manuali/osservate e autonomia aziendale
+- [x] Alimenti dalla fonte Magazzino, costi unitari/medi ponderati e acquisti collegati alle fatture esistenti senza doppie spese
+- [x] NIR manuale/foto/PDF/IA verificabile, unità e basi corrette, analisi attive/versioni/documenti originali privati
+- [x] Confronto verticale due prodotti, barre nutrizionali, tabella nutrienti/prezzo equivalente, IA contestuale e confronti salvati/versionati; salvataggio dopo Intelligence
+- [x] Analisi verticale filtrata: consumi/costi/avanzi/ingestione stimata/FE/ECM/IOFC e grafici storici, pertinenti ai gruppi e senza dati inventati
+- [x] Fonte persistente Dati stalla per rilevazioni reali quando mancano registrazioni storiche; collegamento latte/fatture/IOFC e Finanza analitica senza spese aggiuntive
+- [x] Permessi server, isolamento multi-azienda, conferme esplicite, costi riservati, proxy NIR privato e PWA network-only per dati e documenti
+- [x] Dodici scenari di accettazione sul DB/API reali: suite globale finale 766/766, 22/22 test UI operatore separati, TypeScript/build/SW/diff validi; 25 controlli browser a 360/390/430 px senza errori o overflow
+- [x] Riepilogo consegna in docs/alimentazione-fase99-consegna.md con funzionalità, fonti, migrazione, limiti/configurazioni esterne e test
+- [ ] Salvare checkpoint finale della sezione reale verificata
+
+Bilance del carro e strumenti NIR diretti: predisposizione soltanto, nessuna compatibilità dichiarata senza protocollo/documentazione verificati. Nessuna modifica automatica di una ricetta da parte dell’IA; raccomandazioni da validare con allevatore/alimentarista. Offline: bozze esplicite ove disponibili; nessuna conferma finale di scarico prima della risposta server.
+
+Prova IA reale superata su PDF sintetico privato: gpt-6.1-sol estrae SS/umidità/PG/NDF/amido nelle basi corrette e lascia gli altri valori mancanti; Intelligence restituisce fonti e limiti senza scritture operative. Le prove hanno usato solo tenant UUID temporanei eliminati dopo l’esecuzione, anche per i test acquisti/DDT/costo medio/concorrenza. Nessuna ricetta o analisi di prova è stata inserita nell’azienda agricola reale. La lettura corrente FOR UPDATE protegge i retry concorrenti; gli errori operativi definitivi sono distinguibili dagli esiti incerti. La fonte del latte include rilevazioni reali e prezzi documentati, non stime di produzione dagli animali attuali.
+
+Limiti e completamenti espliciti: rettifica guidata dopo distribuzione non attivata (richiede correzione fisica documentata in Magazzino); riuso automatico non consentito tra gruppi/ricette differenti o per carro interamente da avanzo; giacenze per singolo lotto e ripartizioni complesse fra più DDT non inventate; frequenza minima 0,1 esecuzioni/giorno; giornate analytics UTC dichiarate; tentativi finali congelati non recuperati automaticamente dopo reload. Configurazioni/hardware esterni da verificare. Tutti i dettagli e le cautele sono riportati nel documento di consegna.

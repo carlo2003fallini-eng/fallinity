@@ -346,6 +346,8 @@ export const prodotti = mysqlTable("prodotti", {
   quantita: decimal("quantita", { precision: 12, scale: 3 }).default("0").notNull(),
   quantitaMinima: decimal("quantitaMinima", { precision: 12, scale: 3 }).default("0"),
   prezzoUnitario: decimal("prezzoUnitario", { precision: 12, scale: 2 }),
+  costoMedioUnitario: decimal("costoMedioUnitario", { precision: 18, scale: 6 }),
+  costoFonte: varchar("costoFonte", { length: 100 }),
   fornitoreId: varchar("fornitoreId", { length: 36 }),
   fornitore: varchar("fornitore", { length: 255 }),
   posizione: varchar("posizione", { length: 100 }),
@@ -371,6 +373,11 @@ export const movimentiMagazzino = mysqlTable("movimentiMagazzino", {
   descrizione: text("descrizione"),
   causale: varchar("causale", { length: 120 }),
   note: text("note"),
+  costoUnitario: decimal("costoUnitario", { precision: 18, scale: 6 }),
+  importoCosto: decimal("importoCosto", { precision: 12, scale: 2 }),
+  originModule: varchar("originModule", { length: 50 }),
+  originId: varchar("originId", { length: 100 }),
+  fatturaRigaId: varchar("fatturaRigaId", { length: 36 }),
   operatore: varchar("operatore", { length: 255 }),
   ...auditColumns,
 });
@@ -538,6 +545,7 @@ export const gruppi = mysqlTable("gruppi", {
   regolaAutomatica: json("regolaAutomatica"),
   colore: varchar("colore", { length: 20 }).default("#4ade80"),
   descrizione: text("descrizione"),
+  foto: varchar("foto", { length: 500 }),
   capacitaMax: int("capacitaMax"),
   note: text("note"),
   stato: mysqlEnum("stato", ["attivo", "archiviato"]).default("attivo").notNull(),
@@ -1558,3 +1566,6 @@ export const vatPeriods = mysqlTable("vatPeriods", {
   reopenReason: text("reopenReason"),
   ...auditColumns,
 });
+
+// Alimentazione usa prodotti e gruppi esistenti; solo registrazioni operative e snapshot nuovi.
+export * from "./feeding.schema";

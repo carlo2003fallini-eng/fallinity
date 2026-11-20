@@ -1,5 +1,7 @@
 import { protectedProcedure, router } from "../../_core/trpc";
 import { getActor } from "../_core";
+import { costiAlimentari } from "../feeding/finance";
+import { ricevimentiDaCollegare } from "../inventory/receipt-links";
 import { financeService } from "./service";
 import { invoiceService } from "./invoice.service";
 import { proposalsRouter } from "./proposals.router";
@@ -63,6 +65,8 @@ import { z } from "zod";
  * Strato sottile: valida input, ricava l'attore, delega al service.
  */
 export const finanzaRouter = router({
+  costiAlimentari,
+  ricevimentiDaCollegare,
   // ── Legacy (dashboard) ──
   list: protectedProcedure.input(listTransazioniInput).query(async ({ ctx, input }) => {
     const actor = await getActor(ctx);

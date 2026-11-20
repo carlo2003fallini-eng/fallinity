@@ -79,7 +79,7 @@ export default function PWAController() {
     updateRegistration.waiting.postMessage({ type: "SKIP_WAITING" });
   };
 
-  const bannerPlacement = location.startsWith("/officina") ? "relative mx-4 my-2 z-[70]" : "fixed inset-x-4 bottom-20 z-[70]";
+  const bannerPlacement = (location.startsWith("/officina") || location.startsWith("/alimentazione") || location.startsWith("/stalla/dati-latte")) ? "relative mx-4 my-2 z-[70]" : "fixed inset-x-4 bottom-20 z-[70]";
 
   if (!online) {
     return <div className={`${bannerPlacement} mx-auto flex max-w-md items-center gap-3 rounded-2xl border border-amber-400/30 bg-amber-950/95 p-3 text-amber-100 shadow-2xl backdrop-blur`} role="status" aria-live="polite"><WifiOff className="size-5 shrink-0 text-amber-400" /><div className="min-w-0"><p className="text-sm font-semibold">Modalità offline</p><p className="text-xs text-amber-100/70">Puoi consultare l’ultima interfaccia. Le operazioni server riprenderanno quando torni online.</p></div></div>;
@@ -89,7 +89,7 @@ export default function PWAController() {
     return <div className={`${bannerPlacement} mx-auto max-w-md rounded-2xl border border-primary/30 bg-background/95 p-4 shadow-2xl backdrop-blur`} role="status" aria-live="polite"><div className="flex items-start gap-3"><RefreshCw className={`mt-0.5 size-5 shrink-0 text-primary ${updating ? "animate-spin" : ""}`} /><div className="min-w-0 flex-1"><p className="text-sm font-semibold">Aggiornamento disponibile</p><p className="mt-1 text-xs text-muted-foreground">Installa l’ultima versione di Fallinity senza perdere i dati.</p></div></div><Button className="mt-3 w-full" onClick={update} disabled={updating}>{updating ? "Aggiornamento…" : "Aggiorna ora"}</Button></div>;
   }
 
-  if (location.startsWith("/officina") || installed || installDismissed || (!installPrompt && !isiOS)) return null;
+  if ((location.startsWith("/officina") || location.startsWith("/alimentazione") || location.startsWith("/stalla/dati-latte")) || installed || installDismissed || (!installPrompt && !isiOS)) return null;
 
   return <div className="fixed inset-x-4 bottom-20 z-[70] mx-auto max-w-md rounded-2xl border border-primary/30 bg-background/95 p-4 shadow-2xl backdrop-blur" role="dialog" aria-label="Installa Fallinity"><button onClick={dismissInstall} className="absolute right-2 top-2 rounded-full p-2 text-muted-foreground hover:bg-muted" aria-label="Chiudi"><X className="size-4" /></button><div className="flex items-start gap-3 pr-6">{isiOS ? <Share2 className="mt-0.5 size-5 shrink-0 text-primary" /> : <Download className="mt-0.5 size-5 shrink-0 text-primary" />}<div><p className="text-sm font-semibold">Installa Fallinity</p><p className="mt-1 text-xs text-muted-foreground">{isiOS ? "Apri Condividi e scegli “Aggiungi alla schermata Home”." : "Aggiungi l’app al telefono per aprirla a schermo intero e usarla anche offline."}</p></div></div>{installPrompt && <Button className="mt-3 w-full" onClick={install}><Download className="mr-2 size-4" />Installa app</Button>}</div>;
 }

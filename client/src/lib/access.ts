@@ -5,6 +5,8 @@ export function hasModule(modules: readonly string[] | undefined, required: Acce
 }
 
 export function moduleForPath(path: string): AccessModuleKey | null {
+  if (path.startsWith("/alimentazione") || path.startsWith("/stalla/alimentazione")) return "azienda.stalla.alimentazione";
+  if (path.startsWith("/stalla/dati-latte")) return "azienda.stalla.dati_latte";
   if (path.startsWith("/stalla")) return "azienda.stalla";
   if (path.startsWith("/magazzino")) return "azienda.magazzino";
   if (path.startsWith("/officina")) return "azienda.officina";

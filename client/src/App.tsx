@@ -53,6 +53,13 @@ import ImpostazioniAccount from "./pages/ImpostazioniAccount";
 import UtentiAccessi from "./pages/UtentiAccessi";
 import SuperAdmin from "./pages/SuperAdmin";
 import Invito from "./pages/Invito";
+import Alimentazione from "./pages/alimentazione/Alimentazione";
+import Razioni from "./pages/alimentazione/Razioni";
+import Distribuzione from "./pages/alimentazione/Distribuzione";
+import Alimenti from "./pages/alimentazione/Alimenti";
+import Confronto from "./pages/alimentazione/Confronto";
+import AnalisiAlimentazione from "./pages/alimentazione/Analisi";
+import DatiStalla from "./pages/alimentazione/DatiStalla";
 
 function Router() {
   return (
@@ -103,6 +110,14 @@ function Router() {
         <Route path="/calendario" component={Calendario} />
         <Route path="/report" component={Report} />
         <Route path="/ai" component={AI} />
+        <Route path="/alimentazione/razioni" component={Razioni} />
+        <Route path="/alimentazione/distribuzione" component={Distribuzione} />
+        <Route path="/alimentazione/alimenti" component={Alimenti} />
+        <Route path="/alimentazione/confronto" component={Confronto} />
+        <Route path="/alimentazione/analisi" component={AnalisiAlimentazione} />
+        <Route path="/alimentazione" component={Alimentazione} />
+        <Route path="/stalla/alimentazione" component={Alimentazione} />
+        <Route path="/stalla/dati-latte" component={DatiStalla} />
         <Route path="/stalla/animali" component={TuttiAnimali} />
         <Route path="/stalla/gruppi-demo">{() => <GruppiDemo onBack={() => window.history.back()} />}</Route>
         <Route path="/stalla/gruppi/:groupId">{({ groupId }) => <GruppoDetail groupId={groupId} onBack={() => window.history.back()} />}</Route>

@@ -2,6 +2,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { CompanyAreasGrid } from "@/components/azienda/CompanyAreasGrid";
 import { trpc } from "@/lib/trpc";
+import { Wheat } from "lucide-react";
 import { hasModule } from "@/lib/access";
 
 export default function Azienda() {
@@ -25,6 +26,7 @@ export default function Azienda() {
         companyKey={user?.activeCompanyId ?? "azienda"}
         allowedAreas={allowedAreas ? [...allowedAreas] : undefined}
       />
+      {(access?.isCompanyAdmin || hasModule(access?.modules, "azienda.stalla.alimentazione" as any)) && <button onClick={() => setLocation("/alimentazione")} className="mt-4 flex min-h-14 w-full items-center gap-3 rounded-2xl border border-green-500/30 bg-green-950/20 px-4 text-left text-green-300"><Wheat size={23}/><span className="font-semibold">Alimentazione</span><span className="ml-auto text-xs text-zinc-400">Razioni e consumi</span></button>}
     </div>
   );
 }

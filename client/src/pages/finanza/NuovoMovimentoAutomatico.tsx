@@ -1,3 +1,4 @@
+import RicevimentoFattura from "./RicevimentoFattura";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -57,6 +58,8 @@ type LineReview = {
   centroCostoId: string;
   destinazione: "costo" | "magazzino" | "investimento" | "altro";
   aggiornaMagazzino: boolean;
+  ricevimentoMagazzinoId?: string | null;
+  quantitaRicevutaResidua?: number | null;
   prodottoId: string;
   creaProdotto: boolean;
   nomeProdotto: string;
@@ -354,6 +357,8 @@ export default function NuovoMovimentoAutomatico() {
         centroCostoId: line.centroCostoId,
         destinazione: line.destinazione,
         aggiornaMagazzino: line.aggiornaMagazzino,
+        ricevimentoMagazzinoId: line.ricevimentoMagazzinoId,
+        quantitaRicevutaResidua: line.quantitaRicevutaResidua,
         prodottoId: line.prodottoId || null,
         creaProdotto: line.creaProdotto,
         nomeProdotto: line.nomeProdotto || null,
@@ -562,7 +567,8 @@ export default function NuovoMovimentoAutomatico() {
                               <div className="mt-4 space-y-3 border-t border-white/8 pt-4">
                                 <div className="space-y-2"><Label>Prodotto esistente</Label><Select value={review.prodottoId || "none"} onValueChange={(value) => updateLine(line.id, { prodottoId: value === "none" ? "" : value, creaProdotto: value === "new" })}><SelectTrigger className="h-12 rounded-2xl border-white/10 bg-black/20"><SelectValue placeholder="Seleziona prodotto" /></SelectTrigger><SelectContent><SelectItem value="none">Seleziona prodotto</SelectItem><SelectItem value="new">Crea nuovo prodotto</SelectItem>{(products as any[]).map((product) => <SelectItem key={product.id} value={product.id}>{product.nome}{product.codice ? ` · ${product.codice}` : ""}</SelectItem>)}</SelectContent></Select></div>
                                 {review.creaProdotto && <div className="space-y-2"><Label>Nome nuovo prodotto</Label><Input value={review.nomeProdotto} onChange={(event) => updateLine(line.id, { nomeProdotto: event.target.value })} className="h-12 rounded-2xl border-white/10 bg-black/20" /></div>}
-                                <p className="flex items-center gap-2 text-xs text-emerald-100/70"><PackagePlus className="h-4 w-4" />Quantità da caricare: {line.quantita ? `${Number(line.quantita).toLocaleString("it-IT")} ${line.unitaMisura || ""}` : "non disponibile"}</p>
+                                {review.prodottoId && !review.creaProdotto && <RicevimentoFattura productId={review.prodottoId} selected={review.ricevimentoMagazzinoId??null} residual={review.quantitaRicevutaResidua??null} onChange={(id,q)=>updateLine(line.id,{ricevimentoMagazzinoId:id,quantitaRicevutaResidua:q})}/>}
+                                <p className="flex items-center gap-2 text-xs text-emerald-100/70"><PackagePlus className="h-4 w-4" />{review.ricevimentoMagazzinoId?"Già ricevuta (nessun secondo carico): ":"Quantità da caricare: "} {line.quantita ? `${Number(line.quantita).toLocaleString("it-IT")} ${line.unitaMisura || ""}` : "non disponibile"}</p>
                               </div>
                             )}
                           </div>}
