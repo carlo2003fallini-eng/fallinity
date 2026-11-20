@@ -18,7 +18,7 @@ const areas = [
   },
   {
     path: "distribuzione",
-    title: "Distribuzione e consumi",
+    title: "Menù operatore",
     image: /^\/manus-storage\/feeding-ref100-distribuzione_[0-9a-f]+\.jpg$/,
   },
   {
@@ -81,21 +81,24 @@ describe("Hub Alimentazione — sfondi visuali Fase 100", () => {
     expect(hubSource).toContain('backgroundPosition: "center"');
   });
 
-  it("mantiene riepilogo, API dati e contenuto testuale senza dedurre un Menù operatore", () => {
+  it("mantiene riepilogo, API dati e il nome Menù operatore richiesto", () => {
     expect(hubSource).toContain("const q = useFeed();");
     expect(hubSource).toContain("const s = q.data?.summary;");
     expect(hubSource).toContain('<FeedStatus query={q} />');
     expect(hubSource).toContain('aria-label="Situazione alimentare aziendale"');
     expect(hubSource).toMatch(/>\s*Situazione alimentare\s*<\/h2>/);
     expect(hubSource).toContain("s.coverage");
-    expect(hubSource).not.toContain("Menù operatore");
-    expect(hubSource).not.toContain("Menu operatore");
+    expect(hubSource).toContain('title: "Menù operatore"');
+    expect(hubSource).not.toContain("Distribuzione e consumi");
+    const operationSource = readClient("pages/alimentazione/Distribuzione.tsx");
+    expect(operationSource.match(/<FeedPage title="Menù operatore">/g)).toHaveLength(4);
+    expect(operationSource).not.toContain("Distribuzione e consumi");
   });
 });
 
 describe("Hub Alimentazione — whitelist PWA Fase 100", () => {
   it("precarica gli stessi quattro nuovi asset pubblici con cacheversion dedicata", () => {
-    expect(serviceWorker).toContain("fase-100-alimentazione-sfondi");
+    expect(serviceWorker).toContain("fase-101-menu-operatore");
     for (const area of areas) {
       const imageName = serviceWorker.match(
         new RegExp(`feeding-ref100-${area.path}_[0-9a-f]+\\.jpg`)

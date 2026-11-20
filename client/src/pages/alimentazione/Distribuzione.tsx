@@ -255,7 +255,7 @@ export default function Distribuzione() {
   const feed = useFeed();
   if (feed.isLoading || feed.error)
     return (
-      <FeedPage title="Distribuzione e consumi">
+      <FeedPage title="Menù operatore">
         <FeedStatus query={feed} />
         {feed.error && (
           <button className={SECONDARY} onClick={() => void feed.refetch()}>
@@ -266,7 +266,7 @@ export default function Distribuzione() {
     );
   if (!feed.data)
     return (
-      <FeedPage title="Distribuzione e consumi">
+      <FeedPage title="Menù operatore">
         <Hint>
           Nessun dato aziendale disponibile. Seleziona un’azienda e verifica
           l’accesso.
@@ -275,7 +275,7 @@ export default function Distribuzione() {
     );
   if (!feed.data.permissions.canView)
     return (
-      <FeedPage title="Distribuzione e consumi">
+      <FeedPage title="Menù operatore">
         <Hint danger>
           Non sei autorizzato a consultare l’alimentazione di questa azienda.
         </Hint>
@@ -871,7 +871,7 @@ function Operations({
     (distributionGroup === selectedRun.groupId || otherAuthorized);
 
   return (
-    <FeedPage title="Distribuzione e consumi">
+    <FeedPage title="Menù operatore">
       <div className="space-y-4 text-white">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Stat

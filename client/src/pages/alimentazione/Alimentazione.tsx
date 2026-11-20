@@ -16,7 +16,7 @@ const areas = [
   },
   {
     path: "distribuzione",
-    title: "Distribuzione e consumi",
+    title: "Menù operatore",
     icon: Tractor,
     image: "/manus-storage/feeding-ref100-distribuzione_2070bdde.jpg",
   },

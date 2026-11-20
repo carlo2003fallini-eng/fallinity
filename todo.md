@@ -105,3 +105,8 @@ Limiti e completamenti espliciti: rettifica guidata dopo distribuzione non attiv
 Nota: il messaggio termina con «e anche», senza specificare ulteriori modifiche. Non vengono dedotti cambi di nome, icone o funzioni.
 
 Verifiche Fase 100: 19/19 test mirati sfondi/PWA; suite globale, TypeScript, build, service worker e diff validi. Screenshot mobile a 360/390 px: quattro scene coerenti col riferimento, overlay leggibile, titoli/icone/dimensioni/rotte e riepilogo preservati. Sfondi privi di UI incorporata, ottimizzati a 1100 px, luminosità ridotta del 12%. Nessuna modifica a dati aziendali, database o procedure operative.
+
+## Fase 101 — Rinomina Alimentazione: Menù operatore
+- [x] Sostituire “Distribuzione e consumi” con “Menù operatore” nella scheda e nei titoli della pagina, inclusi gli stati caricamento/errore/accesso
+- [x] Conservare percorso, immagini, dimensioni, permessi e funzioni; aggiornare PWA e regressioni, verificare test/build e mobile
+Verifiche concluse: 759 test globali superati (12 integrazioni opzionali non riattivate), 22 test UI operatore superati, TypeScript/build/SW/diff validi; scheda e pagina verificate a 390 px. Nessuna modifica a dati, database o operazioni di distribuzione.

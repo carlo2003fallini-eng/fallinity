@@ -95,7 +95,7 @@ describe("Fallinity PWA — cache e aggiornamenti", () => {
   });
 
   it("precarica soltanto gli sfondi pubblici degli hub Stalla e Officina", () => {
-    expect(serviceWorker).toContain("fase-100-alimentazione-sfondi");
+    expect(serviceWorker).toContain("fase-101-menu-operatore");
     for (const asset of ["dati-stalla-dashboard_e7198686.jpg", "riproduzione_e5015a4c.jpg", "vitelli_fb9a167e.jpg", "gruppi_81c45d0c.jpg", "sanita_9ab86209.jpg", "alimentazione_71b16042.jpg", "officina-operatore-card_4486e69e.jpg", "officina-mezzi-card_2aaf0eca.jpg", "officina-interventi-card_0cd91977.jpg", "officina-ricambi-card_7d786495.jpg"]) {
       expect(serviceWorker).toContain(asset);
     }
